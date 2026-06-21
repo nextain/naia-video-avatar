@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>nva 에디터 — naia video clip avatar</title>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+  :root{ color-scheme:dark; }
+  body{ margin:0; font-family:system-ui,sans-serif; background:#11151c; color:#e6edf3; }
+  header{ display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid #222c3a; flex-wrap:wrap; }
+  header h1{ font-size:16px; margin:0; } .pill{ background:#222c3a; border-radius:999px; padding:2px 8px; font-size:12px; }
+  button{ background:#222c3a; color:#e6edf3; border:1px solid #33415a; border-radius:8px; padding:7px 13px; cursor:pointer; font-size:13px; }
+  button:hover{ background:#2c3a4e; } button.primary{ background:#2f6feb; border-color:#2f6feb; }
+  button.go{ background:#27c08a; border-color:#27c08a; color:#06281d; }
+  #wrap{ display:flex; gap:0; height:calc(100vh - 56px); }
+  #left{ flex:1; display:flex; flex-direction:column; border-right:1px solid #222c3a; min-width:380px; }
+  #json{ flex:1; width:100%; box-sizing:border-box; background:#0c1118; color:#cfe3ff; border:0; padding:14px; font-family:ui-monospace,monospace; font-size:12.5px; resize:none; }
+  #right{ flex:0 0 420px; padding:16px; overflow:auto; }
+  canvas{ background:#000; border-radius:10px; display:block; margin:0 auto 10px; max-height:46vh; }
+  .ctrls button{ margin:0 5px 5px 0; } .ctrls button.active{ background:#2f6feb; border-color:#2f6feb; }
+  .ctrls .talk{ border-color:#27c08a; } .ctrls .anim{ border-color:#a06bff; }
+  #valid{ white-space:pre-wrap; font-family:ui-monospace,monospace; font-size:12px; background:#0c1118; border:1px solid #222c3a; border-radius:8px; padding:10px; margin-top:8px; max-height:24vh; overflow:auto; }
+  h2{ font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:#8b98a9; margin:14px 0 6px; }
+  .dot{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .ok{ background:#27c08a; } .bad{ background:#ff5a5a; }
+  #status{ font-size:12px; color:#8b98a9; }
+</style>
+</head>
+<body>
+<header>
+  <h1>nva 에디터 <span class="pill">v0.1</span></h1>
+  <button id="loadDemo">데모 로드</button>
+  <button id="apply" class="primary">적용 ▶ 미리보기</button>
+  <button id="exportBtn" class="go">⬇ .nva 내보내기</button>
+  <span id="vstate"><span class="dot bad"></span><span id="status">manifest를 편집하세요</span></span>
+</header>
+<div id="wrap">
+  <div id="left">
+    <h2 style="padding:8px 14px 0;margin:0">manifest.json (편집)</h2>
+    <textarea id="json" spellcheck="false"></textarea>
+  </div>
+  <div id="right">
+    <canvas id="cv" width="360" height="640"></canvas>
+    <div class="ctrls" id="ctrls"></div>
+    <button id="speakBtn">🎙 말하기 OFF</button>
+    <h2>유효성 (validator)</h2>
+    <div id="valid">…</div>
+  </div>
+</div>
+
+<script type="module">
+// ── nva-core 인라인 (정본: src/main/nva-core.js) ──
+function validateManifest(m,opts={}){
+  const errors=[],warnings=[]; const E=s=>errors.push(s),W=s=>warnings.push(s);
+  if(!m||typeof m!=="object")return{ok:false,errors:["manifest가 객체가 아님"],warnings};
+  if(m.nva_version!=="0.1")E(`nva_version="0.1" 필요(현재 ${m.nva_version})`);
+  if(!m.canvas||!(m.canvas.width>0)||!(m.canvas.height>0))E("canvas.width/height 필수");
+  const states=m.states||{},keys=Object.keys(states);
+  if(keys.length===0)E("states 비어있음");
+  if(!m.initial)E("initial 없음"); else if(!states[m.initial])E(`initial '${m.initial}' state 없음`);
+  const poses=new Set(m.poses||[]),vocab=poses.size>0;
+  const cp=(w,p)=>{ if(!p){E(`${w}: pose 없음`);return;} if(vocab&&!poses.has(p))W(`${w}: pose '${p}' 어휘 밖`); };
+  for(const[k,s]of Object.entries(states)){
+    if(s.kind!=="talking"&&s.kind!=="animation")E(`state ${k}: kind talking|animation`);
+    if(!s.clip)E(`state ${k}: clip 없음`); cp(`state ${k}.entry_pose`,s.entry_pose); cp(`state ${k}.exit_pose`,s.exit_pose);
+    if(s.can_talk){ if(!Array.isArray(s.face_bbox)||s.face_bbox.length!==4)E(`state ${k}: face_bbox[4] 필수`);
+      else if(s.face_bbox.some(v=>v<0||v>1))E(`state ${k}: face_bbox 0~1`); }
+  }
+  for(const[k,t]of Object.entries(m.transitions||{})){
+    if(!t.clip)E(`transition ${k}: clip 없음`); cp(`transition ${k}.entry_pose`,t.entry_pose); cp(`transition ${k}.exit_pose`,t.exit_pose);
+  }
+  if(m.initial&&states[m.initial]){ const r=reachableStates(m,m.initial);
+    for(const[k,s]of Object.entries(states))if(s.kind==="talking"&&!r.has(k))W(`state ${k}(talking): initial서 도달 불가`); }
+  return{ok:errors.length===0,errors,warnings};
+}
+function findTransitionPath(m,from,to){ if(from===to)return[];
+  const ts=Object.entries(m.transitions||{}); const q=[[from,[]]],seen=new Set([from]);
+  while(q.length){const[p,path]=q.shift(); for(const[k,t]of ts){ if(t.entry_pose!==p||seen.has(t.exit_pose))continue;
+    const n=[...path,k]; if(t.exit_pose===to)return n; seen.add(t.exit_pose); q.push([t.exit_pose,n]); }} return null; }
+function reachableStates(m,startKey){ const states=m.states||{},start=states[startKey],reached=new Set(); if(!start)return reached;
+  const pr=new Set([start.exit_pose,start.entry_pose]); let grew=true;
+  while(grew){grew=false; for(const t of Object.values(m.transitions||{})) if(pr.has(t.entry_pose)&&!pr.has(t.exit_pose)){pr.add(t.exit_pose);grew=true;}}
+  for(const[k,s]of Object.entries(states))if(pr.has(s.entry_pose))reached.add(k); reached.add(startKey); return reached; }
+class NvaStateMachine{ constructor(m){this.m=m;this.current=m.initial;}
+  plan(t){const c=this.m.states[this.current],g=this.m.states[t]; if(!c||!g)return null;
+    const p=findTransitionPath(this.m,c.exit_pose,g.entry_pose); return p===null?null:{transitions:p,target:t};} commit(t){this.current=t;} }
+function buildPlaybackSequence(m,plan){ const seq=[];
+  for(const tk of plan.transitions){const t=m.transitions[tk]; seq.push({kind:"transition",key:tk,clip:t.clip,loop:false});}
+  const s=m.states[plan.target]; seq.push({kind:s.kind,key:plan.target,clip:s.clip,loop:!!s.loop,can_talk:!!s.can_talk,face_bbox:s.face_bbox||null}); return seq; }
+
+// ── 에디터 ──
+const NVA="../../examples/demo.nva";
+const jsonEl=document.getElementById("json"), cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const off=document.createElement("canvas"), octx=off.getContext("2d",{willReadFrequently:true});
+const validEl=document.getElementById("valid"), ctrls=document.getElementById("ctrls");
+const statusEl=document.getElementById("status"), vdot=()=>document.querySelector("#vstate .dot");
+let M=null, sm=null, bg="#202830", speaking=false, current=null, busy=false;
+const video=document.createElement("video"); video.muted=true; video.playsInline=true;
+const CHROMA=[0,0xb1,0x40], THRESH=90;
+
+function compose(ts){
+  ctx.fillStyle=bg; ctx.fillRect(0,0,cv.width,cv.height);
+  if(video.readyState>=2){
+    off.width=cv.width; off.height=cv.height; octx.drawImage(video,0,0,cv.width,cv.height);
+    const img=octx.getImageData(0,0,cv.width,cv.height),d=img.data;
+    for(let i=0;i<d.length;i+=4){const dr=d[i]-CHROMA[0],dg=d[i+1]-CHROMA[1],db=d[i+2]-CHROMA[2];
+      if(dr*dr+dg*dg+db*db<THRESH*THRESH)d[i+3]=0;}
+    octx.putImageData(img,0,0); ctx.drawImage(off,0,0);
+  }
+  if(speaking&&current&&current.can_talk&&current.face_bbox){
+    const[x,y,w,h]=current.face_bbox, px=x*cv.width,py=y*cv.height,pw=w*cv.width,ph=h*cv.height;
+    const open=Math.sin(ts/90)*0.5+0.5, mw=pw*0.4,mh=ph*0.1*(0.3+open),mx=px+pw*0.3,my=py+ph*0.62;
+    ctx.fillStyle="#7a1f1f"; ctx.fillRect(mx,my,mw,mh+2);
+    ctx.strokeStyle="#ffffff55"; ctx.setLineDash([4,4]); ctx.strokeRect(px,py,pw,ph); ctx.setLineDash([]);
+  }
+  requestAnimationFrame(compose);
+}
+function playClip(clip,loop){ return new Promise(res=>{ video.src=`${NVA}/${clip}`; video.loop=loop;
+  const e=()=>{video.removeEventListener("ended",e);res();}; if(!loop)video.addEventListener("ended",e);
+  video.play().catch(()=>{}); if(loop)res(); }); }
+async function goto(target){ if(busy||!sm)return; busy=true;
+  const plan=sm.plan(target); if(!plan){statusEl.textContent=`${target} 도달 불가`; busy=false; return;}
+  for(const step of buildPlaybackSequence(M,plan)){ current=step;
+    [...ctrls.children].forEach(b=>b.classList.toggle("active",b.dataset.s===target));
+    await playClip(step.clip,step.loop); }
+  sm.commit(target); busy=false; }
+
+function rebuild(){
+  try{ M=JSON.parse(jsonEl.value); }
+  catch(e){ vdot().className="dot bad"; statusEl.textContent="JSON 파싱 오류"; validEl.textContent="❌ JSON 파싱 실패: "+e.message; return; }
+  const r=validateManifest(M);
+  validEl.textContent=(r.ok?"✅ VALID\n":"❌ INVALID\n")+
+    r.errors.map(e=>"ERROR  "+e).join("\n")+(r.errors.length?"\n":"")+
+    r.warnings.map(w=>"WARN   "+w).join("\n")+(r.warnings.length?"":"(경고 없음)");
+  vdot().className="dot "+(r.ok?"ok":"bad");
+  statusEl.textContent=r.ok?"유효 — 미리보기/내보내기 가능":"오류 수정 필요";
+  cv.width=M.canvas?.width||360; cv.height=M.canvas?.height||640;
+  if(M.background?.color)bg=M.background.color;
+  // 컨트롤 재생성
+  ctrls.innerHTML="";
+  for(const[k,s]of Object.entries(M.states||{})){
+    const b=document.createElement("button"); b.textContent=s.label||k; b.dataset.s=k;
+    b.className=s.kind==="talking"?"talk":"anim"; b.onclick=()=>goto(k); ctrls.appendChild(b);
+  }
+  if(r.ok){ sm=new NvaStateMachine(M); goto(M.initial); }
+  return r.ok;
+}
+
+document.getElementById("speakBtn").onclick=e=>{ speaking=!speaking;
+  e.target.textContent=speaking?"🎙 말하기 ON":"🎙 말하기 OFF"; e.target.style.background=speaking?"#27c08a":""; };
+document.getElementById("apply").onclick=rebuild;
+document.getElementById("loadDemo").onclick=async()=>{
+  const m=await (await fetch(`${NVA}/manifest.json`)).json();
+  jsonEl.value=JSON.stringify(m,null,2); rebuild();
+};
+document.getElementById("exportBtn").onclick=async()=>{
+  if(!rebuild()){ alert("유효성 오류 — 내보내기 차단"); return; }
+  statusEl.textContent="패키징 중…";
+  const zip=new JSZip();
+  zip.file("manifest.json", JSON.stringify(M,null,2));
+  const clips=new Set([...Object.values(M.states).map(s=>s.clip),...Object.values(M.transitions||{}).map(t=>t.clip)]);
+  for(const c of clips){ try{ const blob=await (await fetch(`${NVA}/${c}`)).blob(); zip.file(c,blob);}catch(e){} }
+  const out=await zip.generateAsync({type:"blob"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||"character")+".nva"; a.click();
+  statusEl.textContent="내보내기 완료 (.nva)";
+};
+requestAnimationFrame(compose);
+// 시작 시 데모 자동 로드
+document.getElementById("loadDemo").click();
+</script>
+</body>
+</html>

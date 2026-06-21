@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nextain.io/nva/0.1/schema.json",
+  "title": "nva — naia video clip avatar manifest",
+  "description": "비디오 클립 기반 토킹헤드 아바타 교환 포맷(nva) v0.1. 포맷의 핵심은 비디오 파일이 아니라 클립의 위치·조합·순서(상태머신)다.",
+  "type": "object",
+  "required": ["nva_version", "canvas", "states", "initial"],
+  "additionalProperties": false,
+  "properties": {
+    "nva_version": { "type": "string", "const": "0.1" },
+    "meta": {
+      "type": "object",
+      "description": "캐릭터 자산의 출처·권한. owner = 캐릭터 소유자(포맷 소유자와 별개).",
+      "properties": {
+        "name": { "type": "string" },
+        "author": { "type": "string" },
+        "owner": { "type": "string" },
+        "license": { "type": "string" },
+        "created": { "type": "string" }
+      }
+    },
+    "canvas": {
+      "type": "object",
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "fps": { "type": "integer", "minimum": 1, "default": 25 }
+      }
+    },
+    "background": {
+      "type": "object",
+      "description": "배경 레이어(알파 디코딩 카운트 제외). 없으면 투명(naia-os 데스크톱 합성).",
+      "properties": {
+        "type": { "enum": ["color", "image", "video", "transparent"] },
+        "color": { "type": "string" },
+        "src": { "type": "string" }
+      }
+    },
+    "poses": {
+      "type": "array",
+      "description": "포즈 어휘. entry_pose/exit_pose는 이 목록의 값이어야 한다.",
+      "items": { "type": "string" }
+    },
+    "initial": {
+      "type": "string",
+      "description": "시작 state 키 (states 안에 존재해야 함)."
+    },
+    "states": {
+      "type": "object",
+      "description": "안정/동작 단위. talking=말하기 가능 / animation=동작.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["kind", "clip", "entry_pose", "exit_pose"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "enum": ["talking", "animation"] },
+          "clip": { "type": "string" },
+          "entry_pose": { "type": "string" },
+          "exit_pose": { "type": "string" },
+          "loop": { "type": "boolean", "default": false },
+          "can_talk": { "type": "boolean", "default": false },
+          "face_bbox": {
+            "type": "array",
+            "description": "[x,y,w,h] 정규화 0~1. can_talk:true면 필수 — 헤드토킹 오버레이 위치.",
+            "items": { "type": "number", "minimum": 0, "maximum": 1 },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "label": { "type": "string" }
+        }
+      }
+    },
+    "transitions": {
+      "type": "object",
+      "description": "포즈 간 이동 클립. entry_pose(from) → exit_pose(to).",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["clip", "entry_pose", "exit_pose"],
+        "additionalProperties": false,
+        "properties": {
+          "clip": { "type": "string" },
+          "entry_pose": { "type": "string" },
+          "exit_pose": { "type": "string" },
+          "label": { "type": "string" }
+        }
+      }
+    }
+  }
+}
