@@ -9,6 +9,7 @@
   },
   "canvas": { "width": 360, "height": 640, "fps": 25 },
   "background": { "type": "color", "color": "#202830" },
+  "chroma_key": "#00b140",
   "poses": ["standing", "sitting"],
   "initial": "stand_talk",
   "states": {

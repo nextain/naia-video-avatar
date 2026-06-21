@@ -3,171 +3,233 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>nva 에디터 — naia video clip avatar</title>
+<title>nva 에디터 — naia video clip avatar 제작 도구</title>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
   :root{ color-scheme:dark; }
-  body{ margin:0; font-family:system-ui,sans-serif; background:#11151c; color:#e6edf3; }
-  header{ display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid #222c3a; flex-wrap:wrap; }
-  header h1{ font-size:16px; margin:0; } .pill{ background:#222c3a; border-radius:999px; padding:2px 8px; font-size:12px; }
-  button{ background:#222c3a; color:#e6edf3; border:1px solid #33415a; border-radius:8px; padding:7px 13px; cursor:pointer; font-size:13px; }
-  button:hover{ background:#2c3a4e; } button.primary{ background:#2f6feb; border-color:#2f6feb; }
-  button.go{ background:#27c08a; border-color:#27c08a; color:#06281d; }
-  #wrap{ display:flex; gap:0; height:calc(100vh - 56px); }
-  #left{ flex:1; display:flex; flex-direction:column; border-right:1px solid #222c3a; min-width:380px; }
-  #json{ flex:1; width:100%; box-sizing:border-box; background:#0c1118; color:#cfe3ff; border:0; padding:14px; font-family:ui-monospace,monospace; font-size:12.5px; resize:none; }
-  #right{ flex:0 0 420px; padding:16px; overflow:auto; }
-  canvas{ background:#000; border-radius:10px; display:block; margin:0 auto 10px; max-height:46vh; }
-  .ctrls button{ margin:0 5px 5px 0; } .ctrls button.active{ background:#2f6feb; border-color:#2f6feb; }
-  .ctrls .talk{ border-color:#27c08a; } .ctrls .anim{ border-color:#a06bff; }
-  #valid{ white-space:pre-wrap; font-family:ui-monospace,monospace; font-size:12px; background:#0c1118; border:1px solid #222c3a; border-radius:8px; padding:10px; margin-top:8px; max-height:24vh; overflow:auto; }
-  h2{ font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:#8b98a9; margin:14px 0 6px; }
-  .dot{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
-  .ok{ background:#27c08a; } .bad{ background:#ff5a5a; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:system-ui,sans-serif; background:#0e1219; color:#e6edf3; }
+  header{ display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid #222c3a; flex-wrap:wrap; }
+  header h1{ font-size:15px; margin:0; } .pill{ background:#222c3a; border-radius:999px; padding:2px 8px; font-size:11px; }
+  button{ background:#222c3a; color:#e6edf3; border:1px solid #33415a; border-radius:7px; padding:6px 11px; cursor:pointer; font-size:13px; }
+  button:hover{ background:#2c3a4e; } button.primary{ background:#2f6feb; border-color:#2f6feb; } button.go{ background:#27c08a; border-color:#27c08a; color:#06281d; }
+  button.sm{ padding:3px 8px; font-size:12px; }
+  input,select{ background:#0c1118; color:#cfe3ff; border:1px solid #33415a; border-radius:6px; padding:5px 7px; font-size:13px; width:100%; }
+  label.f{ display:block; font-size:11px; color:#8b98a9; margin:8px 0 3px; }
+  #wrap{ display:flex; height:calc(100vh - 50px); }
+  aside{ width:310px; overflow:auto; padding:12px; } #struct{ border-right:1px solid #222c3a; } #form{ border-left:1px solid #222c3a; }
+  main{ flex:1; display:flex; flex-direction:column; align-items:center; padding:14px; overflow:auto; }
+  canvas{ background:#000; border-radius:10px; max-height:52vh; }
+  h2{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#8b98a9; margin:14px 0 6px; display:flex; justify-content:space-between; align-items:center; }
+  .item{ display:flex; justify-content:space-between; align-items:center; padding:5px 8px; border-radius:6px; cursor:pointer; font-size:13px; margin:2px 0; background:#161d28; }
+  .item:hover{ background:#1d2735; } .item.sel{ background:#2f6feb; }
+  .item .tag{ font-size:10px; color:#8b98a9; } .item.sel .tag{ color:#cfe0ff; }
+  .ctrls{ margin:8px 0; } .ctrls button{ margin:0 4px 4px 0; } .ctrls button.active{ background:#2f6feb; border-color:#2f6feb; }
+  .ctrls button.scn{ border-color:#e0a93a; }
+  #valid{ white-space:pre-wrap; font-family:ui-monospace,monospace; font-size:11px; background:#0c1118; border:1px solid #222c3a; border-radius:7px; padding:8px; width:100%; max-width:520px; max-height:120px; overflow:auto; }
+  .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; } .ok{ background:#27c08a; } .bad{ background:#ff5a5a; }
+  .step{ display:grid; grid-template-columns:1fr 1fr 1fr 56px 24px; gap:4px; margin:3px 0; }
+  .step input,.step select{ font-size:12px; padding:3px 5px; }
+  .muted{ color:#8b98a9; font-size:11px; }
   #status{ font-size:12px; color:#8b98a9; }
 </style>
 </head>
 <body>
 <header>
-  <h1>nva 에디터 <span class="pill">v0.1</span></h1>
+  <h1>nva 에디터 <span class="pill">v0.1 · 제작 도구</span></h1>
   <button id="loadDemo">데모 로드</button>
-  <button id="apply" class="primary">적용 ▶ 미리보기</button>
+  <label class="sm" style="display:inline-block"><input type="file" id="openNva" accept=".nva,.zip" style="display:none">
+    <button class="sm" onclick="document.getElementById('openNva').click()">.nva 열기</button></label>
   <button id="exportBtn" class="go">⬇ .nva 내보내기</button>
-  <span id="vstate"><span class="dot bad"></span><span id="status">manifest를 편집하세요</span></span>
+  <span><span class="dot bad" id="vdot"></span><span id="status">데모를 로드하거나 .nva를 여세요</span></span>
 </header>
 <div id="wrap">
-  <div id="left">
-    <h2 style="padding:8px 14px 0;margin:0">manifest.json (편집)</h2>
-    <textarea id="json" spellcheck="false"></textarea>
-  </div>
-  <div id="right">
+  <!-- 좌: 리소스/구조 -->
+  <aside id="struct">
+    <h2>메타</h2>
+    <label class="f">이름</label><input id="m_name">
+    <label class="f">제작자/소유 (author / owner)</label><input id="m_owner">
+    <h2>배경 / 크로마</h2>
+    <label class="f">배경색</label><input id="m_bg" type="color">
+    <label class="f">크로마키 색 (캐릭터 투명처리)</label><input id="m_chroma" type="color">
+    <label class="f">포즈 어휘 (쉼표)</label><input id="m_poses" placeholder="standing, sitting">
+    <h2>talking / animation <span><button class="sm" id="addTalk">+말하기</button> <button class="sm" id="addAnim">+동작</button></span></h2>
+    <div id="statesList"></div>
+    <h2>transitions <span><button class="sm" id="addTrans">+전환</button></span></h2>
+    <div id="transList"></div>
+    <h2>scenarios <span><button class="sm" id="addScn">+시나리오</button></span></h2>
+    <div id="scnList"></div>
+  </aside>
+
+  <!-- 중앙: 미리보기(플레이) -->
+  <main>
     <canvas id="cv" width="360" height="640"></canvas>
-    <div class="ctrls" id="ctrls"></div>
-    <button id="speakBtn">🎙 말하기 OFF</button>
-    <h2>유효성 (validator)</h2>
+    <div class="ctrls" id="playCtrls"></div>
+    <div class="ctrls"><button id="speakBtn">🎙 말하기 OFF</button> <span class="muted">선택 상태/시나리오를 돌려봅니다</span></div>
+    <h2 style="align-self:flex-start">유효성 (validator)</h2>
     <div id="valid">…</div>
-  </div>
+  </main>
+
+  <!-- 우: 선택 항목 메타 편집 -->
+  <aside id="form"><div id="formBody"><p class="muted">왼쪽에서 항목을 선택하면 메타를 편집합니다.</p></div></aside>
 </div>
 
 <script type="module">
-// ── nva-core 인라인 (정본: src/main/nva-core.js) ──
-function validateManifest(m,opts={}){
-  const errors=[],warnings=[]; const E=s=>errors.push(s),W=s=>warnings.push(s);
-  if(!m||typeof m!=="object")return{ok:false,errors:["manifest가 객체가 아님"],warnings};
-  if(m.nva_version!=="0.1")E(`nva_version="0.1" 필요(현재 ${m.nva_version})`);
-  if(!m.canvas||!(m.canvas.width>0)||!(m.canvas.height>0))E("canvas.width/height 필수");
-  const states=m.states||{},keys=Object.keys(states);
-  if(keys.length===0)E("states 비어있음");
-  if(!m.initial)E("initial 없음"); else if(!states[m.initial])E(`initial '${m.initial}' state 없음`);
-  const poses=new Set(m.poses||[]),vocab=poses.size>0;
-  const cp=(w,p)=>{ if(!p){E(`${w}: pose 없음`);return;} if(vocab&&!poses.has(p))W(`${w}: pose '${p}' 어휘 밖`); };
-  for(const[k,s]of Object.entries(states)){
-    if(s.kind!=="talking"&&s.kind!=="animation")E(`state ${k}: kind talking|animation`);
-    if(!s.clip)E(`state ${k}: clip 없음`); cp(`state ${k}.entry_pose`,s.entry_pose); cp(`state ${k}.exit_pose`,s.exit_pose);
-    if(s.can_talk){ if(!Array.isArray(s.face_bbox)||s.face_bbox.length!==4)E(`state ${k}: face_bbox[4] 필수`);
-      else if(s.face_bbox.some(v=>v<0||v>1))E(`state ${k}: face_bbox 0~1`); }
-  }
-  for(const[k,t]of Object.entries(m.transitions||{})){
-    if(!t.clip)E(`transition ${k}: clip 없음`); cp(`transition ${k}.entry_pose`,t.entry_pose); cp(`transition ${k}.exit_pose`,t.exit_pose);
-  }
-  if(m.initial&&states[m.initial]){ const r=reachableStates(m,m.initial);
-    for(const[k,s]of Object.entries(states))if(s.kind==="talking"&&!r.has(k))W(`state ${k}(talking): initial서 도달 불가`); }
-  return{ok:errors.length===0,errors,warnings};
-}
-function findTransitionPath(m,from,to){ if(from===to)return[];
-  const ts=Object.entries(m.transitions||{}); const q=[[from,[]]],seen=new Set([from]);
-  while(q.length){const[p,path]=q.shift(); for(const[k,t]of ts){ if(t.entry_pose!==p||seen.has(t.exit_pose))continue;
-    const n=[...path,k]; if(t.exit_pose===to)return n; seen.add(t.exit_pose); q.push([t.exit_pose,n]); }} return null; }
-function reachableStates(m,startKey){ const states=m.states||{},start=states[startKey],reached=new Set(); if(!start)return reached;
-  const pr=new Set([start.exit_pose,start.entry_pose]); let grew=true;
-  while(grew){grew=false; for(const t of Object.values(m.transitions||{})) if(pr.has(t.entry_pose)&&!pr.has(t.exit_pose)){pr.add(t.exit_pose);grew=true;}}
-  for(const[k,s]of Object.entries(states))if(pr.has(s.entry_pose))reached.add(k); reached.add(startKey); return reached; }
-class NvaStateMachine{ constructor(m){this.m=m;this.current=m.initial;}
-  plan(t){const c=this.m.states[this.current],g=this.m.states[t]; if(!c||!g)return null;
-    const p=findTransitionPath(this.m,c.exit_pose,g.entry_pose); return p===null?null:{transitions:p,target:t};} commit(t){this.current=t;} }
-function buildPlaybackSequence(m,plan){ const seq=[];
-  for(const tk of plan.transitions){const t=m.transitions[tk]; seq.push({kind:"transition",key:tk,clip:t.clip,loop:false});}
-  const s=m.states[plan.target]; seq.push({kind:s.kind,key:plan.target,clip:s.clip,loop:!!s.loop,can_talk:!!s.can_talk,face_bbox:s.face_bbox||null}); return seq; }
+import { validateManifest, NvaStateMachine, buildPlaybackSequence, listScenarios } from "./nva-core.js";
 
-// ── 에디터 ──
-const NVA="../../examples/demo.nva";
-const jsonEl=document.getElementById("json"), cv=document.getElementById("cv"), ctx=cv.getContext("2d");
-const off=document.createElement("canvas"), octx=off.getContext("2d",{willReadFrequently:true});
-const validEl=document.getElementById("valid"), ctrls=document.getElementById("ctrls");
-const statusEl=document.getElementById("status"), vdot=()=>document.querySelector("#vstate .dot");
-let M=null, sm=null, bg="#202830", speaking=false, current=null, busy=false;
+let M=null, baseUrl="", blobMap={}, selected=null, sm=null, busy=false, scnPlaying=false;
+let speaking=false, current=null, currentCaption="";
+const $=id=>document.getElementById(id);
+const cv=$("cv"), ctx=cv.getContext("2d"), off=document.createElement("canvas"), octx=off.getContext("2d",{willReadFrequently:true});
 const video=document.createElement("video"); video.muted=true; video.playsInline=true;
-const CHROMA=[0,0xb1,0x40], THRESH=90;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clipUrl=c=> blobMap[c]?.url || (baseUrl ? `${baseUrl}/${c}` : c);
+function hexRGB(h){ h=(h||"#00b140").replace("#",""); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
 
+// ── 미리보기(플레이) ──
 function compose(ts){
-  ctx.fillStyle=bg; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.fillStyle=(M?.background?.color)||"#202830"; ctx.fillRect(0,0,cv.width,cv.height);
   if(video.readyState>=2){
     off.width=cv.width; off.height=cv.height; octx.drawImage(video,0,0,cv.width,cv.height);
-    const img=octx.getImageData(0,0,cv.width,cv.height),d=img.data;
-    for(let i=0;i<d.length;i+=4){const dr=d[i]-CHROMA[0],dg=d[i+1]-CHROMA[1],db=d[i+2]-CHROMA[2];
-      if(dr*dr+dg*dg+db*db<THRESH*THRESH)d[i+3]=0;}
-    octx.putImageData(img,0,0); ctx.drawImage(off,0,0);
+    if(M?.chroma_key){
+      const [cr,cg,cb]=hexRGB(M.chroma_key), img=octx.getImageData(0,0,cv.width,cv.height),d=img.data;
+      for(let i=0;i<d.length;i+=4){ const dr=d[i]-cr,dg=d[i+1]-cg,db=d[i+2]-cb; if(dr*dr+dg*dg+db*db<90*90) d[i+3]=0; }
+      octx.putImageData(img,0,0);
+    }
+    ctx.drawImage(off,0,0);
   }
-  if(speaking&&current&&current.can_talk&&current.face_bbox){
+  if(speaking&&current?.can_talk&&current.face_bbox){
     const[x,y,w,h]=current.face_bbox, px=x*cv.width,py=y*cv.height,pw=w*cv.width,ph=h*cv.height;
-    const open=Math.sin(ts/90)*0.5+0.5, mw=pw*0.4,mh=ph*0.1*(0.3+open),mx=px+pw*0.3,my=py+ph*0.62;
-    ctx.fillStyle="#7a1f1f"; ctx.fillRect(mx,my,mw,mh+2);
+    const o=Math.sin(ts/90)*0.5+0.5; ctx.fillStyle="#7a1f1f"; ctx.fillRect(px+pw*0.3,py+ph*0.62,pw*0.4,ph*0.1*(0.3+o)+2);
     ctx.strokeStyle="#ffffff55"; ctx.setLineDash([4,4]); ctx.strokeRect(px,py,pw,ph); ctx.setLineDash([]);
+  }
+  if(currentCaption){
+    ctx.font="bold 18px system-ui"; const tw=ctx.measureText(currentCaption).width, bw=Math.min(cv.width-16,tw+26), bx=(cv.width-bw)/2, by=cv.height-60;
+    ctx.fillStyle="rgba(0,0,0,.62)"; ctx.fillRect(bx,by,bw,40); ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.fillText(currentCaption,cv.width/2,by+26); ctx.textAlign="left";
   }
   requestAnimationFrame(compose);
 }
-function playClip(clip,loop){ return new Promise(res=>{ video.src=`${NVA}/${clip}`; video.loop=loop;
-  const e=()=>{video.removeEventListener("ended",e);res();}; if(!loop)video.addEventListener("ended",e);
-  video.play().catch(()=>{}); if(loop)res(); }); }
+function playClip(clip,loop){ return new Promise(res=>{ video.src=clipUrl(clip); video.loop=loop;
+  const e=()=>{video.removeEventListener("ended",e);res();}; if(!loop)video.addEventListener("ended",e); video.play().catch(()=>{}); if(loop)res(); }); }
 async function goto(target){ if(busy||!sm)return; busy=true;
-  const plan=sm.plan(target); if(!plan){statusEl.textContent=`${target} 도달 불가`; busy=false; return;}
-  for(const step of buildPlaybackSequence(M,plan)){ current=step;
-    [...ctrls.children].forEach(b=>b.classList.toggle("active",b.dataset.s===target));
-    await playClip(step.clip,step.loop); }
+  const plan=sm.plan(target); if(!plan){ $("status").textContent=`${target} 도달 불가(포즈 경로 없음)`; busy=false; return; }
+  for(const st of buildPlaybackSequence(M,plan)){ current=st; await playClip(st.clip,st.loop); }
   sm.commit(target); busy=false; }
+async function playScenario(id){ const sc=M.scenarios?.[id]; if(!sc||scnPlaying)return; scnPlaying=true;
+  for(const step of sc.steps){ const t=step.goto||step.event; if(t) await goto(t); if(step.say){ speaking=true; currentCaption=step.say; } await sleep(step.dwell_ms||2000); speaking=false; }
+  currentCaption=""; speaking=false; scnPlaying=false; }
 
-function rebuild(){
-  try{ M=JSON.parse(jsonEl.value); }
-  catch(e){ vdot().className="dot bad"; statusEl.textContent="JSON 파싱 오류"; validEl.textContent="❌ JSON 파싱 실패: "+e.message; return; }
-  const r=validateManifest(M);
-  validEl.textContent=(r.ok?"✅ VALID\n":"❌ INVALID\n")+
-    r.errors.map(e=>"ERROR  "+e).join("\n")+(r.errors.length?"\n":"")+
-    r.warnings.map(w=>"WARN   "+w).join("\n")+(r.warnings.length?"":"(경고 없음)");
-  vdot().className="dot "+(r.ok?"ok":"bad");
-  statusEl.textContent=r.ok?"유효 — 미리보기/내보내기 가능":"오류 수정 필요";
-  cv.width=M.canvas?.width||360; cv.height=M.canvas?.height||640;
-  if(M.background?.color)bg=M.background.color;
-  // 컨트롤 재생성
-  ctrls.innerHTML="";
-  for(const[k,s]of Object.entries(M.states||{})){
-    const b=document.createElement("button"); b.textContent=s.label||k; b.dataset.s=k;
-    b.className=s.kind==="talking"?"talk":"anim"; b.onclick=()=>goto(k); ctrls.appendChild(b);
-  }
-  if(r.ok){ sm=new NvaStateMachine(M); goto(M.initial); }
-  return r.ok;
+// ── 구조 패널 렌더 ──
+function renderStruct(){
+  $("m_name").value=M.meta?.name||""; $("m_owner").value=M.meta?.owner||M.meta?.author||"";
+  $("m_bg").value=(M.background?.color)||"#202830"; $("m_chroma").value=M.chroma_key||"#00b140";
+  $("m_poses").value=(M.poses||[]).join(", ");
+  const sl=$("statesList"); sl.innerHTML="";
+  for(const[k,s]of Object.entries(M.states||{})){ sl.appendChild(itemRow("state",k,s.kind==="talking"?"말하기":"동작")); }
+  const tl=$("transList"); tl.innerHTML="";
+  for(const[k,t]of Object.entries(M.transitions||{})){ tl.appendChild(itemRow("transition",k,`${t.entry_pose}→${t.exit_pose}`)); }
+  const cl=$("scnList"); cl.innerHTML="";
+  for(const[k,c]of Object.entries(M.scenarios||{})){ cl.appendChild(itemRow("scenario",k,`${c.steps?.length||0}단계`)); }
+  // 플레이 컨트롤
+  const pc=$("playCtrls"); pc.innerHTML="";
+  for(const[k,s]of Object.entries(M.states||{})){ const b=document.createElement("button"); b.textContent=s.label||k; b.onclick=()=>goto(k); pc.appendChild(b); }
+  for(const sc of listScenarios(M)){ const b=document.createElement("button"); b.className="scn"; b.textContent="▶ "+sc.label; b.onclick=()=>playScenario(sc.id); pc.appendChild(b); }
+}
+function itemRow(type,key,tag){ const d=document.createElement("div"); d.className="item"+(selected&&selected.type===type&&selected.key===key?" sel":"");
+  d.innerHTML=`<span>${key}</span><span class="tag">${tag}</span>`; d.onclick=()=>select(type,key); return d; }
+function select(type,key){ selected={type,key}; renderStruct(); renderForm(); if(type==="state") goto(key); }
+
+// ── 메타 편집 폼 ──
+function renderForm(){
+  const fb=$("formBody"); if(!selected){ fb.innerHTML='<p class="muted">항목을 선택하세요.</p>'; return; }
+  const {type,key}=selected;
+  if(type==="state"){ const s=M.states[key];
+    fb.innerHTML=`<h2>state: ${key} <button class="sm" data-del>삭제</button></h2>`+
+      fSel("kind","종류",["talking","animation"],s.kind)+fClip("clip","클립",s.clip)+
+      fInp("entry_pose","시작 포즈",s.entry_pose)+fInp("exit_pose","끝 포즈",s.exit_pose)+
+      fChk("loop","루프",s.loop)+fChk("can_talk","말하기 가능(헤드토킹)",s.can_talk)+
+      fBbox(s.face_bbox)+fInp("label","라벨",s.label);
+    bindForm(v=>Object.assign(s,v)); }
+  else if(type==="transition"){ const t=M.transitions[key];
+    fb.innerHTML=`<h2>transition: ${key} <button class="sm" data-del>삭제</button></h2>`+
+      fClip("clip","클립",t.clip)+fInp("entry_pose","시작 포즈(from)",t.entry_pose)+fInp("exit_pose","끝 포즈(to)",t.exit_pose)+fInp("label","라벨",t.label);
+    bindForm(v=>Object.assign(t,v)); }
+  else if(type==="scenario"){ renderScnForm(key); }
+  const del=fb.querySelector("[data-del]"); if(del) del.onclick=()=>{ delete M[type==="state"?"states":type==="transition"?"transitions":"scenarios"][key]; selected=null; renderForm(); refresh(); };
+}
+const fInp=(k,l,v)=>`<label class="f">${l}</label><input data-k="${k}" value="${v??""}">`;
+const fSel=(k,l,opts,v)=>`<label class="f">${l}</label><select data-k="${k}">${opts.map(o=>`<option ${o===v?"selected":""}>${o}</option>`).join("")}</select>`;
+const fChk=(k,l,v)=>`<label class="f"><input type="checkbox" data-k="${k}" ${v?"checked":""} style="width:auto"> ${l}</label>`;
+const fClip=(k,l,v)=>`<label class="f">${l} (클립 파일)</label><input data-k="${k}" value="${v??""}"><input type="file" accept="video/*" data-clip="${k}" style="font-size:11px;margin-top:3px">`;
+const fBbox=(v)=>{ const a=v||[0,0,0,0]; return `<label class="f">face_bbox [x,y,w,h] (0~1)</label><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${a.map((n,i)=>`<input data-bbox="${i}" value="${n}" style="font-size:12px">`).join("")}</div>`; };
+function bindForm(apply){
+  $("formBody").querySelectorAll("[data-k]").forEach(el=>el.onchange=()=>{
+    const k=el.dataset.k, v=el.type==="checkbox"?el.checked:el.value; apply({[k]:v}); refresh(); });
+  const bb=$("formBody").querySelectorAll("[data-bbox]");
+  if(bb.length){ bb.forEach(el=>el.onchange=()=>{ const arr=[...bb].map(e=>parseFloat(e.value)||0); apply({face_bbox:arr}); refresh(); }); }
+  $("formBody").querySelectorAll("[data-clip]").forEach(el=>el.onchange=()=>{
+    const f=el.files[0]; if(!f)return; const name="clips/"+f.name; const url=URL.createObjectURL(f);
+    blobMap[name]={url,blob:f}; apply({[el.dataset.clip]:name}); refresh(); });
+}
+function renderScnForm(key){ const sc=M.scenarios[key]; const stateKeys=Object.keys(M.states||{});
+  const fb=$("formBody");
+  fb.innerHTML=`<h2>scenario: ${key} <button class="sm" data-del>삭제</button></h2>`+fInp("label","라벨",sc.label)+
+    `<label class="f">단계 (goto/event · 대사 · ms)</label><div id="steps"></div><button class="sm" id="addStep">+단계</button>`;
+  fb.querySelector('[data-k="label"]').onchange=e=>{ sc.label=e.target.value; refresh(); };
+  const sd=$("steps");
+  const drawSteps=()=>{ sd.innerHTML=""; sc.steps.forEach((st,i)=>{ const row=document.createElement("div"); row.className="step";
+    row.innerHTML=`<select data-s="goto"><option value="">(goto)</option>${stateKeys.map(k=>`<option ${st.goto===k?"selected":""}>${k}</option>`).join("")}</select>`+
+      `<select data-s="event"><option value="">(event)</option>${stateKeys.filter(k=>M.states[k].kind==="animation").map(k=>`<option ${st.event===k?"selected":""}>${k}</option>`).join("")}</select>`+
+      `<input data-s="say" value="${st.say||""}" placeholder="대사">`+`<input data-s="dwell_ms" type="number" value="${st.dwell_ms||2000}">`+`<button class="sm" data-rm>×</button>`;
+    row.querySelectorAll("[data-s]").forEach(el=>el.onchange=()=>{ const f=el.dataset.s, v=f==="dwell_ms"?parseInt(el.value):el.value;
+      if((f==="goto"||f==="event")&&!v) delete st[f]; else st[f]=v; refresh(); });
+    row.querySelector("[data-rm]").onclick=()=>{ sc.steps.splice(i,1); drawSteps(); refresh(); }; sd.appendChild(row); }); };
+  drawSteps();
+  $("addStep").onclick=()=>{ sc.steps.push({goto:stateKeys[0]||"",say:"",dwell_ms:2000}); drawSteps(); refresh(); };
+  fb.querySelector("[data-del]").onclick=()=>{ delete M.scenarios[key]; selected=null; renderForm(); refresh(); };
 }
 
-document.getElementById("speakBtn").onclick=e=>{ speaking=!speaking;
-  e.target.textContent=speaking?"🎙 말하기 ON":"🎙 말하기 OFF"; e.target.style.background=speaking?"#27c08a":""; };
-document.getElementById("apply").onclick=rebuild;
-document.getElementById("loadDemo").onclick=async()=>{
-  const m=await (await fetch(`${NVA}/manifest.json`)).json();
-  jsonEl.value=JSON.stringify(m,null,2); rebuild();
-};
-document.getElementById("exportBtn").onclick=async()=>{
-  if(!rebuild()){ alert("유효성 오류 — 내보내기 차단"); return; }
-  statusEl.textContent="패키징 중…";
-  const zip=new JSZip();
-  zip.file("manifest.json", JSON.stringify(M,null,2));
-  const clips=new Set([...Object.values(M.states).map(s=>s.clip),...Object.values(M.transitions||{}).map(t=>t.clip)]);
-  for(const c of clips){ try{ const blob=await (await fetch(`${NVA}/${c}`)).blob(); zip.file(c,blob);}catch(e){} }
-  const out=await zip.generateAsync({type:"blob"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||"character")+".nva"; a.click();
-  statusEl.textContent="내보내기 완료 (.nva)";
+// ── 공통: 갱신(검증+구조+상태머신) ──
+function refresh(){
+  const r=validateManifest(M);
+  $("valid").textContent=(r.ok?"✅ VALID\n":"❌ INVALID\n")+r.errors.map(e=>"ERROR  "+e).join("\n")+(r.errors.length?"\n":"")+r.warnings.map(w=>"WARN   "+w).join("\n")+(r.warnings.length?"":"(경고 없음)");
+  $("vdot").className="dot "+(r.ok?"ok":"bad");
+  cv.width=M.canvas?.width||360; cv.height=M.canvas?.height||640;
+  if(r.ok){ sm=new NvaStateMachine(M); }
+  renderStruct();
+}
+
+// 메타/배경/포즈 입력
+$("m_name").onchange=e=>{ (M.meta=M.meta||{}).name=e.target.value; refresh(); };
+$("m_owner").onchange=e=>{ (M.meta=M.meta||{}).owner=e.target.value; M.meta.author=e.target.value; refresh(); };
+$("m_bg").onchange=e=>{ (M.background=M.background||{type:"color"}).color=e.target.value; };
+$("m_chroma").onchange=e=>{ M.chroma_key=e.target.value; };
+$("m_poses").onchange=e=>{ M.poses=e.target.value.split(",").map(s=>s.trim()).filter(Boolean); refresh(); };
+$("speakBtn").onclick=e=>{ speaking=!speaking; e.target.textContent=speaking?"🎙 말하기 ON":"🎙 말하기 OFF"; };
+
+// 항목 추가
+let nseq=1;
+$("addTalk").onclick=()=>{ const k="talk_"+(nseq++); M.states[k]={kind:"talking",clip:"",entry_pose:M.poses?.[0]||"standing",exit_pose:M.poses?.[0]||"standing",loop:true,can_talk:true,face_bbox:[0.35,0.12,0.3,0.18],label:k}; select("state",k); refresh(); };
+$("addAnim").onclick=()=>{ const k="anim_"+(nseq++); M.states[k]={kind:"animation",clip:"",entry_pose:M.poses?.[0]||"standing",exit_pose:M.poses?.[0]||"standing",loop:false,can_talk:false,label:k}; select("state",k); refresh(); };
+$("addTrans").onclick=()=>{ const k="trans_"+(nseq++); (M.transitions=M.transitions||{})[k]={clip:"",entry_pose:M.poses?.[0]||"standing",exit_pose:M.poses?.[1]||"sitting",label:k}; select("transition",k); refresh(); };
+$("addScn").onclick=()=>{ const k="scn_"+(nseq++); (M.scenarios=M.scenarios||{})[k]={label:k,steps:[]}; select("scenario",k); refresh(); };
+
+// 로드 / 내보내기
+async function loadManifest(m,base){ M=m; baseUrl=base||""; selected=null; renderForm(); refresh(); requestAnimationFrame(compose); if(M.initial) goto(M.initial); }
+$("loadDemo").onclick=async()=>{ const base="../../examples/demo.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent="데모 로드됨 — 편집/돌려보기/내보내기"; };
+$("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const zip=await JSZip.loadAsync(f);
+  const mf=await zip.file("manifest.json").async("string"); blobMap={}; baseUrl="";
+  for(const [path,zf] of Object.entries(zip.files)){ if(/\.(webm|mp4|jpg|png|wav)$/.test(path)){ const blob=await zf.async("blob"); blobMap[path]={url:URL.createObjectURL(blob),blob}; } }
+  loadManifest(JSON.parse(mf),""); $("status").textContent=`${f.name} 로드됨`; };
+$("exportBtn").onclick=async()=>{
+  if(!M){ alert("로드 먼저"); return; } const r=validateManifest(M); if(!r.ok){ alert("유효성 오류 — 내보내기 차단:\n"+r.errors.join("\n")); return; }
+  const zip=new JSZip(); zip.file("manifest.json", JSON.stringify(M,null,2));
+  const clips=new Set([...Object.values(M.states||{}).map(s=>s.clip),...Object.values(M.transitions||{}).map(t=>t.clip)].filter(Boolean));
+  for(const c of clips){ try{ if(blobMap[c]) zip.file(c,blobMap[c].blob); else if(baseUrl){ const b=await (await fetch(`${baseUrl}/${c}`)).blob(); zip.file(c,b); } }catch(e){} }
+  const out=await zip.generateAsync({type:"blob"}); const a=document.createElement("a"); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||"character")+".nva"; a.click();
+  $("status").textContent="내보내기 완료 (.nva)";
 };
 requestAnimationFrame(compose);
-// 시작 시 데모 자동 로드
-document.getElementById("loadDemo").click();
 </script>
 </body>
 </html>
