@@ -32,6 +32,8 @@
     <h1>nva 뷰어 <span class="pill">v0.1</span></h1>
     <p class="sub">naia video clip avatar — 클립의 위치·조합·순서(상태머신)를 재생. 크로마키 합성.</p>
 
+    <div class="row"><h2>🎬 시나리오 연출 (scenario) — 제작 가이드</h2><div id="scenarioBtns"></div>
+      <div class="sub">이 흐름·타이밍대로 고품질 클립을 제작하면 그대로 동작합니다 (클립만 교체)</div></div>
     <div class="row"><h2>말하기 상태 (talking)</h2><div id="talkBtns"></div></div>
     <div class="row"><h2>동작 (animation)</h2><div id="animBtns"></div></div>
     <div class="row"><h2>헤드토킹</h2>
@@ -101,6 +103,8 @@ function buildPlaybackSequence(m,plan){
   const s=m.states[plan.target]; seq.push({kind:s.kind,key:plan.target,clip:s.clip,loop:!!s.loop,can_talk:!!s.can_talk,face_bbox:s.face_bbox||null});
   return seq;
 }
+function listScenarios(m){ return Object.entries(m.scenarios||{}).map(([id,sc])=>({id,label:sc.label||id,steps:sc.steps.length})); }
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 // ── 뷰어 ──
 const qs=new URLSearchParams(location.search);
@@ -108,7 +112,7 @@ const NVA=(qs.get("nva")||"../../examples/demo.nva").replace(/\/$/,"");
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
 const off=document.createElement("canvas"), octx=off.getContext("2d",{willReadFrequently:true});
 const statusEl=document.getElementById("status"), validEl=document.getElementById("valid");
-let M=null, sm=null, bg="#202830", speaking=false, current=null;
+let M=null, sm=null, bg="#202830", speaking=false, current=null, currentCaption="", scenarioPlaying=false;
 let video=document.createElement("video"); video.muted=true; video.playsInline=true; video.crossOrigin="anonymous";
 
 function hexRGB(h){h=h.replace("#","");return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
@@ -138,6 +142,13 @@ function compose(ts){
     ctx.fillStyle="#7a1f1f"; ctx.fillRect(mx,my,mw,mh+2);
     // face_bbox 가이드(데모용 점선)
     ctx.strokeStyle="#ffffff55"; ctx.setLineDash([4,4]); ctx.strokeRect(px,py,pw,ph); ctx.setLineDash([]);
+  }
+  // 4. 자막(시나리오 대사)
+  if(currentCaption){
+    ctx.font="bold 19px system-ui,sans-serif";
+    const tw=ctx.measureText(currentCaption).width, bw=Math.min(cv.width-16,tw+28), bx=(cv.width-bw)/2, by=cv.height-66;
+    ctx.fillStyle="rgba(0,0,0,0.62)"; ctx.fillRect(bx,by,bw,42);
+    ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.fillText(currentCaption,cv.width/2,by+27); ctx.textAlign="left";
   }
   requestAnimationFrame(compose);
 }
@@ -180,6 +191,31 @@ function buildControls(){
   }
 }
 
+function buildScenarioControls(){
+  const sb=document.getElementById("scenarioBtns"); sb.innerHTML="";
+  for(const sc of listScenarios(M)){
+    const b=document.createElement("button"); b.textContent="▶ "+sc.label+" ("+sc.steps+")"; b.dataset.sc=sc.id;
+    b.style.borderColor="#e0a93a"; b.onclick=()=>playScenario(sc.id); sb.appendChild(b);
+  }
+}
+
+// 시나리오 자동 연출: steps 순차 (goto/event 상태전환 + say 자막/발화 + dwell)
+async function playScenario(id){
+  const sc=M.scenarios?.[id]; if(!sc||scenarioPlaying) return;
+  scenarioPlaying=true;
+  document.querySelectorAll("#scenarioBtns button").forEach(b=>b.classList.toggle("active",b.dataset.sc===id));
+  for(const step of sc.steps){
+    const target=step.goto||step.event;
+    if(target) await goto(target);
+    if(step.say){ speaking=true; currentCaption=step.say; }
+    await sleep(step.dwell_ms||2000);
+    speaking=false;
+  }
+  currentCaption=""; speaking=false; scenarioPlaying=false;
+  document.querySelectorAll("#scenarioBtns button").forEach(b=>b.classList.remove("active"));
+  statusEl.textContent="시나리오 완료 — 다른 시나리오나 상태를 선택하세요";
+}
+
 document.getElementById("speakBtn").onclick=e=>{
   speaking=!speaking; e.target.classList.toggle("on",speaking);
   e.target.textContent=speaking?"🎙 말하기 ON":"🎙 말하기 OFF";
@@ -195,7 +231,7 @@ async function load(){
     validEl.textContent=(r.ok?"✅ VALID\n":"❌ INVALID\n")+
       r.errors.map(e=>"ERROR  "+e).join("\n")+(r.errors.length?"\n":"")+
       r.warnings.map(w=>"WARN   "+w).join("\n")+(r.warnings.length?"":"(경고 없음)");
-    sm=new NvaStateMachine(m); buildControls();
+    sm=new NvaStateMachine(m); buildControls(); buildScenarioControls();
     requestAnimationFrame(compose);
     await goto(m.initial);
     let cascadeMsg=" | cascade: 미설정(mock 헤드토킹)";

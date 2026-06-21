@@ -78,7 +78,24 @@ export function validateManifest(m, opts = {}) {
     for (const r of refs) if (r && !files.has(r)) E(`클립 참조 '${r}' 번들에 없음`);
   }
 
+  // 시나리오: steps 의 goto/event 가 state 에 존재해야
+  for (const [sk, sc] of Object.entries(m.scenarios || {})) {
+    if (!sc.label) W(`scenario ${sk}: label 없음`);
+    if (!Array.isArray(sc.steps) || sc.steps.length === 0) { E(`scenario ${sk}: steps 비어있음`); continue; }
+    sc.steps.forEach((st, i) => {
+      if (st.goto && !states[st.goto]) E(`scenario ${sk} step${i}: goto '${st.goto}' state 없음`);
+      if (st.event && states[st.event]?.kind !== "animation")
+        W(`scenario ${sk} step${i}: event '${st.event}'가 animation state 아님`);
+      if (!st.goto && !st.event && !st.say) W(`scenario ${sk} step${i}: goto/event/say 모두 없음(빈 단계)`);
+    });
+  }
+
   return { ok: errors.length === 0, errors, warnings };
+}
+
+// 시나리오 목록 (뷰어 드롭다운용).
+export function listScenarios(m) {
+  return Object.entries(m.scenarios || {}).map(([id, sc]) => ({ id, label: sc.label || id, steps: sc.steps.length }));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
