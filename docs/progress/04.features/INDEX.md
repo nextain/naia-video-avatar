@@ -13,3 +13,4 @@
 | SPEC-003 | UC-002 | viewer: 크로마/알파 레이어 합성 + 상태 전환 재생 + 헤드토킹 오버레이 | src/main/viewer.html | Done | TEST-F-003 |
 | SPEC-004 | UC-004 | editor: manifest 편집 + 미리보기 + 유효성 + `.nva`(JSZip) export | src/main/editor.html | Done | TEST-F-004 |
 | SPEC-005 | UC-003 | scenario runner(playScenario)+listScenarios 자동 연출 재생 | src/main(viewer+core) | Done | TEST-F-005 |
+| SPEC-006 | UC-003 | demo.html: nva 시나리오 → cascade(오사랑) 실시간 렌더 시연 (kiosk-v3) | src/main/demo.html | Done | TEST-F-006 |

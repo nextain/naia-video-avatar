@@ -13,3 +13,4 @@
 | TEST-F-003 | SPEC-003 | viewer headless 캡쳐: 크로마 제거 캐릭터 + 상태전환 + 헤드토킹 | /tmp/cap.mjs (playwright) | Done |
 | TEST-F-004 | SPEC-004 | editor export → unzip = manifest.json + clips ×7 (9 entries) | /tmp/cap2.mjs (playwright) | Done |
 | TEST-F-005 | SPEC-002, SPEC-005 | nva-core 단위(검증·포즈·상태머신·시나리오) 18 assert ALL PASS | src/test/nva-core.test.mjs | Done |
+| TEST-F-006 | SPEC-006 | kiosk-v3 강남구 데모 헤드리스 캡쳐 (오사랑 발화 + 자막) | playwright headless | Done |
