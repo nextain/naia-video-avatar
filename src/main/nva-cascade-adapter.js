@@ -83,24 +83,36 @@ export class NvaCascadeRenderer {
       if (my !== this.gen) return;
       const sb = ms.addSourceBuffer(FMP4);
       const queue = [];
+      let ended = false, playStarted = false;
+      // 프리버퍼 0.1s 쌓인 뒤 재생 시작 (첫 청크 전 play 하면 검은 화면 유지).
+      const maybePlay = () => {
+        if (playStarted || my !== this.gen) return;
+        try { if (sb.buffered.length && sb.buffered.end(sb.buffered.length - 1) >= 0.1) { playStarted = true; this.video.play().catch(() => {}); } } catch {}
+      };
       const pump = () => {
-        if (sb.updating || !queue.length || my !== this.gen) return;
-        try { sb.appendBuffer(queue.shift()); } catch {}
+        maybePlay();
+        if (sb.updating || my !== this.gen) return;
+        if (queue.length) { try { sb.appendBuffer(queue.shift()); } catch {} }
+        else if (ended && ms.readyState === "open") { try { ms.endOfStream(); } catch {} }
       };
       sb.addEventListener("updateend", pump);
       const res = await doFetch();
       if (!res.ok || !res.body) throw new Error(`cascade ${res.status}`);
       const reader = res.body.getReader();
-      this.video.play().catch(() => {});
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
         if (my !== this.gen) { reader.cancel(); return; }
         queue.push(value); pump();
       }
-      // flush 후 종료
-      const finish = () => { if (!sb.updating && !queue.length && ms.readyState === "open") { try { ms.endOfStream(); } catch {} } };
-      sb.addEventListener("updateend", finish); finish();
+      ended = true; pump();
+      if (!playStarted) { playStarted = true; this.video.play().catch(() => {}); }
+      // 발화 재생 종료까지 대기 (caller 가 await 로 다음 단계 진행 — 30s 상한).
+      await new Promise((res2) => {
+        const fin = () => { this.video.removeEventListener("ended", fin); clearTimeout(to); res2(); };
+        this.video.addEventListener("ended", fin, { once: true });
+        const to = setTimeout(fin, 30000);
+      });
     } catch (e) {
       console.warn("[nva-cascade] speak 실패(이 발화 드롭):", e.message);
     } finally {
