@@ -1,0 +1,53 @@
+{
+  "nva_version": "0.1",
+  "meta": {
+    "name": "데모 박스 캐릭터",
+    "author": "nextain",
+    "owner": "nextain",
+    "license": "CC-BY-4.0",
+    "created": "2026-06-21"
+  },
+  "canvas": { "width": 360, "height": 640, "fps": 25 },
+  "background": { "type": "color", "color": "#202830" },
+  "poses": ["standing", "sitting"],
+  "initial": "stand_talk",
+  "states": {
+    "stand_talk": {
+      "kind": "talking", "clip": "clips/stand_idle.webm",
+      "entry_pose": "standing", "exit_pose": "standing",
+      "loop": true, "can_talk": true, "face_bbox": [0.417, 0.234, 0.167, 0.125],
+      "label": "서서 말하기"
+    },
+    "sit_talk": {
+      "kind": "talking", "clip": "clips/sit_idle.webm",
+      "entry_pose": "sitting", "exit_pose": "sitting",
+      "loop": true, "can_talk": true, "face_bbox": [0.417, 0.456, 0.167, 0.113],
+      "label": "앉아서 말하기"
+    },
+    "dance": {
+      "kind": "animation", "clip": "clips/dance.webm",
+      "entry_pose": "standing", "exit_pose": "standing",
+      "loop": false, "can_talk": false, "label": "춤"
+    },
+    "wave": {
+      "kind": "animation", "clip": "clips/wave.webm",
+      "entry_pose": "standing", "exit_pose": "standing",
+      "loop": false, "can_talk": false, "label": "인사"
+    },
+    "nod": {
+      "kind": "animation", "clip": "clips/nod.webm",
+      "entry_pose": "standing", "exit_pose": "standing",
+      "loop": false, "can_talk": false, "label": "끄덕임"
+    }
+  },
+  "transitions": {
+    "sit_down": {
+      "clip": "clips/sit_down.webm",
+      "entry_pose": "standing", "exit_pose": "sitting", "label": "앉기"
+    },
+    "stand_up": {
+      "clip": "clips/stand_up.webm",
+      "entry_pose": "sitting", "exit_pose": "standing", "label": "일어서기"
+    }
+  }
+}
