@@ -12,3 +12,4 @@
 | TEST-F-002 | SPEC-002 | findTransitionPath/reachableStates: stand→sit_down→sit 경로, sit→stand_up 검증 | node nva-core (수동 검증) | Done |
 | TEST-F-003 | SPEC-003 | viewer headless 캡쳐: 크로마 제거 캐릭터 + 상태전환 + 헤드토킹 | /tmp/cap.mjs (playwright) | Done |
 | TEST-F-004 | SPEC-004 | editor export → unzip = manifest.json + clips ×7 (9 entries) | /tmp/cap2.mjs (playwright) | Done |
+| TEST-F-005 | SPEC-002, SPEC-005 | nva-core 단위(검증·포즈·상태머신·시나리오) 18 assert ALL PASS | src/test/nva-core.test.mjs | Done |

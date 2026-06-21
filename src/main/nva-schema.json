@@ -86,6 +86,32 @@
           "label": { "type": "string" }
         }
       }
+    },
+    "scenarios": {
+      "type": "object",
+      "description": "연출 시나리오 — 상태/이벤트/대사의 시퀀스. 뷰어가 자동 재생한다. 제작 가이드 역할: 이 흐름·타이밍대로 고품질 클립을 제작하면 그대로 동작한다(클립만 교체).",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["label", "steps"],
+        "additionalProperties": false,
+        "properties": {
+          "label": { "type": "string" },
+          "steps": {
+            "type": "array",
+            "description": "순차 실행 단계. goto=상태 전환(포즈 경로 자동), event=idle break 1회, say=자막/발화, dwell_ms=머무는 시간.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "goto": { "type": "string", "description": "전환할 talking/animation state 키" },
+                "event": { "type": "string", "description": "재생할 idle break 이벤트(애니메이션 state) 키" },
+                "say": { "type": "string", "description": "자막/발화 텍스트 (헤드토킹)" },
+                "dwell_ms": { "type": "integer", "minimum": 0, "description": "이 단계 유지 시간(ms)" }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

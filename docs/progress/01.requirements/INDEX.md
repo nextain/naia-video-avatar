@@ -21,3 +21,4 @@ scripts/check-traceability.mjs 가 이 표를 파싱한다.
 | NFR-002 | packaging | 뷰어·에디터는 자기완결 단일 HTML | Done | — | — | TEST-S-005 |
 | NFR-003 | alpha | 캐릭터 레이어는 알파(VP9) / 크로마키 둘 다 수용 | Done | — | — | TEST-S-003 |
 | NFR-004 | deps | nva-core 런타임 의존 0 (순수 JS) | Done | — | — | TEST-F-001 |
+| REQ-008 | scenario | 연출 시나리오(상태/이벤트/대사 시퀀스) 자동 재생 + 검증 | Done | UC-003 | SPEC-005 | TEST-S-002 |

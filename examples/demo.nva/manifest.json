@@ -49,5 +49,39 @@
       "clip": "clips/stand_up.webm",
       "entry_pose": "sitting", "exit_pose": "standing", "label": "일어서기"
     }
+  },
+  "scenarios": {
+    "greet_guide": {
+      "label": "민원 안내",
+      "steps": [
+        { "goto": "stand_talk", "say": "안녕하세요, 강남구청 안내 키오스크입니다", "dwell_ms": 2500 },
+        { "event": "wave", "say": "무엇을 도와드릴까요?", "dwell_ms": 2200 },
+        { "goto": "sit_talk", "say": "민원실은 본관 2층에 있습니다", "dwell_ms": 3000 },
+        { "goto": "stand_talk", "say": "더 도와드릴까요?", "dwell_ms": 2000 }
+      ]
+    },
+    "directions": {
+      "label": "길 안내",
+      "steps": [
+        { "goto": "stand_talk", "say": "어디로 가시나요?", "dwell_ms": 2000 },
+        { "event": "nod", "say": "네, 안내해 드리겠습니다", "dwell_ms": 2000 },
+        { "goto": "stand_talk", "say": "정문에서 좌회전하시면 됩니다", "dwell_ms": 3000 }
+      ]
+    },
+    "welcome": {
+      "label": "환영 인사",
+      "steps": [
+        { "event": "wave", "say": "환영합니다!", "dwell_ms": 2000 },
+        { "event": "dance", "say": "강남구에 오신 것을 환영합니다", "dwell_ms": 2500 },
+        { "goto": "stand_talk", "say": "무엇을 도와드릴까요?", "dwell_ms": 2000 }
+      ]
+    },
+    "farewell": {
+      "label": "작별 인사",
+      "steps": [
+        { "goto": "stand_talk", "say": "이용해 주셔서 감사합니다", "dwell_ms": 2500 },
+        { "event": "wave", "say": "안녕히 가세요!", "dwell_ms": 2200 }
+      ]
+    }
   }
 }
