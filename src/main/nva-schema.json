@@ -37,6 +37,10 @@
         "src": { "type": "string" }
       }
     },
+    "chroma_key": {
+      "type": "string",
+      "description": "캐릭터 클립의 크로마키 색(#RRGGBB). 뷰어/데모가 이 색을 투명 처리 후 배경 위 합성. 알파(VP9 yuva420p) 클립이면 불요."
+    },
     "poses": {
       "type": "array",
       "description": "포즈 어휘. entry_pose/exit_pose는 이 목록의 값이어야 한다.",
