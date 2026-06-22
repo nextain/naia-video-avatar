@@ -32,6 +32,13 @@
   .step input,.step select{ font-size:12px; padding:3px 5px; }
   .muted{ color:#8b98a9; font-size:11px; }
   #status{ font-size:12px; color:#8b98a9; }
+  #guide{ position:fixed; inset:0; background:rgba(0,0,0,.72); display:none; z-index:50; align-items:center; justify-content:center; }
+  #guide.on{ display:flex; }
+  #guide .box{ background:#11151c; border:1px solid #33415a; border-radius:12px; max-width:640px; max-height:82vh; overflow:auto; padding:22px 26px; line-height:1.6; }
+  #guide h3{ margin:0 0 10px; font-size:17px; } #guide h4{ margin:16px 0 4px; color:#8fb8ff; font-size:13px; }
+  #guide ol{ margin:4px 0; padding-left:20px; } #guide li{ margin:3px 0; } #guide code{ background:#0c1118; padding:1px 6px; border-radius:4px; }
+  #guide .close{ float:right; }
+  #guide .tag{ color:#8b98a9; font-size:12px; }
 </style>
 </head>
 <body>
@@ -41,8 +48,48 @@
   <label class="sm" style="display:inline-block"><input type="file" id="openNva" accept=".nva,.zip" style="display:none">
     <button class="sm" onclick="document.getElementById('openNva').click()">.nva 열기</button></label>
   <button id="exportBtn" class="go">⬇ .nva 내보내기</button>
+  <button id="helpBtn">❔ 의도·사용법·구조</button>
   <span><span class="dot bad" id="vdot"></span><span id="status">데모를 로드하거나 .nva를 여세요</span></span>
 </header>
+<div id="guide"><div class="box">
+  <button class="close" id="guideClose">✕ 닫기</button>
+  <h3>nva 에디터 — 의도 · 사용법 · 구조</h3>
+  <p class="tag">naia video clip avatar — 비디오 클립 아바타 포맷 제작/편집 도구</p>
+
+  <h4>무슨 의도로 만들었나</h4>
+  캐릭터를 무엇으로 만들든(실사 촬영·VRM·메타휴먼·AI 영상생성) 최종 산출은 <b>비디오 클립 + 메타(manifest)</b>로 통일된다.
+  핵심은 비디오 파일이 아니라 <b>클립의 위치·조합·순서 = 상태머신</b>이다. 박스 데모는 "자리·흐름 명세"이고,
+  같은 규격의 <b>고품질 클립으로 교체</b>하면 그대로 동작한다(도구 중립 교환 포맷, 오픈소스 지향).
+
+  <h4>파일 구조 (.nva)</h4>
+  <code>manifest.json</code> (두뇌) + <code>clips/</code> (비디오들)
+  <ul>
+    <li><b>state</b> — <code>talking</code>(말하기 안정 포즈) / <code>animation</code>(동작). 클립 + 포즈 + <code>face_bbox</code>(헤드토킹 위치)</li>
+    <li><b>transition</b> — 포즈 간 이동 클립. <code>entry_pose → exit_pose</code></li>
+    <li><b>scenario</b> — 연출(상태/이벤트 + 대사 + 타이밍 시퀀스)</li>
+    <li><b>레이어</b> — 배경 + 캐릭터(알파/크로마) + 헤드토킹</li>
+  </ul>
+
+  <h4>사용법</h4>
+  <ol>
+    <li><b>데모 로드</b> 또는 <b>.nva 열기</b>로 시작</li>
+    <li><b>+말하기 / +동작</b> → state 생성 → 우측 폼에서 <b>클립 업로드</b> + 포즈·face_bbox·loop 설정</li>
+    <li><b>+전환</b> → 포즈 간 클립(앉기/서기 등)</li>
+    <li><b>+시나리오</b> → 단계(상태·대사·시간) 추가 = 연출 흐름</li>
+    <li>중앙 <b>미리보기 버튼</b>(상태/시나리오)으로 돌려보기</li>
+    <li><b>⬇ .nva 내보내기</b> (manifest + 클립을 단일 zip으로)</li>
+  </ol>
+
+  <h4>포즈 규칙 (seamless)</h4>
+  각 클립은 <b>해당 포즈에서 시작·끝</b>나야 이어 붙일 때 튐이 없다. 연결 가능 = <code>A.exit_pose == B.entry_pose</code>
+  (다르면 둘을 잇는 transition 필요). 시나리오는 이 포즈 경로를 자동 탐색해 전환을 끼워 넣는다.
+
+  <h4>데모(시연)와의 관계</h4>
+  이 에디터로 만든 <code>.nva</code>를 데모(<code>demo.html</code> / kiosk-v3)가 cascade에 넣어 실시간 렌더한다. 에디터=제작, 데모=시연으로 분리.
+
+  <h4>상세 문서</h4>
+  <p class="tag"><code>README.md</code> · <code>docs/nva-format-guide.md</code>(제작 가이드) · <code>src/main/nva-schema.json</code>(필드 스펙) · <code>docs/progress/01~05</code>(V모델 요구·설계·테스트)</p>
+</div></div>
 <div id="wrap">
   <!-- 좌: 리소스/구조 -->
   <aside id="struct">
@@ -229,6 +276,9 @@ $("exportBtn").onclick=async()=>{
   const out=await zip.generateAsync({type:"blob"}); const a=document.createElement("a"); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||"character")+".nva"; a.click();
   $("status").textContent="내보내기 완료 (.nva)";
 };
+$("helpBtn").onclick=()=>$("guide").classList.add("on");
+$("guideClose").onclick=()=>$("guide").classList.remove("on");
+$("guide").onclick=e=>{ if(e.target.id==="guide") $("guide").classList.remove("on"); };
 requestAnimationFrame(compose);
 </script>
 </body>
