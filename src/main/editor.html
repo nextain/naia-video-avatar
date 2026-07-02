@@ -111,6 +111,7 @@
 import { validateManifest, migrateToV02, animKind } from "./nva-core.js";
 
 let M=null, baseUrl="", blobMap={}, selected=null, busy=false;
+let casLoaded=false, nvaDirty=false;   // cascade 연결·셋팅 여부 / nva 변경(재업로드 필요) 플래그
 let speaking=false, current=null;
 let soundOn=false;
 const $=id=>document.getElementById(id);
@@ -188,6 +189,7 @@ function bindForm(apply){
 
 // ── 갱신 ──
 function refresh(){
+  nvaDirty=true;   // 편집됨 → 다음 발화 전 cascade 재업로드 필요
   const r=validateManifest(M);
   $("valid").textContent=(r.ok?"✅ VALID\n":"❌ INVALID\n")+r.errors.map(e=>"ERROR  "+e).join("\n")+(r.errors.length?"\n":"")+r.warnings.map(w=>"WARN   "+w).join("\n")+(r.warnings.length?"":"(경고 없음)");
   $("vdot").className="dot "+(r.ok?"ok":"bad");
@@ -225,26 +227,45 @@ $("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const 
   const mf=await zip.file("manifest.json").async("string"); blobMap={}; baseUrl="";
   for(const [path,zf] of Object.entries(zip.files)){ if(/\.(webm|mp4|jpg|png|wav)$/.test(path)){ const blob=await zf.async("blob"); blobMap[path]={url:URL.createObjectURL(blob),blob}; } }
   loadManifest(JSON.parse(mf),""); $("status").textContent=`${f.name} 로드됨`; };
-$("exportBtn").onclick=async()=>{
-  if(!M){ alert("로드 먼저"); return; } const r=validateManifest(M); if(!r.ok){ alert("유효성 오류 — 내보내기 차단:\n"+r.errors.join("\n")); return; }
+// nva(manifest + clips)를 zip blob 으로 — 내보내기·cascade 업로드 공용.
+async function buildNvaZip(){
+  const r=validateManifest(M); if(!r.ok) throw new Error("유효성 오류:\n"+r.errors.join("\n"));
   const zip=new JSZip(); zip.file("manifest.json", JSON.stringify(M,null,2));
   const clips=new Set(Object.values(M.animations||{}).map(a=>a.clip).filter(Boolean));
   const vr=M.meta?.voice_ref?.audio_path; if(vr) clips.add(vr);
   for(const c of clips){ try{ if(blobMap[c]) zip.file(c,blobMap[c].blob); else if(baseUrl){ const b=await (await fetch(`${baseUrl}/${c}`)).blob(); zip.file(c,b); } }catch(e){} }
-  const out=await zip.generateAsync({type:"blob"}); const a=document.createElement("a"); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||"character")+".nva"; a.click();
-  $("status").textContent="내보내기 완료 (.nva v0.2)";
+  return await zip.generateAsync({type:"blob"});
+}
+$("exportBtn").onclick=async()=>{
+  if(!M){ alert("로드 먼저"); return; }
+  try{ const out=await buildNvaZip(); const a=document.createElement("a"); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||"character")+".nva"; a.click(); $("status").textContent="내보내기 완료 (.nva v0.2)"; }
+  catch(e){ alert("내보내기 차단 — "+e.message); }
 };
 
 // cascade 연결 (실시간 발화 → 위 플레이어 통합)
 const casUrl=()=>$("casUrl").value.trim().replace(/\/+$/,"");
 function casPlay(blob, loop, muted, status){ busy=true; current=null; speaking=false;
   video.loop=loop; video.muted=muted; video.src=URL.createObjectURL(blob); video.play().catch(()=>{}); busy=false; $("casStatus").textContent=status; }
-$("casConnect").onclick=async()=>{ $("casStatus").textContent="연결 중…";
-  try{ const h=await (await fetch(casUrl()+"/health")).json(); $("casStatus").textContent=`✅ 연결됨 · mode=${h.mode} · tts=${h.tts} · avatar=${h.avatar} · alpha=${h.alpha_enabled}`; }
-  catch(e){ $("casStatus").textContent="❌ 연결 실패: "+e.message+" (cascade :8910 확인)"; } };
+// 현재 nva 를 zip 으로 만들어 cascade 에 업로드(생성→cascade 안에 넣어 셋팅). 연결/변경-후-발화 공용.
+async function casUpload(){
+  const out=await buildNvaZip();
+  const r=await fetch(casUrl()+"/upload_nva",{method:"POST",headers:{"Content-Type":"application/zip"},body:out});
+  let j={}; try{ j=await r.json(); }catch(e){}
+  if(!r.ok||!j.ok) throw new Error(j.detail||j.error||("HTTP "+r.status));
+  casLoaded=true; nvaDirty=false; return j.bundle_id;
+}
+// 연결 = cascade 헬스 확인 → 현재 nva 생성해 cascade 에 셋팅(/upload_nva). (에디터→nva→cascade→뷰어)
+$("casConnect").onclick=async()=>{ if(!M){ alert("로드 먼저"); return; }
+  $("casStatus").textContent="연결 중 (nva 생성→cascade 셋팅)…";
+  try{ await (await fetch(casUrl()+"/health")).json();
+    const id=await casUpload(); $("casStatus").textContent=`✅ 연결·셋팅됨 · ${id} — [말하기]로 발화`; }
+  catch(e){ casLoaded=false; $("casStatus").textContent="❌ 연결/셋팅 실패: "+e.message+" (cascade :8910 확인)"; } };
 $("casIdle").onclick=async()=>{ try{ $("casStatus").textContent="대기 로딩…"; const b=await (await fetch(casUrl()+"/idle")).blob(); casPlay(b,true,false,"▶ 대기(idle) — 위 플레이어"); }catch(e){ $("casStatus").textContent="idle 실패: "+e.message; } };
 $("casSpeak").onclick=async()=>{ const text=$("casText").value.trim(); if(!text) return;
-  try{ $("casStatus").textContent="🎙 발화 렌더 중(TTS→Ditto)…";
+  try{
+    if(!casLoaded){ $("casStatus").textContent="먼저 [연결]로 cascade 에 셋팅하세요"; return; }
+    if(nvaDirty){ $("casStatus").textContent="변경 반영 중 (cascade 재셋팅)…"; await casUpload(); }  // 파일 변경 있으면 재업로드
+    $("casStatus").textContent="🎙 발화 렌더 중(TTS→Ditto)…";
     const r=await fetch(casUrl()+"/stream_text",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
     if(!r.ok) throw new Error("HTTP "+r.status); const b=await r.blob(); casPlay(b,false,false,"🔊 발화 재생 (위 플레이어, 음성 포함)");
   }catch(e){ $("casStatus").textContent="발화 실패: "+e.message; } };
