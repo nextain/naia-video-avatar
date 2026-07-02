@@ -60,7 +60,7 @@
 <header>
   <h1>nva 에디터 <span class="pill">v0.2 · 제작 도구</span></h1>
   <button id="loadNaia">Naia 로드</button>
-  <button id="loadDemo">데모 로드</button>
+  <button id="loadDemo">박스 데모</button>
   <label class="sm" style="display:inline-block"><input type="file" id="openNva" accept=".nva,.zip" style="display:none">
     <button class="sm" onclick="document.getElementById('openNva').click()">.nva 열기</button></label>
   <button id="exportBtn" class="go">⬇ .nva 내보내기</button>
@@ -159,6 +159,9 @@ import { validateManifest, NvaRuntime, buildPlaybackSequence, listScenarios, sce
 
 let M=null, baseUrl="", blobMap={}, selected=null, rt=null, busy=false, scnPlaying=false;
 let speaking=false, current=null, currentCaption="";
+// 소리: 브라우저 자동재생 정책상 첫 사용자 제스처 전엔 muted. 클릭 한 번 후부터 대기·애니 소리 재생.
+let soundOn=false;
+window.addEventListener("pointerdown", ()=>{ soundOn=true; video.muted=false; }, { once:true });
 const $=id=>document.getElementById(id);
 const cv=$("cv"), ctx=cv.getContext("2d"), off=document.createElement("canvas"), octx=off.getContext("2d",{willReadFrequently:true});
 const video=document.createElement("video"); video.muted=true; video.playsInline=true;
@@ -201,7 +204,7 @@ function compose(ts){
   }
   requestAnimationFrame(compose);
 }
-function playClip(clip,loop){ return new Promise(res=>{ video.muted=true; video.src=clipUrl(clip); video.loop=loop;
+function playClip(clip,loop){ return new Promise(res=>{ video.muted=!soundOn; video.src=clipUrl(clip); video.loop=loop;
   const e=()=>{video.removeEventListener("ended",e);res();}; if(!loop)video.addEventListener("ended",e); video.play().catch(()=>{}); if(loop)res(); }); }
 async function goto(target){ if(busy||!rt)return; busy=true;
   const plan=rt.plan(target); if(!plan){ $("status").textContent=`${target} 도달 불가(포즈 경로 없음)`; busy=false; return; }
@@ -381,7 +384,8 @@ $("graph").addEventListener("click",()=>{ closeEdgeMenu(); if(connectSrc){ conne
 // 로드 / 내보내기
 async function loadManifest(m,base){ M=migrateToV02(m); baseUrl=base||""; selected=null; renderForm(); refresh(); requestAnimationFrame(compose);
   const d=derive(M); if(d.idleKey) goto(d.idleKey); }
-$("loadNaia").onclick=async()=>{ const base="../../examples/naia.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent="Naia 기본 캐릭터(액체 고양이) 로드됨"; };
+async function loadNaiaBundle(){ const base="../../examples/naia.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent="Naia 기본 캐릭터(액체 고양이) 로드됨"; }
+$("loadNaia").onclick=loadNaiaBundle;
 $("loadDemo").onclick=async()=>{ const base="../../examples/demo.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent="데모 로드됨 — 편집/돌려보기/내보내기"; };
 $("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const zip=await JSZip.loadAsync(f);
   const mf=await zip.file("manifest.json").async("string"); blobMap={}; baseUrl="";
@@ -410,7 +414,7 @@ function casPlay(blob, loop, muted, status){
 }
 $("casIdle").onclick=async()=>{
   try{ $("casStatus").textContent="대기 클립 로딩…"; const b=await (await fetch(casUrl()+"/idle")).blob();
-    casPlay(b, true, true, "▶ 대기(idle) — 위 플레이어에 재생");
+    casPlay(b, true, false, "▶ 대기(idle) — 위 플레이어에 재생");
   }catch(e){ $("casStatus").textContent="idle 실패: "+e.message; } };
 $("casSpeak").onclick=async()=>{ const text=$("casText").value.trim(); if(!text) return;
   try{ $("casStatus").textContent="🎙 발화 렌더 중(TTS→Ditto)…";
@@ -422,6 +426,7 @@ $("helpBtn").onclick=()=>$("guide").classList.add("on");
 $("guideClose").onclick=()=>$("guide").classList.remove("on");
 $("guide").onclick=e=>{ if(e.target.id==="guide") $("guide").classList.remove("on"); };
 requestAnimationFrame(compose);
+loadNaiaBundle();  // 시작 시 Naia 기본 캐릭터 자동 로드
 </script>
 </body>
 </html>

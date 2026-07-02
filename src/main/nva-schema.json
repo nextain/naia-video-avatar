@@ -74,9 +74,23 @@
             "minItems": 4,
             "maxItems": 4
           },
-          "label": { "type": "string" }
+          "label": { "type": "string" },
+          "intent": {
+            "type": "string",
+            "description": "이 애니를 언제 재생하면 좋은지(LLM/런타임 힌트). VRM expression 유사 — event 애니 트리거 판단용."
+          },
+          "triggers": {
+            "type": "array",
+            "description": "감정·의도 키워드. 소비 앱 LLM이 대화 맥락이 이에 맞으면 재생.",
+            "items": { "type": "string" }
+          }
         }
       }
+    },
+    "expressions": {
+      "type": "object",
+      "description": "VRM 프리셋 유사 — 표준 감정/의도 키 → animation 키 매핑. 소비 앱(naia-shell) LLM이 감정을 이 키로 내면 해당 animation 재생. 값은 animations 의 키(또는 _note).",
+      "additionalProperties": { "type": "string" }
     },
     "scenario": {
       "type": "object",
