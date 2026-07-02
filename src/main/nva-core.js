@@ -165,8 +165,10 @@ export function validateManifest(m, opts = {}) {
 
   for (const [k, a] of Object.entries(anims)) {
     if (!a.clip) E(`animation ${k}: clip 없음`);
-    checkPose(`animation ${k}.entry_pose`, a.entry_pose);
-    checkPose(`animation ${k}.exit_pose`, a.exit_pose);
+    // entry_pose/exit_pose 는 선택 — 자세 변화(앉기/눕기)가 있을 때만 씀. 서있는 아바타는 불요.
+    // 있을 때만 어휘 검사(경고).
+    if (a.entry_pose) checkPose(`animation ${k}.entry_pose`, a.entry_pose);
+    if (a.exit_pose) checkPose(`animation ${k}.exit_pose`, a.exit_pose);
     if (a.can_talk) {
       if (!Array.isArray(a.face_bbox) || a.face_bbox.length !== 4)
         E(`animation ${k}: can_talk=true면 face_bbox[x,y,w,h] 필수`);
