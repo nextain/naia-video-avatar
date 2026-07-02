@@ -16,29 +16,25 @@
       "home": "클라우드 없이 네 컴퓨터 안에 산다",
       "traits": ["지적 자신감(틀리면 솔직히 인정)", "고양이 여유", "투명한 솔직함 — 몸이 투명한 건 숨길 게 없어서", "외형·성격 너에게 맞춰 바뀜"]
     },
-    "note": "3개 소스 영상 각각 크롭→RVM 매팅→알파 VP9(yuva420p)+원본 오디오(opus). 몸 유리룩은 베이크(진짜 per-pixel 투명 아님, 배경만 컷아웃). 시작 클립은 앞 1s 페이드인 트림. face_bbox는 근사치 — 에디터서 조정 가능. 위치는 소비 앱이 face_bbox 기준 앵커."
+    "note": "구조(v0.2 단일상태): 시작=idle(loop, 말하기 베이스) + 동작 N개(gesture, LLM 트리거). 포즈/전환/시나리오는 다음 버전(멀티 idle 상태). 3개 소스 영상 각각 크롭→RVM 매팅→알파 VP9(yuva420p)+원본 오디오(opus). 몸 유리룩=베이크(배경만 컷아웃). face_bbox=근사치(에디터 조정 가능)."
   },
   "canvas": { "width": 406, "height": 720, "fps": 25 },
   "background": { "type": "transparent" },
-  "poses": ["standing"],
   "animations": {
     "idle": {
       "clip": "clips/sijak.webm",
-      "entry_pose": "standing", "exit_pose": "standing",
       "loop": true, "can_talk": false,
       "face_bbox": [0.30, 0.32, 0.40, 0.16],
-      "label": "대기 — 시작/기본 (액체 고양이)"
+      "label": "대기 (진입) — 액체 고양이"
     },
     "speak": {
       "clip": "clips/sijak.webm",
-      "entry_pose": "standing", "exit_pose": "standing",
       "loop": true, "can_talk": true,
       "face_bbox": [0.30, 0.32, 0.40, 0.16],
-      "label": "말하기 — 얼굴 영역 headtalk (Ditto)"
+      "label": "서서 말하기 — 얼굴 headtalk (Ditto)"
     },
     "water_drop": {
       "clip": "clips/water_drop.webm",
-      "entry_pose": "standing", "exit_pose": "standing",
       "loop": false, "can_talk": false,
       "label": "물방울 만들기",
       "intent": "잠깐의 장난·여유·환기 (물방울을 만들며)",
@@ -46,7 +42,6 @@
     },
     "heart_dance": {
       "clip": "clips/heart.webm",
-      "entry_pose": "standing", "exit_pose": "standing",
       "loop": false, "can_talk": false,
       "label": "하트 · 춤추기",
       "intent": "애정·기쁨 표현 (하트 만들고 춤)",
@@ -54,30 +49,12 @@
     }
   },
   "expressions": {
-    "_note": "VRM 프리셋 유사 — 소비 앱(naia-shell)의 LLM이 대화 감정/의도를 이 키로 내면 해당 animation 을 재생. idle/speak 은 base, 나머지는 event(트리거형).",
+    "_note": "VRM 프리셋 유사 — 소비 앱(naia-shell)의 LLM이 대화 감정/의도를 이 키로 내면 해당 animation 재생. idle/speak=loop 베이스, 나머지=동작(트리거).",
     "neutral": "idle",
     "speaking": "speak",
     "joy": "heart_dance",
     "affection": "heart_dance",
     "playful": "water_drop",
     "thinking": "water_drop"
-  },
-  "scenario": {
-    "nodes": {
-      "start": { "type": "start", "label": "진입" },
-      "idle": { "type": "scene", "animation": "idle", "label": "대기" },
-      "speak": { "type": "scene", "animation": "speak", "label": "말하기" },
-      "water_drop": { "type": "scene", "animation": "water_drop", "label": "물방울 만들기", "dwell_ms": 4000 },
-      "heart_dance": { "type": "scene", "animation": "heart_dance", "label": "하트·춤추기", "dwell_ms": 4000 }
-    },
-    "edges": [
-      { "from": "start", "to": "idle" },
-      { "from": "idle", "to": "speak" },
-      { "from": "speak", "to": "idle" },
-      { "from": "idle", "to": "water_drop" },
-      { "from": "water_drop", "to": "idle" },
-      { "from": "idle", "to": "heart_dance" },
-      { "from": "heart_dance", "to": "idle" }
-    ]
   }
 }

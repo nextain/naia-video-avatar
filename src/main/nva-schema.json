@@ -59,12 +59,12 @@
       "minProperties": 1,
       "additionalProperties": {
         "type": "object",
-        "required": ["clip", "entry_pose", "exit_pose"],
+        "required": ["clip"],
         "additionalProperties": false,
         "properties": {
           "clip": { "type": "string", "description": "번들 내 상대경로 (clips/*.webm 권장 — 알파)" },
-          "entry_pose": { "type": "string" },
-          "exit_pose": { "type": "string" },
+          "entry_pose": { "type": "string", "description": "선택 — 자세 변화(앉기/눕기)가 있는 멀티 상태에서만. 단일 상태(서있기) 아바타는 불요. (다음 버전)" },
+          "exit_pose": { "type": "string", "description": "선택 — entry_pose 참조." },
           "loop": { "type": "boolean", "default": false },
           "can_talk": { "type": "boolean", "default": false },
           "face_bbox": {
