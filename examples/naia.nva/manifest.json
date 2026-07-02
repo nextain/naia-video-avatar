@@ -30,7 +30,7 @@
     "speak": {
       "clip": "clips/speak_body.webm",
       "loop": true, "can_talk": true,
-      "face_bbox": [0.34, 0.30, 0.30],
+      "face_bbox": [0.27, 0.25, 0.46],
       "label": "서서 말하기 — 반짝이 body(얼굴 고정) + Ditto headtalk"
     },
     "water_drop": {
