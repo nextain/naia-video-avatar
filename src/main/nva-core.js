@@ -80,7 +80,12 @@ export function migrateToV02(m) {
       exit_pose: s.exit_pose,
       loop: !!s.loop,
       can_talk: !!s.can_talk,
-      ...(s.face_bbox ? { face_bbox: s.face_bbox } : {}),
+      // 옛 face_bbox [x,y,w,h] → [x,y,l] (l=정사각 한 변=max(w,h))
+      ...(Array.isArray(s.face_bbox)
+        ? { face_bbox: s.face_bbox.length === 4
+            ? [s.face_bbox[0], s.face_bbox[1], Math.max(s.face_bbox[2], s.face_bbox[3])]
+            : s.face_bbox }
+        : {}),
       label: s.label || k,
     };
   }
@@ -170,8 +175,8 @@ export function validateManifest(m, opts = {}) {
     if (a.entry_pose) checkPose(`animation ${k}.entry_pose`, a.entry_pose);
     if (a.exit_pose) checkPose(`animation ${k}.exit_pose`, a.exit_pose);
     if (a.can_talk) {
-      if (!Array.isArray(a.face_bbox) || a.face_bbox.length !== 4)
-        E(`animation ${k}: can_talk=true면 face_bbox[x,y,w,h] 필수`);
+      if (!Array.isArray(a.face_bbox) || a.face_bbox.length !== 3)
+        E(`animation ${k}: can_talk=true면 face_bbox[x,y,l] 필수 (좌상단+정사각 한 변)`);
       else if (a.face_bbox.some((v) => v < 0 || v > 1))
         E(`animation ${k}: face_bbox 값은 0~1 범위`);
     }

@@ -24,14 +24,14 @@
     "idle": {
       "clip": "clips/sijak.webm",
       "loop": true, "can_talk": false,
-      "face_bbox": [0.30, 0.32, 0.40, 0.16],
+      "face_bbox": [0.34, 0.34, 0.30],
       "label": "대기 (진입) — 액체 고양이"
     },
     "speak": {
-      "clip": "clips/sijak.webm",
+      "clip": "clips/speak_body.webm",
       "loop": true, "can_talk": true,
-      "face_bbox": [0.30, 0.32, 0.40, 0.16],
-      "label": "서서 말하기 — 얼굴 headtalk (Ditto)"
+      "face_bbox": [0.34, 0.30, 0.30],
+      "label": "서서 말하기 — 반짝이 body(얼굴 고정) + Ditto headtalk"
     },
     "water_drop": {
       "clip": "clips/water_drop.webm",

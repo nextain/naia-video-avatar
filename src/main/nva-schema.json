@@ -69,10 +69,10 @@
           "can_talk": { "type": "boolean", "default": false },
           "face_bbox": {
             "type": "array",
-            "description": "[x,y,w,h] 정규화 0~1. can_talk:true면 필수 — 헤드토킹(Ditto) 오버레이 영역.",
+            "description": "[x, y, l] 정규화 0~1. 좌상단(x,y) + 정사각 한 변 l(폭 기준). can_talk:true면 필수 — Ditto 256² 헤드토킹 크롭/오버레이(정사각).",
             "items": { "type": "number" },
-            "minItems": 4,
-            "maxItems": 4
+            "minItems": 3,
+            "maxItems": 3
           },
           "label": { "type": "string" },
           "intent": {
