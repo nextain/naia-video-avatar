@@ -1,15 +1,140 @@
-// nva-core — naia video clip avatar 코어 로직 (브라우저 + node 양용 ESM)
+// nva-core — naia video clip avatar 코어 로직 (브라우저 + node 양용 ESM) — **nva v0.2**
 //
-// 포맷의 진짜 IP: 비디오 파일이 아니라 "클립의 위치·조합·순서" = 상태머신/포즈 그래프.
-// 의존 0 (순수 JS). 뷰어·에디터·검증기가 공유.
+// 포맷의 진짜 IP: 비디오 파일이 아니라 "클립의 위치·조합·순서" = animations 풀 + scenario 그래프.
+// 의존 0 (순수 JS). 뷰어·에디터·검증기가 공유. cascade(output_cascade/nva_loader.py)와 동일 계약.
 //
-// 개념:
-//  - state: 안정/동작 단위. kind=talking(말하기 가능 안정 포즈) | animation(동작).
-//  - transition: 포즈 간 이동 클립. entry_pose(from) → exit_pose(to).
-//  - 포즈 연속성: A→B 가능 ⟺ A.exit_pose == B.entry_pose, 아니면 둘을 잇는 transition 체인 필요.
+// v0.2 모델 (states/transitions 폐기):
+//  - animations{}: 재료 풀. 각 원소 = clip + entry/exit_pose + loop + can_talk + face_bbox.
+//    종류(kind)는 필드가 아니라 **조합에서 유도**:
+//      말하기 = loop & can_talk / 대기·듣기 = loop & !can_talk / 제스처 = 둘 다 off
+//      전환   = entry_pose != exit_pose
+//  - scenario{nodes,edges}: 노드 그래프. nodes[k]={type:"start"|"scene", animation, label, dwell_ms},
+//    edges=[{from,to}]. start 노드가 가리키는 첫 scene = idle 진입점.
+//  - 헤드토킹: can_talk 애니의 face_bbox 영역만 Ditto 로 렌더해 재생 클립 위에 오버레이.
+
+export const NVA_VERSION = "0.2";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. 검증 (validator) — 유효성 체크
+// 0. 파생 규칙 헬퍼 (cascade nva_loader.py 와 동일 규칙)
+// ─────────────────────────────────────────────────────────────────────────────
+export function isTransition(a) {
+  return (a?.entry_pose || "") !== (a?.exit_pose || "");
+}
+
+// 조합 → 종류 라벨 (UI 표기용).
+export function animKind(a) {
+  if (isTransition(a)) return "transition";
+  if (a.loop && a.can_talk) return "talking";
+  if (a.loop) return "idle";
+  return "gesture";
+}
+
+// scenario start → 첫 scene 애니 (idle 진입점 선택 우선순위).
+export function scenarioStartAnim(m) {
+  const nodes = m.scenario?.nodes || {};
+  const edges = m.scenario?.edges || [];
+  const sk = Object.keys(nodes).find((k) => nodes[k].type === "start");
+  if (!sk) return null;
+  const nx = edges.find((e) => e.from === sk)?.to;
+  return nx && nodes[nx] ? nodes[nx].animation : null;
+}
+
+// cascade 로더와 동일한 파생 필드(idle/talking/listening/events).
+export function derive(m) {
+  const anims = m.animations || {};
+  const isBase = (a) => a.loop && !isTransition(a);
+  const start = scenarioStartAnim(m);
+  const pick = (pred) => {
+    if (start && anims[start] && pred(anims[start])) return start;
+    return Object.keys(anims).find((k) => pred(anims[k])) || null;
+  };
+  const idleKey = pick((a) => isBase(a) && !a.can_talk);
+  const talkKey = pick((a) => isBase(a) && a.can_talk);
+  const events = Object.fromEntries(
+    Object.entries(anims)
+      .filter(([, a]) => !a.loop || isTransition(a))
+      .map(([k, a]) => [k, a.clip]),
+  );
+  return {
+    idleKey,
+    talkKey,
+    listeningKey: idleKey, // v0.2 엔 별도 listening 개념 없음 → idle 재사용
+    events,
+    idle: anims[idleKey],
+    talking: anims[talkKey],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. v0.1 → v0.2 자동 마이그레이션 (구 .nva 열람 호환)
+// ─────────────────────────────────────────────────────────────────────────────
+export function migrateToV02(m) {
+  if (!m || m.nva_version === "0.2") return m;
+  if (m.nva_version !== "0.1") return m; // 알 수 없는 버전은 그대로
+
+  const animations = {};
+  for (const [k, s] of Object.entries(m.states || {})) {
+    animations[k] = {
+      clip: s.clip,
+      entry_pose: s.entry_pose,
+      exit_pose: s.exit_pose,
+      loop: !!s.loop,
+      can_talk: !!s.can_talk,
+      ...(s.face_bbox ? { face_bbox: s.face_bbox } : {}),
+      label: s.label || k,
+    };
+  }
+  for (const [k, t] of Object.entries(m.transitions || {})) {
+    animations[k] = {
+      clip: t.clip,
+      entry_pose: t.entry_pose,
+      exit_pose: t.exit_pose,
+      loop: false,
+      can_talk: false,
+      label: t.label || k,
+    };
+  }
+
+  // scenarios(steps) → scenario(nodes/edges): 첫 시나리오를 선형 그래프로.
+  const nodes = { start: { type: "start", label: "진입" } };
+  const edges = [];
+  const firstScn = Object.values(m.scenarios || {})[0];
+  let prev = "start";
+  let i = 0;
+  if (firstScn) {
+    for (const st of firstScn.steps || []) {
+      const anim = st.goto || st.event;
+      if (!anim) continue;
+      const nid = "n" + i++;
+      nodes[nid] = {
+        type: "scene",
+        animation: anim,
+        label: st.say || anim,
+        ...(st.dwell_ms ? { dwell_ms: st.dwell_ms } : {}),
+      };
+      edges.push({ from: prev, to: nid });
+      prev = nid;
+    }
+  } else if (m.initial) {
+    nodes["n0"] = { type: "scene", animation: m.initial, label: "대기" };
+    edges.push({ from: "start", to: "n0" });
+  }
+
+  const out = {
+    nva_version: "0.2",
+    meta: m.meta || {},
+    canvas: m.canvas || { width: 720, height: 1280, fps: 25 },
+    background: m.background || { type: "transparent" },
+    poses: m.poses || [],
+    animations,
+    scenario: { nodes, edges },
+  };
+  if (m.chroma_key) out.chroma_key = m.chroma_key;
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. 검증 (validator)
 // ─────────────────────────────────────────────────────────────────────────────
 export function validateManifest(m, opts = {}) {
   const errors = [];
@@ -17,188 +142,183 @@ export function validateManifest(m, opts = {}) {
   const E = (s) => errors.push(s);
   const W = (s) => warnings.push(s);
 
-  if (!m || typeof m !== "object") return { ok: false, errors: ["manifest가 객체가 아님"], warnings };
+  if (!m || typeof m !== "object")
+    return { ok: false, errors: ["manifest가 객체가 아님"], warnings };
 
-  if (m.nva_version !== "0.1") E(`nva_version은 "0.1"이어야 함 (현재: ${m.nva_version})`);
+  if (m.nva_version !== "0.2") E(`nva_version은 "0.2"여야 함 (현재: ${m.nva_version})`);
   if (!m.canvas || !(m.canvas.width > 0) || !(m.canvas.height > 0))
     E("canvas.width/height 필수(양수)");
 
-  const states = m.states || {};
-  const stateKeys = Object.keys(states);
-  if (stateKeys.length === 0) E("states가 비어있음 (최소 1개)");
-
-  if (!m.initial) E("initial 없음");
-  else if (!states[m.initial]) E(`initial '${m.initial}'에 해당하는 state 없음`);
+  const anims = m.animations || {};
+  const animKeys = Object.keys(anims);
+  if (animKeys.length === 0) E("animations가 비어있음 (최소 1개)");
 
   const poses = new Set(m.poses || []);
-  const usePoseVocab = poses.size > 0;
-
+  const useVocab = poses.size > 0;
   const checkPose = (where, p) => {
-    if (!p) { E(`${where}: pose 없음`); return; }
-    if (usePoseVocab && !poses.has(p)) W(`${where}: pose '${p}'가 poses 어휘에 없음`);
+    if (!p) {
+      E(`${where}: pose 없음`);
+      return;
+    }
+    if (useVocab && !poses.has(p)) W(`${where}: pose '${p}'가 poses 어휘에 없음`);
   };
 
-  for (const [k, s] of Object.entries(states)) {
-    if (s.kind !== "talking" && s.kind !== "animation") E(`state ${k}: kind는 talking|animation`);
-    if (!s.clip) E(`state ${k}: clip 없음`);
-    checkPose(`state ${k}.entry_pose`, s.entry_pose);
-    checkPose(`state ${k}.exit_pose`, s.exit_pose);
-    if (s.can_talk) {
-      if (!Array.isArray(s.face_bbox) || s.face_bbox.length !== 4)
-        E(`state ${k}: can_talk=true면 face_bbox[x,y,w,h] 필수`);
-      else if (s.face_bbox.some((v) => v < 0 || v > 1))
-        E(`state ${k}: face_bbox 값은 0~1 범위`);
+  for (const [k, a] of Object.entries(anims)) {
+    if (!a.clip) E(`animation ${k}: clip 없음`);
+    checkPose(`animation ${k}.entry_pose`, a.entry_pose);
+    checkPose(`animation ${k}.exit_pose`, a.exit_pose);
+    if (a.can_talk) {
+      if (!Array.isArray(a.face_bbox) || a.face_bbox.length !== 4)
+        E(`animation ${k}: can_talk=true면 face_bbox[x,y,w,h] 필수`);
+      else if (a.face_bbox.some((v) => v < 0 || v > 1))
+        E(`animation ${k}: face_bbox 값은 0~1 범위`);
     }
-    if (s.kind === "talking" && !s.can_talk)
-      W(`state ${k}: talking인데 can_talk=false (의도된 것인지 확인)`);
   }
 
-  for (const [k, t] of Object.entries(m.transitions || {})) {
-    if (!t.clip) E(`transition ${k}: clip 없음`);
-    checkPose(`transition ${k}.entry_pose`, t.entry_pose);
-    checkPose(`transition ${k}.exit_pose`, t.exit_pose);
-  }
+  // base 루프 권장 (cascade 파생이 idle/talking 을 뽑으려면 필요)
+  const hasIdle = Object.values(anims).some((a) => a.loop && !isTransition(a) && !a.can_talk);
+  const hasTalk = Object.values(anims).some((a) => a.loop && !isTransition(a) && a.can_talk);
+  if (animKeys.length && !hasIdle)
+    W("대기 base 루프(loop & !can_talk & 비전환) 없음 — cascade idle 클립 유도 실패");
+  if (animKeys.length && !hasTalk)
+    W("말하기 base 루프(loop & can_talk) 없음 — 헤드토킹 대상 없음");
 
-  // 연결성: initial에서 모든 talking state로 도달 가능?
-  if (m.initial && states[m.initial]) {
-    const reachable = reachableStates(m, m.initial);
-    for (const [k, s] of Object.entries(states)) {
-      if (s.kind === "talking" && !reachable.has(k))
-        W(`state ${k}(talking): initial '${m.initial}'에서 도달 불가 (포즈 경로 없음)`);
+  // scenario 그래프
+  const scen = m.scenario || {};
+  const nodes = scen.nodes || {};
+  const nodeKeys = Object.keys(nodes);
+  if (nodeKeys.length) {
+    let starts = 0;
+    for (const [k, n] of Object.entries(nodes)) {
+      if (n.type === "start") {
+        starts++;
+      } else {
+        if (!n.animation) E(`scenario node ${k}: animation 없음`);
+        else if (!anims[n.animation]) E(`scenario node ${k}: animation '${n.animation}' 없음`);
+      }
+    }
+    if (starts === 0) W("scenario: start 노드 없음 (idle 진입점 유도 실패)");
+    if (starts > 1) E("scenario: start 노드는 1개여야 함");
+    for (const e of scen.edges || []) {
+      if (!e.from || !e.to) {
+        E("scenario edge: from/to 필수");
+        continue;
+      }
+      if (!nodes[e.from]) E(`scenario edge from '${e.from}' 노드 없음`);
+      if (!nodes[e.to]) E(`scenario edge to '${e.to}' 노드 없음`);
     }
   }
 
   // 클립 참조 존재 (번들 파일 목록이 주어질 때만)
   if (opts.clipFiles) {
     const files = new Set(opts.clipFiles);
-    const refs = [
-      ...Object.values(states).map((s) => s.clip),
-      ...Object.values(m.transitions || {}).map((t) => t.clip),
-    ];
-    for (const r of refs) if (r && !files.has(r)) E(`클립 참조 '${r}' 번들에 없음`);
-  }
-
-  // 시나리오: steps 의 goto/event 가 state 에 존재해야
-  for (const [sk, sc] of Object.entries(m.scenarios || {})) {
-    if (!sc.label) W(`scenario ${sk}: label 없음`);
-    if (!Array.isArray(sc.steps) || sc.steps.length === 0) { E(`scenario ${sk}: steps 비어있음`); continue; }
-    sc.steps.forEach((st, i) => {
-      if (st.goto && !states[st.goto]) E(`scenario ${sk} step${i}: goto '${st.goto}' state 없음`);
-      if (st.event && states[st.event]?.kind !== "animation")
-        W(`scenario ${sk} step${i}: event '${st.event}'가 animation state 아님`);
-      if (!st.goto && !st.event && !st.say) W(`scenario ${sk} step${i}: goto/event/say 모두 없음(빈 단계)`);
-    });
+    for (const [k, a] of Object.entries(anims))
+      if (a.clip && !files.has(a.clip)) E(`animation ${k}: 클립 '${a.clip}' 번들에 없음`);
   }
 
   return { ok: errors.length === 0, errors, warnings };
 }
 
-// 시나리오 목록 (뷰어 드롭다운용).
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. scenario 목록 (뷰어 드롭다운용) — v0.2 는 단일 scenario 그래프.
+// ─────────────────────────────────────────────────────────────────────────────
 export function listScenarios(m) {
-  return Object.entries(m.scenarios || {}).map(([id, sc]) => ({ id, label: sc.label || id, steps: sc.steps.length }));
+  const scen = m.scenario;
+  if (!scen || !scen.nodes) return [];
+  const scenes = Object.values(scen.nodes).filter((n) => n.type !== "start").length;
+  return [{ id: "scenario", label: "시나리오 흐름", steps: scenes }];
+}
+
+// scenario 그래프를 start 부터 edge 따라 선형 방문 순서로 평탄화 (미리보기 재생용).
+export function scenarioPlayOrder(m) {
+  const nodes = m.scenario?.nodes || {};
+  const edges = m.scenario?.edges || [];
+  const start = Object.keys(nodes).find((k) => nodes[k].type === "start");
+  if (!start) return [];
+  const order = [];
+  const seen = new Set();
+  let cur = start;
+  while (cur && !seen.has(cur)) {
+    seen.add(cur);
+    const n = nodes[cur];
+    if (n && n.type !== "start" && n.animation)
+      order.push({ animation: n.animation, say: n.label, dwell_ms: n.dwell_ms });
+    cur = edges.find((e) => e.from === cur)?.to;
+  }
+  return order;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. 포즈 그래프 — "앞뒤로 붙을 수 있는" 연속성
+// 4. 재생 시퀀스 — 목표 애니로 가는 전환 자동 삽입 (포즈 연속성).
 // ─────────────────────────────────────────────────────────────────────────────
 
-// 포즈 노드 간 transition 엣지로 BFS. fromPose → toPose 의 transition 키 시퀀스(최단).
-// 같은 포즈면 [] (전환 불요). 경로 없으면 null.
+// entry/exit pose 로 전환 애니(is_transition) 를 BFS. fromPose → toPose 최단 키 시퀀스.
 export function findTransitionPath(m, fromPose, toPose) {
   if (fromPose === toPose) return [];
-  const transitions = Object.entries(m.transitions || {});
+  const trans = Object.entries(m.animations || {}).filter(([, a]) => isTransition(a));
   const queue = [[fromPose, []]];
   const seen = new Set([fromPose]);
   while (queue.length) {
     const [pose, path] = queue.shift();
-    for (const [key, t] of transitions) {
-      if (t.entry_pose !== pose || seen.has(t.exit_pose)) continue;
+    for (const [key, a] of trans) {
+      if (a.entry_pose !== pose || seen.has(a.exit_pose)) continue;
       const next = [...path, key];
-      if (t.exit_pose === toPose) return next;
-      seen.add(t.exit_pose);
-      queue.push([t.exit_pose, next]);
+      if (a.exit_pose === toPose) return next;
+      seen.add(a.exit_pose);
+      queue.push([a.exit_pose, next]);
     }
   }
   return null;
 }
 
-// initial state에서 (포즈 경로로) 도달 가능한 state 키 집합.
-export function reachableStates(m, startKey) {
-  const states = m.states || {};
-  const start = states[startKey];
-  const reached = new Set();
-  if (!start) return reached;
-  // 시작 포즈에서 도달 가능한 모든 포즈 집합
-  const poseReach = new Set([start.exit_pose, start.entry_pose]);
-  let grew = true;
-  while (grew) {
-    grew = false;
-    for (const t of Object.values(m.transitions || {})) {
-      if (poseReach.has(t.entry_pose) && !poseReach.has(t.exit_pose)) {
-        poseReach.add(t.exit_pose);
-        grew = true;
-      }
-    }
-  }
-  // entry_pose가 도달 가능 포즈에 있는 state = 도달 가능
-  for (const [k, s] of Object.entries(states)) {
-    if (poseReach.has(s.entry_pose)) reached.add(k);
-  }
-  reached.add(startKey);
-  return reached;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 3. 상태머신 — 런타임 (연출: 목표 state로 가는 transition 시퀀스 자동 계획)
-// ─────────────────────────────────────────────────────────────────────────────
-export class NvaStateMachine {
+// 런타임 상태머신 — 현재 애니의 exit_pose 에서 목표 애니의 entry_pose 로 전환 계획.
+export class NvaRuntime {
   constructor(manifest) {
     this.m = manifest;
-    this.current = manifest.initial;
+    const d = derive(manifest);
+    this.current = d.idleKey || Object.keys(manifest.animations || {})[0] || null;
   }
 
-  state(key = this.current) {
-    return this.m.states[key];
+  anim(key = this.current) {
+    return this.m.animations?.[key];
   }
 
-  // 목표 state로 가는 계획: { transitions: [transitionKey...], target }. 불가면 null.
+  // 목표 애니로 가는 계획: { transitions:[key...], target }. 불가면 null.
   plan(targetKey) {
-    const cur = this.m.states[this.current];
-    const tgt = this.m.states[targetKey];
-    if (!cur || !tgt) return null;
-    const path = findTransitionPath(this.m, cur.exit_pose, tgt.entry_pose);
+    const cur = this.anim(this.current);
+    const tgt = this.anim(targetKey);
+    if (!tgt) return null;
+    const path = findTransitionPath(this.m, cur?.exit_pose ?? tgt.entry_pose, tgt.entry_pose);
     if (path === null) return null;
     return { transitions: path, target: targetKey };
   }
 
-  // 계획을 적용해 현재 state 갱신 (실제 재생은 player가 담당).
   commit(targetKey) {
     this.current = targetKey;
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 4. 재생 시퀀스 빌더 — 계획 → (클립, 종류) 목록. player가 그대로 재생.
-// ─────────────────────────────────────────────────────────────────────────────
+// 계획 → (클립, loop, can_talk, face_bbox) 시퀀스. player 가 그대로 재생.
 export function buildPlaybackSequence(m, plan) {
   const seq = [];
   for (const tk of plan.transitions) {
-    const t = m.transitions[tk];
-    seq.push({ kind: "transition", key: tk, clip: t.clip, loop: false });
+    const a = m.animations[tk];
+    seq.push({ key: tk, clip: a.clip, loop: false, can_talk: false, face_bbox: null });
   }
-  const s = m.states[plan.target];
+  const a = m.animations[plan.target];
   seq.push({
-    kind: s.kind,
     key: plan.target,
-    clip: s.clip,
-    loop: !!s.loop,
-    can_talk: !!s.can_talk,
-    face_bbox: s.face_bbox || null,
+    clip: a.clip,
+    loop: !!a.loop,
+    can_talk: !!a.can_talk,
+    face_bbox: a.face_bbox || null,
   });
   return seq;
 }
 
-// node CLI 검증용 (브라우저에선 무시).
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. CLI 요약
+// ─────────────────────────────────────────────────────────────────────────────
 export function summarize(result) {
   const lines = [];
   lines.push(result.ok ? "✅ VALID" : "❌ INVALID");
