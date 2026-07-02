@@ -10,12 +10,13 @@
 
   "current_work": {
     "issue": "nva-poc",
-    "title": "nva 포맷 + 웹 뷰어 + 에디터 PoC (박대표 미팅 데모)",
+    "title": "nva 포맷 v0.2 + 웹 뷰어/에디터(노드그래프·cascade 연결) + 실시간 발화(알파)",
     "issue_doc": null,
     "github_issue": null,
     "started": "2026-06-21",
-    "last_updated": "2026-06-21",
-    "status": "active"
+    "last_updated": "2026-07-02",
+    "status": "active",
+    "note": "v0.1→v0.2 전환(animations/scenario 그래프, cascade 정합). editor=알파 webm 렌더 + scenario SVG 노드그래프(드래그·연결·양방향) + cascade 연결 패널(실시간 발화 뷰잉, 상단 플레이어 통합, 미리보기 배경색). cascade enable_alpha=1 로 발화도 투명(정적 matte). 자세히 = alpha-adk .agents/progress/nva-osarang-rebuild-2026-06-23.md"
   },
 
   "sdlc_gates": {

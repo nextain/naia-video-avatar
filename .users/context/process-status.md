@@ -19,9 +19,14 @@
 ## 현재 작업
 
 **이슈**: nva-poc
-**제목**: nva 포맷 + 웹 뷰어 + 에디터 PoC (박대표 미팅 데모)
+**제목**: nva 포맷 v0.2 + 웹 뷰어/에디터(노드그래프·cascade 연결) + 실시간 발화(알파)
 **상태**: active
 **시작**: 2026-06-21
+
+> v0.1→v0.2 전환(animations/scenario 그래프, cascade 정합). editor = 알파 webm 렌더 +
+> scenario SVG 노드그래프(드래그·연결·양방향) + cascade 연결 패널(실시간 발화 뷰잉, 상단 플레이어
+> 통합, 미리보기 배경색). cascade `enable_alpha=1` 로 발화도 투명(정적 matte).
+> 자세히 = alpha-adk `.agents/progress/nva-osarang-rebuild-2026-06-23.md`
 
 ---
 
@@ -35,7 +40,7 @@
 | P04 통합테스트 | done | headless 캡쳐 + node 검증 + export unzip (TEST-F-001~004) |
 | P05 완료 | partial | 포맷·뷰어·에디터·export = Done / cascade·kiosk-v3 = 잔여(GPU·VM 외부) |
 
-마지막 업데이트: 2026-06-21
+마지막 업데이트: 2026-07-02
 
 ---
 

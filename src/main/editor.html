@@ -17,19 +17,20 @@
   input,select{ background:#0c1118; color:#cfe3ff; border:1px solid #33415a; border-radius:6px; padding:5px 7px; font-size:13px; width:100%; }
   label.f{ display:block; font-size:11px; color:#8b98a9; margin:8px 0 3px; }
   #wrap{ display:flex; height:calc(100vh - 50px); }
-  aside{ width:310px; overflow:auto; padding:12px; } #struct{ border-right:1px solid #222c3a; } #form{ border-left:1px solid #222c3a; }
+  aside{ width:320px; overflow:auto; padding:12px; } #struct{ border-right:1px solid #222c3a; } #form{ width:360px; border-left:1px solid #222c3a; }
   main{ flex:1; display:flex; flex-direction:column; align-items:center; padding:14px; overflow:auto; }
-  canvas{ background:#000; border-radius:10px; max-height:52vh; }
+  canvas{ background:#000; border-radius:10px; width:100%; height:auto; }
   h2{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#8b98a9; margin:14px 0 6px; display:flex; justify-content:space-between; align-items:center; }
   .item{ display:flex; justify-content:space-between; align-items:center; padding:5px 8px; border-radius:6px; cursor:pointer; font-size:13px; margin:2px 0; background:#161d28; }
   .item:hover{ background:#1d2735; } .item.sel{ background:#2f6feb; }
   .item .tag{ font-size:10px; color:#8b98a9; } .item.sel .tag{ color:#cfe0ff; }
+  .kind-talking{ color:#27c08a; } .kind-idle{ color:#8fb8ff; } .kind-gesture{ color:#e0a93a; } .kind-transition{ color:#c98fff; }
   .ctrls{ margin:8px 0; } .ctrls button{ margin:0 4px 4px 0; } .ctrls button.active{ background:#2f6feb; border-color:#2f6feb; }
   .ctrls button.scn{ border-color:#e0a93a; }
   #valid{ white-space:pre-wrap; font-family:ui-monospace,monospace; font-size:11px; background:#0c1118; border:1px solid #222c3a; border-radius:7px; padding:8px; width:100%; max-width:520px; max-height:120px; overflow:auto; }
   .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; } .ok{ background:#27c08a; } .bad{ background:#ff5a5a; }
-  .step{ display:grid; grid-template-columns:1fr 1fr 1fr 56px 24px; gap:4px; margin:3px 0; }
-  .step input,.step select{ font-size:12px; padding:3px 5px; }
+  .edge{ display:grid; grid-template-columns:1fr 16px 1fr 24px; gap:4px; align-items:center; margin:3px 0; }
+  .edge select{ font-size:12px; padding:3px 5px; } .edge .arrow{ text-align:center; color:#8b98a9; }
   .muted{ color:#8b98a9; font-size:11px; }
   #status{ font-size:12px; color:#8b98a9; }
   #guide{ position:fixed; inset:0; background:rgba(0,0,0,.72); display:none; z-index:50; align-items:center; justify-content:center; }
@@ -39,11 +40,25 @@
   #guide ol{ margin:4px 0; padding-left:20px; } #guide li{ margin:3px 0; } #guide code{ background:#0c1118; padding:1px 6px; border-radius:4px; }
   #guide .close{ float:right; }
   #guide .tag{ color:#8b98a9; font-size:12px; }
+  #graphWrap{ width:100%; max-width:560px; position:relative; margin:4px 0 2px; }
+  #graph{ width:100%; height:260px; background:#0c1118; border:1px solid #222c3a; border-radius:10px; touch-action:none; display:block; }
+  #graph rect.nbox{ fill:#161d28; stroke:#33415a; }
+  #graph rect.nbox.start{ fill:#1d3a2e; stroke:#27c08a; }
+  #graph rect.nbox.sel{ stroke:#2f6feb; stroke-width:2px; }
+  #graph .gnode{ cursor:grab; }
+  #graph text.nlabel{ fill:#cfe3ff; font:12px system-ui; pointer-events:none; }
+  #graph text.nsub{ fill:#8b98a9; font:10px system-ui; pointer-events:none; }
+  #graph .edge-line{ stroke:#5b6b82; stroke-width:2px; }
+  #graph .edge-hit{ stroke:transparent; stroke-width:14px; cursor:pointer; }
+  #graph .edge-hit:hover + .edge-line, #graph .edge-line:hover{ stroke:#8fb8ff; }
+  #gmenu{ position:absolute; display:none; background:#11151c; border:1px solid #33415a; border-radius:8px; padding:4px; z-index:20; gap:4px; }
+  #gmenu.on{ display:flex; }
+  #gConnect.active{ background:#2f6feb; border-color:#2f6feb; }
 </style>
 </head>
 <body>
 <header>
-  <h1>nva 에디터 <span class="pill">v0.1 · 제작 도구</span></h1>
+  <h1>nva 에디터 <span class="pill">v0.2 · 제작 도구</span></h1>
   <button id="loadDemo">데모 로드</button>
   <label class="sm" style="display:inline-block"><input type="file" id="openNva" accept=".nva,.zip" style="display:none">
     <button class="sm" onclick="document.getElementById('openNva').click()">.nva 열기</button></label>
@@ -53,42 +68,40 @@
 </header>
 <div id="guide"><div class="box">
   <button class="close" id="guideClose">✕ 닫기</button>
-  <h3>nva 에디터 — 의도 · 사용법 · 구조</h3>
+  <h3>nva 에디터 — 의도 · 사용법 · 구조 (v0.2)</h3>
   <p class="tag">naia video clip avatar — 비디오 클립 아바타 포맷 제작/편집 도구</p>
 
   <h4>무슨 의도로 만들었나</h4>
   캐릭터를 무엇으로 만들든(실사 촬영·VRM·메타휴먼·AI 영상생성) 최종 산출은 <b>비디오 클립 + 메타(manifest)</b>로 통일된다.
-  핵심은 비디오 파일이 아니라 <b>클립의 위치·조합·순서 = 상태머신</b>이다. 박스 데모는 "자리·흐름 명세"이고,
-  같은 규격의 <b>고품질 클립으로 교체</b>하면 그대로 동작한다(도구 중립 교환 포맷, 오픈소스 지향).
+  핵심은 비디오 파일이 아니라 <b>클립의 위치·조합·순서 = animations 풀 + scenario 그래프</b>이다.
 
-  <h4>파일 구조 (.nva)</h4>
+  <h4>파일 구조 (.nva v0.2)</h4>
   <code>manifest.json</code> (두뇌) + <code>clips/</code> (비디오들)
   <ul>
-    <li><b>state</b> — <code>talking</code>(말하기 안정 포즈) / <code>animation</code>(동작). 클립 + 포즈 + <code>face_bbox</code>(헤드토킹 위치)</li>
-    <li><b>transition</b> — 포즈 간 이동 클립. <code>entry_pose → exit_pose</code></li>
-    <li><b>scenario</b> — 연출(상태/이벤트 + 대사 + 타이밍 시퀀스)</li>
-    <li><b>레이어</b> — 배경 + 캐릭터(알파/크로마) + 헤드토킹</li>
+    <li><b>animation</b> — 재료 풀의 원소. 클립 + 포즈 + <code>loop</code> + <code>can_talk</code> + <code>face_bbox</code>.
+      <b>종류는 조합에서 유도</b>: 말하기=loop&amp;can_talk / 대기·듣기=loop / 제스처=둘 다 off / 전환=entry_pose≠exit_pose</li>
+    <li><b>scenario</b> — 노드 그래프(<code>nodes</code>/<code>edges</code>). start 노드가 가리키는 첫 scene = idle 진입점</li>
+    <li><b>레이어</b> — 배경 + 캐릭터(알파 VP9 webm) + 헤드토킹(can_talk 의 face_bbox 영역만 Ditto)</li>
   </ul>
 
   <h4>사용법</h4>
   <ol>
-    <li><b>데모 로드</b> 또는 <b>.nva 열기</b>로 시작</li>
-    <li><b>+말하기 / +동작</b> → state 생성 → 우측 폼에서 <b>클립 업로드</b> + 포즈·face_bbox·loop 설정</li>
-    <li><b>+전환</b> → 포즈 간 클립(앉기/서기 등)</li>
-    <li><b>+시나리오</b> → 단계(상태·대사·시간) 추가 = 연출 흐름</li>
-    <li>중앙 <b>미리보기 버튼</b>(상태/시나리오)으로 돌려보기</li>
+    <li><b>데모 로드</b> 또는 <b>.nva 열기</b>로 시작 (구 v0.1 파일은 자동 v0.2 변환)</li>
+    <li><b>+말하기</b>(loop+can_talk) / <b>+동작</b>(제스처) / <b>+전환</b>(포즈 이동) → 애니 생성 → 우측 폼에서 <b>클립 업로드</b> + 포즈·face_bbox 설정</li>
+    <li><b>scenario</b>: +scene 으로 노드 추가(애니 지정) → edges 로 흐름 연결(start→…)</li>
+    <li>중앙 <b>미리보기 버튼</b>(애니/시나리오)으로 돌려보기 — 알파 클립은 배경 위에 합성됨</li>
     <li><b>⬇ .nva 내보내기</b> (manifest + 클립을 단일 zip으로)</li>
   </ol>
 
-  <h4>포즈 규칙 (seamless)</h4>
-  각 클립은 <b>해당 포즈에서 시작·끝</b>나야 이어 붙일 때 튐이 없다. 연결 가능 = <code>A.exit_pose == B.entry_pose</code>
-  (다르면 둘을 잇는 transition 필요). 시나리오는 이 포즈 경로를 자동 탐색해 전환을 끼워 넣는다.
+  <h4>배경 · 알파</h4>
+  캐릭터 클립이 <b>알파(VP9 yuva420p webm)</b>면 배경 위에 그대로 합성된다(크로마키 불요). 배경 <code>transparent</code> = cascade 가 알파 스트림 → 소비자(TalkingKiosk web/naia-os)가 배경색 합성.
+  구형 불투명 클립은 <code>chroma_key</code> 로 투명 처리(하위호환).
 
-  <h4>데모(시연)와의 관계</h4>
-  이 에디터로 만든 <code>.nva</code>를 데모(<code>demo.html</code> / kiosk-v3)가 cascade에 넣어 실시간 렌더한다. 에디터=제작, 데모=시연으로 분리.
+  <h4>cascade 연동 (실시간 발화)</h4>
+  이 <code>.nva</code>(v0.2)를 cascade(<code>output_cascade/nva_loader.py</code>)가 로드 → idle/event 클립 재생 + speaking 시 can_talk 애니의 face_bbox 영역을 Ditto 헤드토킹으로 오버레이 → 비디오 스트림.
 
   <h4>상세 문서</h4>
-  <p class="tag"><code>README.md</code> · <code>docs/nva-format-guide.md</code>(제작 가이드) · <code>src/main/nva-schema.json</code>(필드 스펙) · <code>docs/progress/01~05</code>(V모델 요구·설계·테스트)</p>
+  <p class="tag"><code>README.md</code> · <code>docs/nva-format-guide.md</code> · <code>src/main/nva-schema.json</code>(v0.2 필드 스펙)</p>
 </div></div>
 <div id="wrap">
   <!-- 좌: 리소스/구조 -->
@@ -96,35 +109,54 @@
     <h2>메타</h2>
     <label class="f">이름</label><input id="m_name">
     <label class="f">제작자/소유 (author / owner)</label><input id="m_owner">
-    <h2>배경 / 크로마</h2>
-    <label class="f">배경색</label><input id="m_bg" type="color">
-    <label class="f">크로마키 색 (캐릭터 투명처리)</label><input id="m_chroma" type="color">
+    <h2>배경 / 레이어</h2>
+    <label class="f">배경 종류</label>
+    <select id="m_bgtype"><option value="transparent">transparent (알파 — 소비자 합성)</option><option value="color">color (단색)</option></select>
+    <label class="f">미리보기 배경색 <span class="muted">(transparent 도 프리뷰용으로 이 색 뒤에 깔아 확인)</span></label><input id="m_bg" type="color">
+    <label class="f">크로마키 색 <span class="muted">(구형 불투명 클립만 — 알파 webm 이면 비워둠)</span></label>
+    <div style="display:flex;gap:6px;align-items:center"><input id="m_chroma" type="color" style="flex:1"><button class="sm" id="m_chroma_clr">지움</button></div>
     <label class="f">포즈 어휘 (쉼표)</label><input id="m_poses" placeholder="standing, sitting">
-    <h2>talking / animation <span><button class="sm" id="addTalk">+말하기</button> <button class="sm" id="addAnim">+동작</button></span></h2>
-    <div id="statesList"></div>
-    <h2>transitions <span><button class="sm" id="addTrans">+전환</button></span></h2>
-    <div id="transList"></div>
-    <h2>scenarios <span><button class="sm" id="addScn">+시나리오</button></span></h2>
-    <div id="scnList"></div>
+    <h2>animations <span><button class="sm" id="addTalk">+말하기</button> <button class="sm" id="addAnim">+동작</button> <button class="sm" id="addTrans">+전환</button></span></h2>
+    <div id="animList"></div>
+    <h2>scenario 노드 <span><button class="sm" id="addNode">+scene</button></span></h2>
+    <div id="nodeList"></div>
+    <p class="muted">흐름(edges)은 가운데 <b>노드그래프</b>에서 드래그로 연결하세요.</p>
   </aside>
 
   <!-- 중앙: 미리보기(플레이) -->
   <main>
-    <canvas id="cv" width="360" height="640"></canvas>
-    <div class="ctrls" id="playCtrls"></div>
-    <div class="ctrls"><button id="speakBtn">🎙 말하기 OFF</button> <span class="muted">선택 상태/시나리오를 돌려봅니다</span></div>
+    <h2 style="align-self:flex-start;width:100%;max-width:560px">scenario 노드그래프
+      <span><button class="sm" id="gConnect">🔗 연결</button> <button class="sm" id="gAuto">자동배치</button></span></h2>
+    <div id="graphWrap"><svg id="graph"></svg><div id="gmenu"></div></div>
+    <p class="muted" id="gHint" style="max-width:560px;align-self:flex-start">노드 드래그=배치 · <b>연결</b> 켜고 노드A→노드B 클릭=엣지 · 엣지 클릭=방향/양방향/삭제</p>
+    <h2 style="align-self:flex-start;width:100%;max-width:560px">cascade 연결 — 실시간 발화 (Ditto)
+      <span><input id="casUrl" style="width:160px;display:inline-block" value="http://localhost:8910"><button class="sm" id="casConnect">연결</button></span></h2>
+    <div id="casWrap" style="width:100%;max-width:560px">
+      <div class="ctrls">
+        <button class="sm" id="casIdle">▶ 대기(idle)</button>
+        <input id="casText" placeholder="말할 문장…" style="width:230px;display:inline-block" value="안녕하세요, 강남구청 안내원입니다. 무엇을 도와드릴까요?">
+        <button class="sm go" id="casSpeak">🎙 말하기(cascade)</button>
+      </div>
+      <p class="muted" id="casStatus">미연결 — cascade(:8910)를 띄우고 [연결] 누르세요. 현재 nva가 로드된 cascade의 실시간 발화를 그대로 봅니다.</p>
+    </div>
     <h2 style="align-self:flex-start">유효성 (validator)</h2>
     <div id="valid">…</div>
   </main>
 
-  <!-- 우: 선택 항목 메타 편집 -->
-  <aside id="form"><div id="formBody"><p class="muted">왼쪽에서 항목을 선택하면 메타를 편집합니다.</p></div></aside>
+  <!-- 우: 영상 뷰어(플레이어) + 선택 항목 메타 편집 -->
+  <aside id="form">
+    <h2>플레이어 (미리보기 · cascade)</h2>
+    <canvas id="cv" width="360" height="640"></canvas>
+    <div class="ctrls" id="playCtrls"></div>
+    <div class="ctrls"><button id="speakBtn" class="sm">🎙 말하기 OFF</button> <span class="muted">애니/시나리오/cascade 발화가 여기 재생됩니다</span></div>
+    <div id="formBody"><p class="muted">왼쪽에서 항목을 선택하면 메타를 편집합니다.</p></div>
+  </aside>
 </div>
 
 <script type="module">
-import { validateManifest, NvaStateMachine, buildPlaybackSequence, listScenarios } from "./nva-core.js";
+import { validateManifest, NvaRuntime, buildPlaybackSequence, listScenarios, scenarioPlayOrder, migrateToV02, animKind, derive } from "./nva-core.js";
 
-let M=null, baseUrl="", blobMap={}, selected=null, sm=null, busy=false, scnPlaying=false;
+let M=null, baseUrl="", blobMap={}, selected=null, rt=null, busy=false, scnPlaying=false;
 let speaking=false, current=null, currentCaption="";
 const $=id=>document.getElementById(id);
 const cv=$("cv"), ctx=cv.getContext("2d"), off=document.createElement("canvas"), octx=off.getContext("2d",{willReadFrequently:true});
@@ -134,21 +166,33 @@ const clipUrl=c=> blobMap[c]?.url || (baseUrl ? `${baseUrl}/${c}` : c);
 function hexRGB(h){ h=(h||"#00b140").replace("#",""); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
 
 // ── 미리보기(플레이) ──
+function drawChecker(){
+  const s=24; for(let y=0;y<cv.height;y+=s) for(let x=0;x<cv.width;x+=s){ ctx.fillStyle=((x/s+y/s)&1)?"#3a4048":"#2b3037"; ctx.fillRect(x,y,s,s); }
+}
 function compose(ts){
-  ctx.fillStyle=(M?.background?.color)||"#202830"; ctx.fillRect(0,0,cv.width,cv.height);
+  // 미리보기 배경: color 타입이면 그 색, 아니면(transparent 등) 미리보기 색상 피커(#m_bg, 기본 #FFF2D6).
+  // → 알파 캐릭터(idle·cascade 발화 모두)가 이 배경색 위에 합성돼 보인다. 실제 nva 배경은 transparent 유지.
+  const bg=M?.background;
+  const preview=(bg?.type==="color" && bg?.color) ? bg.color : (($("m_bg")&&$("m_bg").value) || "#fff2d6");
+  ctx.fillStyle=preview; ctx.fillRect(0,0,cv.width,cv.height);
   if(video.readyState>=2){
-    off.width=cv.width; off.height=cv.height; octx.drawImage(video,0,0,cv.width,cv.height);
     if(M?.chroma_key){
+      // 구형 불투명 클립: 크로마키로 투명 처리 후 합성
+      off.width=cv.width; off.height=cv.height; octx.clearRect(0,0,cv.width,cv.height); octx.drawImage(video,0,0,cv.width,cv.height);
       const [cr,cg,cb]=hexRGB(M.chroma_key), img=octx.getImageData(0,0,cv.width,cv.height),d=img.data;
       for(let i=0;i<d.length;i+=4){ const dr=d[i]-cr,dg=d[i+1]-cg,db=d[i+2]-cb; if(dr*dr+dg*dg+db*db<90*90) d[i+3]=0; }
-      octx.putImageData(img,0,0);
+      octx.putImageData(img,0,0); ctx.drawImage(off,0,0);
+    } else {
+      // 알파 webm(또는 불투명): drawImage 가 알파를 source-over 로 배경 위 합성
+      ctx.drawImage(video,0,0,cv.width,cv.height);
     }
-    ctx.drawImage(off,0,0);
   }
-  if(speaking&&current?.can_talk&&current.face_bbox){
+  if(current?.can_talk&&current.face_bbox){
     const[x,y,w,h]=current.face_bbox, px=x*cv.width,py=y*cv.height,pw=w*cv.width,ph=h*cv.height;
-    const o=Math.sin(ts/90)*0.5+0.5; ctx.fillStyle="#7a1f1f"; ctx.fillRect(px+pw*0.3,py+ph*0.62,pw*0.4,ph*0.1*(0.3+o)+2);
-    ctx.strokeStyle="#ffffff55"; ctx.setLineDash([4,4]); ctx.strokeRect(px,py,pw,ph); ctx.setLineDash([]);
+    // 헤드토킹 영역 윤곽 — can_talk 애니면 항상 표시(자리 확인용)
+    ctx.strokeStyle=speaking?"#27c08a":"#ffffff88"; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.strokeRect(px,py,pw,ph); ctx.setLineDash([]); ctx.lineWidth=1;
+    ctx.fillStyle=speaking?"#27c08a":"#ffffffaa"; ctx.font="10px system-ui"; ctx.fillText("headtalk (Ditto)", px, py-4);
+    if(speaking){ const o=Math.sin(ts/90)*0.5+0.5; ctx.fillStyle="#7a1f1f"; ctx.fillRect(px+pw*0.3,py+ph*0.62,pw*0.4,ph*0.1*(0.3+o)+2); }
   }
   if(currentCaption){
     ctx.font="bold 18px system-ui"; const tw=ctx.measureText(currentCaption).width, bw=Math.min(cv.width-16,tw+26), bx=(cv.width-bw)/2, by=cv.height-60;
@@ -156,59 +200,132 @@ function compose(ts){
   }
   requestAnimationFrame(compose);
 }
-function playClip(clip,loop){ return new Promise(res=>{ video.src=clipUrl(clip); video.loop=loop;
+function playClip(clip,loop){ return new Promise(res=>{ video.muted=true; video.src=clipUrl(clip); video.loop=loop;
   const e=()=>{video.removeEventListener("ended",e);res();}; if(!loop)video.addEventListener("ended",e); video.play().catch(()=>{}); if(loop)res(); }); }
-async function goto(target){ if(busy||!sm)return; busy=true;
-  const plan=sm.plan(target); if(!plan){ $("status").textContent=`${target} 도달 불가(포즈 경로 없음)`; busy=false; return; }
+async function goto(target){ if(busy||!rt)return; busy=true;
+  const plan=rt.plan(target); if(!plan){ $("status").textContent=`${target} 도달 불가(포즈 경로 없음)`; busy=false; return; }
   for(const st of buildPlaybackSequence(M,plan)){ current=st; await playClip(st.clip,st.loop); }
-  sm.commit(target); busy=false; }
-async function playScenario(id){ const sc=M.scenarios?.[id]; if(!sc||scnPlaying)return; scnPlaying=true;
-  for(const step of sc.steps){ const t=step.goto||step.event; if(t) await goto(t); if(step.say){ speaking=true; currentCaption=step.say; } await sleep(step.dwell_ms||2000); speaking=false; }
+  rt.commit(target); busy=false; }
+async function playScenario(){ if(scnPlaying)return; scnPlaying=true;
+  for(const step of scenarioPlayOrder(M)){ if(step.animation) await goto(step.animation); if(step.say){ speaking=true; currentCaption=step.say; } await sleep(step.dwell_ms||2000); speaking=false; }
   currentCaption=""; speaking=false; scnPlaying=false; }
 
 // ── 구조 패널 렌더 ──
 function renderStruct(){
   $("m_name").value=M.meta?.name||""; $("m_owner").value=M.meta?.owner||M.meta?.author||"";
-  $("m_bg").value=(M.background?.color)||"#202830"; $("m_chroma").value=M.chroma_key||"#00b140";
+  $("m_bgtype").value=M.background?.type||"transparent";
+  $("m_bg").value=(M.background?.color)||"#fff2d6"; $("m_chroma").value=M.chroma_key||"#00b140";
   $("m_poses").value=(M.poses||[]).join(", ");
-  const sl=$("statesList"); sl.innerHTML="";
-  for(const[k,s]of Object.entries(M.states||{})){ sl.appendChild(itemRow("state",k,s.kind==="talking"?"말하기":"동작")); }
-  const tl=$("transList"); tl.innerHTML="";
-  for(const[k,t]of Object.entries(M.transitions||{})){ tl.appendChild(itemRow("transition",k,`${t.entry_pose}→${t.exit_pose}`)); }
-  const cl=$("scnList"); cl.innerHTML="";
-  for(const[k,c]of Object.entries(M.scenarios||{})){ cl.appendChild(itemRow("scenario",k,`${c.steps?.length||0}단계`)); }
+  const al=$("animList"); al.innerHTML="";
+  for(const[k,a]of Object.entries(M.animations||{})){ al.appendChild(itemRow("animation",k,animKind(a))); }
+  const nl=$("nodeList"); nl.innerHTML="";
+  for(const[k,n]of Object.entries(M.scenario?.nodes||{})){ nl.appendChild(itemRow("node",k,n.type==="start"?"start":(n.animation||"?"))); }
+  renderGraph();
   // 플레이 컨트롤
   const pc=$("playCtrls"); pc.innerHTML="";
-  for(const[k,s]of Object.entries(M.states||{})){ const b=document.createElement("button"); b.textContent=s.label||k; b.onclick=()=>goto(k); pc.appendChild(b); }
-  for(const sc of listScenarios(M)){ const b=document.createElement("button"); b.className="scn"; b.textContent="▶ "+sc.label; b.onclick=()=>playScenario(sc.id); pc.appendChild(b); }
+  for(const[k,a]of Object.entries(M.animations||{})){ const b=document.createElement("button"); b.textContent=a.label||k; b.onclick=()=>goto(k); pc.appendChild(b); }
+  for(const sc of listScenarios(M)){ const b=document.createElement("button"); b.className="scn"; b.textContent="▶ "+sc.label; b.onclick=()=>playScenario(); pc.appendChild(b); }
+}
+// ── scenario 노드그래프 (SVG) ──
+const SVGNS="http://www.w3.org/2000/svg";
+let nodePos={}, connectMode=false, connectSrc=null, gSel=null;
+const NB={w:110,h:42};
+function graphRect(){ return $("graph").getBoundingClientRect(); }
+function autoLayout(force){
+  const nodes=M.scenario?.nodes||{}; const r=graphRect(); const w=r.width||520, h=r.height||260;
+  const keys=Object.keys(nodes); if(force) nodePos={};
+  const startK=keys.find(k=>nodes[k].type==="start");
+  const scenes=keys.filter(k=>k!==startK);
+  if(startK && !nodePos[startK]) nodePos[startK]={x:16, y:h/2-NB.h/2};
+  scenes.forEach((k,i)=>{ if(!nodePos[k]){ const x=160+(i%3)*140, y=24+Math.floor(i/3)*96+(i%2)*22; nodePos[k]={x:Math.min(x,w-NB.w-10), y:Math.min(y,h-NB.h-8)}; } });
+}
+function nodeCenter(k){ const p=nodePos[k]||{x:0,y:0}; return {x:p.x+NB.w/2, y:p.y+NB.h/2}; }
+function hasEdge(a,b){ return (M.scenario?.edges||[]).some(e=>e.from===a&&e.to===b); }
+function renderGraph(){
+  const svg=$("graph"); if(!svg) return;
+  M.scenario=M.scenario||{nodes:{},edges:[]}; M.scenario.nodes=M.scenario.nodes||{}; M.scenario.edges=M.scenario.edges||[];
+  autoLayout(false);
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const defs=document.createElementNS(SVGNS,"defs");
+  defs.innerHTML=`<marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8fb8ff"/></marker>`;
+  svg.appendChild(defs);
+  const drawnPairs=new Set();
+  for(const e of M.scenario.edges){
+    if(!nodePos[e.from]||!nodePos[e.to]) continue;
+    const rev=hasEdge(e.to,e.from); const pk=[e.from,e.to].sort().join(" ");
+    if(rev){ if(drawnPairs.has(pk)) continue; drawnPairs.add(pk); }
+    const a=nodeCenter(e.from), b=nodeCenter(e.to);
+    const hit=document.createElementNS(SVGNS,"line"), ln=document.createElementNS(SVGNS,"line");
+    hit.setAttribute("class","edge-hit"); ln.setAttribute("class","edge-line");
+    for(const el of [hit,ln]){ el.setAttribute("x1",a.x); el.setAttribute("y1",a.y); el.setAttribute("x2",b.x); el.setAttribute("y2",b.y); }
+    ln.setAttribute("marker-end","url(#arw)"); if(rev) ln.setAttribute("marker-start","url(#arw)");
+    hit.addEventListener("click",ev=>{ ev.stopPropagation(); openEdgeMenu(ev,e.from,e.to,rev); });
+    svg.append(hit,ln);
+  }
+  for(const [k,n] of Object.entries(M.scenario.nodes)){
+    const p=nodePos[k]; if(!p) continue;
+    const g=document.createElementNS(SVGNS,"g"); g.setAttribute("class","gnode"); g.setAttribute("transform",`translate(${p.x},${p.y})`);
+    const rect=document.createElementNS(SVGNS,"rect"); rect.setAttribute("class","nbox"+(n.type==="start"?" start":"")+((gSel===k||connectSrc===k)?" sel":""));
+    rect.setAttribute("width",NB.w); rect.setAttribute("height",NB.h); rect.setAttribute("rx",8);
+    const t1=document.createElementNS(SVGNS,"text"); t1.setAttribute("class","nlabel"); t1.setAttribute("x",9); t1.setAttribute("y",18); t1.textContent=(n.label||k).slice(0,15);
+    const t2=document.createElementNS(SVGNS,"text"); t2.setAttribute("class","nsub"); t2.setAttribute("x",9); t2.setAttribute("y",33); t2.textContent=n.type==="start"?"● start":("▶ "+(n.animation||"?")).slice(0,17);
+    g.append(rect,t1,t2);
+    g.addEventListener("pointerdown",ev=>onNodeDown(ev,k));
+    svg.appendChild(g);
+  }
+}
+function onNodeDown(ev,k){
+  ev.stopPropagation(); closeEdgeMenu();
+  if(connectMode){
+    if(!connectSrc){ connectSrc=k; renderGraph(); }
+    else if(connectSrc!==k){ if(!hasEdge(connectSrc,k)) M.scenario.edges.push({from:connectSrc,to:k}); connectSrc=null; refresh(); }
+    else { connectSrc=null; renderGraph(); }
+    return;
+  }
+  const r=graphRect(); const start={x:ev.clientX,y:ev.clientY}; const p0={...(nodePos[k]||{x:0,y:0})}; let moved=false;
+  const move=e=>{ const dx=e.clientX-start.x, dy=e.clientY-start.y; if(Math.abs(dx)+Math.abs(dy)>3) moved=true;
+    nodePos[k]={x:Math.max(0,Math.min(r.width-NB.w,p0.x+dx)), y:Math.max(0,Math.min(r.height-NB.h,p0.y+dy))}; renderGraph(); };
+  const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up); if(!moved){ gSel=k; select("node",k); } };
+  window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+}
+function closeEdgeMenu(){ const m=$("gmenu"); if(m){ m.className=""; m.innerHTML=""; } }
+function openEdgeMenu(ev,from,to,isBi){
+  const wrap=$("graphWrap"), r=wrap.getBoundingClientRect(), m=$("gmenu"); m.innerHTML="";
+  const mk=(label,fn)=>{ const b=document.createElement("button"); b.className="sm"; b.textContent=label; b.onclick=e=>{ e.stopPropagation(); fn(); closeEdgeMenu(); refresh(); }; return b; };
+  m.append(
+    mk("↔ 양방향"+(isBi?" 해제":""), ()=>{ if(isBi) M.scenario.edges=M.scenario.edges.filter(e=>!(e.from===to&&e.to===from)); else if(!hasEdge(to,from)) M.scenario.edges.push({from:to,to:from}); }),
+    mk("⇄ 뒤집기", ()=>{ M.scenario.edges=M.scenario.edges.filter(e=>!(e.from===from&&e.to===to)); if(!hasEdge(to,from)) M.scenario.edges.push({from:to,to:from}); }),
+    mk("🗑 삭제", ()=>{ M.scenario.edges=M.scenario.edges.filter(e=>!(e.from===from&&e.to===to)); }),
+  );
+  m.className="on"; m.style.left=(ev.clientX-r.left+4)+"px"; m.style.top=(ev.clientY-r.top+4)+"px";
 }
 function itemRow(type,key,tag){ const d=document.createElement("div"); d.className="item"+(selected&&selected.type===type&&selected.key===key?" sel":"");
-  d.innerHTML=`<span>${key}</span><span class="tag">${tag}</span>`; d.onclick=()=>select(type,key); return d; }
-function select(type,key){ selected={type,key}; renderStruct(); renderForm(); if(type==="state") goto(key); }
+  const cls=type==="animation"?("kind-"+tag):""; d.innerHTML=`<span>${key}</span><span class="tag ${cls}">${tag}</span>`; d.onclick=()=>select(type,key); return d; }
+function select(type,key){ selected={type,key}; renderStruct(); renderForm(); if(type==="animation") goto(key);
+  else if(type==="node"){ const n=M.scenario.nodes[key]; if(n?.animation) goto(n.animation); } }
 
 // ── 메타 편집 폼 ──
 function renderForm(){
   const fb=$("formBody"); if(!selected){ fb.innerHTML='<p class="muted">항목을 선택하세요.</p>'; return; }
   const {type,key}=selected;
-  if(type==="state"){ const s=M.states[key];
-    fb.innerHTML=`<h2>state: ${key} <button class="sm" data-del>삭제</button></h2>`+
-      fSel("kind","종류",["talking","animation"],s.kind)+fClip("clip","클립",s.clip)+
-      fInp("entry_pose","시작 포즈",s.entry_pose)+fInp("exit_pose","끝 포즈",s.exit_pose)+
-      fChk("loop","루프",s.loop)+fChk("can_talk","말하기 가능(헤드토킹)",s.can_talk)+
-      fBbox(s.face_bbox)+fInp("label","라벨",s.label);
-    bindForm(v=>Object.assign(s,v)); }
-  else if(type==="transition"){ const t=M.transitions[key];
-    fb.innerHTML=`<h2>transition: ${key} <button class="sm" data-del>삭제</button></h2>`+
-      fClip("clip","클립",t.clip)+fInp("entry_pose","시작 포즈(from)",t.entry_pose)+fInp("exit_pose","끝 포즈(to)",t.exit_pose)+fInp("label","라벨",t.label);
-    bindForm(v=>Object.assign(t,v)); }
-  else if(type==="scenario"){ renderScnForm(key); }
-  const del=fb.querySelector("[data-del]"); if(del) del.onclick=()=>{ delete M[type==="state"?"states":type==="transition"?"transitions":"scenarios"][key]; selected=null; renderForm(); refresh(); };
+  if(type==="animation"){ const a=M.animations[key];
+    fb.innerHTML=`<h2>animation: ${key} <span class="tag kind-${animKind(a)}">${animKind(a)}</span> <button class="sm" data-del>삭제</button></h2>`+
+      fClip("clip","클립",a.clip)+
+      fInp("entry_pose","시작 포즈",a.entry_pose)+fInp("exit_pose","끝 포즈",a.exit_pose)+
+      fChk("loop","루프 (대기/말하기 base)",a.loop)+fChk("can_talk","말하기 가능(헤드토킹)",a.can_talk)+
+      fBbox(a.face_bbox)+fInp("label","라벨",a.label)+
+      `<p class="muted" style="margin-top:8px">종류 = 조합 유도: 말하기=loop+can_talk / 대기=loop / 제스처=off / 전환=entry≠exit</p>`;
+    bindForm(v=>Object.assign(a,v)); }
+  else if(type==="node"){ renderNodeForm(key); }
+  const del=fb.querySelector("[data-del]"); if(del) del.onclick=()=>{
+    if(type==="animation") delete M.animations[key];
+    else if(type==="node"){ delete M.scenario.nodes[key]; M.scenario.edges=(M.scenario.edges||[]).filter(e=>e.from!==key&&e.to!==key); }
+    selected=null; renderForm(); refresh(); };
 }
 const fInp=(k,l,v)=>`<label class="f">${l}</label><input data-k="${k}" value="${v??""}">`;
-const fSel=(k,l,opts,v)=>`<label class="f">${l}</label><select data-k="${k}">${opts.map(o=>`<option ${o===v?"selected":""}>${o}</option>`).join("")}</select>`;
 const fChk=(k,l,v)=>`<label class="f"><input type="checkbox" data-k="${k}" ${v?"checked":""} style="width:auto"> ${l}</label>`;
-const fClip=(k,l,v)=>`<label class="f">${l} (클립 파일)</label><input data-k="${k}" value="${v??""}"><input type="file" accept="video/*" data-clip="${k}" style="font-size:11px;margin-top:3px">`;
-const fBbox=(v)=>{ const a=v||[0,0,0,0]; return `<label class="f">face_bbox [x,y,w,h] (0~1)</label><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${a.map((n,i)=>`<input data-bbox="${i}" value="${n}" style="font-size:12px">`).join("")}</div>`; };
+const fClip=(k,l,v)=>`<label class="f">${l} (클립 파일 — 알파 webm 권장)</label><input data-k="${k}" value="${v??""}"><input type="file" accept="video/*,.webm" data-clip="${k}" style="font-size:11px;margin-top:3px">`;
+const fBbox=(v)=>{ const a=v||[0,0,0,0]; return `<label class="f">face_bbox [x,y,w,h] (0~1) — can_talk 필수</label><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${a.map((n,i)=>`<input data-bbox="${i}" value="${n}" style="font-size:12px">`).join("")}</div>`; };
 function bindForm(apply){
   $("formBody").querySelectorAll("[data-k]").forEach(el=>el.onchange=()=>{
     const k=el.dataset.k, v=el.type==="checkbox"?el.checked:el.value; apply({[k]:v}); refresh(); });
@@ -218,51 +335,51 @@ function bindForm(apply){
     const f=el.files[0]; if(!f)return; const name="clips/"+f.name; const url=URL.createObjectURL(f);
     blobMap[name]={url,blob:f}; apply({[el.dataset.clip]:name}); refresh(); });
 }
-function renderScnForm(key){ const sc=M.scenarios[key]; const stateKeys=Object.keys(M.states||{});
+function renderNodeForm(key){ const n=M.scenario.nodes[key]; const animKeys=Object.keys(M.animations||{});
   const fb=$("formBody");
-  fb.innerHTML=`<h2>scenario: ${key} <button class="sm" data-del>삭제</button></h2>`+fInp("label","라벨",sc.label)+
-    `<label class="f">단계 (goto/event · 대사 · ms)</label><div id="steps"></div><button class="sm" id="addStep">+단계</button>`;
-  fb.querySelector('[data-k="label"]').onchange=e=>{ sc.label=e.target.value; refresh(); };
-  const sd=$("steps");
-  const drawSteps=()=>{ sd.innerHTML=""; sc.steps.forEach((st,i)=>{ const row=document.createElement("div"); row.className="step";
-    row.innerHTML=`<select data-s="goto"><option value="">(goto)</option>${stateKeys.map(k=>`<option ${st.goto===k?"selected":""}>${k}</option>`).join("")}</select>`+
-      `<select data-s="event"><option value="">(event)</option>${stateKeys.filter(k=>M.states[k].kind==="animation").map(k=>`<option ${st.event===k?"selected":""}>${k}</option>`).join("")}</select>`+
-      `<input data-s="say" value="${st.say||""}" placeholder="대사">`+`<input data-s="dwell_ms" type="number" value="${st.dwell_ms||2000}">`+`<button class="sm" data-rm>×</button>`;
-    row.querySelectorAll("[data-s]").forEach(el=>el.onchange=()=>{ const f=el.dataset.s, v=f==="dwell_ms"?parseInt(el.value):el.value;
-      if((f==="goto"||f==="event")&&!v) delete st[f]; else st[f]=v; refresh(); });
-    row.querySelector("[data-rm]").onclick=()=>{ sc.steps.splice(i,1); drawSteps(); refresh(); }; sd.appendChild(row); }); };
-  drawSteps();
-  $("addStep").onclick=()=>{ sc.steps.push({goto:stateKeys[0]||"",say:"",dwell_ms:2000}); drawSteps(); refresh(); };
-  fb.querySelector("[data-del]").onclick=()=>{ delete M.scenarios[key]; selected=null; renderForm(); refresh(); };
+  if(n.type==="start"){ fb.innerHTML=`<h2>node: ${key} <span class="tag">start</span></h2><p class="muted">진입 노드. edges 로 첫 scene(=idle 진입점)에 연결하세요.</p>`; return; }
+  fb.innerHTML=`<h2>node: ${key} <span class="tag">scene</span> <button class="sm" data-del>삭제</button></h2>`+
+    `<label class="f">animation</label><select data-n="animation">${animKeys.map(k=>`<option ${n.animation===k?"selected":""}>${k}</option>`).join("")}</select>`+
+    `<label class="f">라벨/대사</label><input data-n="label" value="${n.label||""}">`+
+    `<label class="f">dwell_ms</label><input data-n="dwell_ms" type="number" value="${n.dwell_ms||2000}">`;
+  fb.querySelectorAll("[data-n]").forEach(el=>el.onchange=()=>{ const f=el.dataset.n; n[f]=f==="dwell_ms"?parseInt(el.value):el.value; refresh(); });
 }
 
-// ── 공통: 갱신(검증+구조+상태머신) ──
+// ── 공통: 갱신(검증+구조+런타임) ──
 function refresh(){
   const r=validateManifest(M);
   $("valid").textContent=(r.ok?"✅ VALID\n":"❌ INVALID\n")+r.errors.map(e=>"ERROR  "+e).join("\n")+(r.errors.length?"\n":"")+r.warnings.map(w=>"WARN   "+w).join("\n")+(r.warnings.length?"":"(경고 없음)");
   $("vdot").className="dot "+(r.ok?"ok":"bad");
   cv.width=M.canvas?.width||360; cv.height=M.canvas?.height||640;
-  if(r.ok){ sm=new NvaStateMachine(M); }
+  rt=new NvaRuntime(M);
   renderStruct();
 }
 
 // 메타/배경/포즈 입력
 $("m_name").onchange=e=>{ (M.meta=M.meta||{}).name=e.target.value; refresh(); };
 $("m_owner").onchange=e=>{ (M.meta=M.meta||{}).owner=e.target.value; M.meta.author=e.target.value; refresh(); };
+$("m_bgtype").onchange=e=>{ (M.background=M.background||{}).type=e.target.value; if(e.target.value==="color"&&!M.background.color) M.background.color=$("m_bg").value; refresh(); };
 $("m_bg").onchange=e=>{ (M.background=M.background||{type:"color"}).color=e.target.value; };
 $("m_chroma").onchange=e=>{ M.chroma_key=e.target.value; };
+$("m_chroma_clr").onclick=()=>{ delete M.chroma_key; refresh(); };
 $("m_poses").onchange=e=>{ M.poses=e.target.value.split(",").map(s=>s.trim()).filter(Boolean); refresh(); };
 $("speakBtn").onclick=e=>{ speaking=!speaking; e.target.textContent=speaking?"🎙 말하기 ON":"🎙 말하기 OFF"; };
 
 // 항목 추가
 let nseq=1;
-$("addTalk").onclick=()=>{ const k="talk_"+(nseq++); M.states[k]={kind:"talking",clip:"",entry_pose:M.poses?.[0]||"standing",exit_pose:M.poses?.[0]||"standing",loop:true,can_talk:true,face_bbox:[0.35,0.12,0.3,0.18],label:k}; select("state",k); refresh(); };
-$("addAnim").onclick=()=>{ const k="anim_"+(nseq++); M.states[k]={kind:"animation",clip:"",entry_pose:M.poses?.[0]||"standing",exit_pose:M.poses?.[0]||"standing",loop:false,can_talk:false,label:k}; select("state",k); refresh(); };
-$("addTrans").onclick=()=>{ const k="trans_"+(nseq++); (M.transitions=M.transitions||{})[k]={clip:"",entry_pose:M.poses?.[0]||"standing",exit_pose:M.poses?.[1]||"sitting",label:k}; select("transition",k); refresh(); };
-$("addScn").onclick=()=>{ const k="scn_"+(nseq++); (M.scenarios=M.scenarios||{})[k]={label:k,steps:[]}; select("scenario",k); refresh(); };
+function ensureScenario(){ M.scenario=M.scenario||{nodes:{},edges:[]}; M.scenario.nodes=M.scenario.nodes||{}; M.scenario.edges=M.scenario.edges||[]; if(!Object.values(M.scenario.nodes).some(n=>n.type==="start")) M.scenario.nodes.start={type:"start",label:"진입"}; }
+$("addTalk").onclick=()=>{ const k="talk_"+(nseq++); M.animations[k]={clip:"",entry_pose:M.poses?.[0]||"standing",exit_pose:M.poses?.[0]||"standing",loop:true,can_talk:true,face_bbox:[0.35,0.12,0.3,0.18],label:k}; select("animation",k); refresh(); };
+$("addAnim").onclick=()=>{ const k="anim_"+(nseq++); M.animations[k]={clip:"",entry_pose:M.poses?.[0]||"standing",exit_pose:M.poses?.[0]||"standing",loop:false,can_talk:false,label:k}; select("animation",k); refresh(); };
+$("addTrans").onclick=()=>{ const k="trans_"+(nseq++); M.animations[k]={clip:"",entry_pose:M.poses?.[0]||"standing",exit_pose:M.poses?.[1]||"sitting",loop:false,can_talk:false,label:k}; select("animation",k); refresh(); };
+$("addNode").onclick=()=>{ ensureScenario(); const k="node_"+(nseq++); M.scenario.nodes[k]={type:"scene",animation:Object.keys(M.animations||{})[0]||"",label:k,dwell_ms:2000}; select("node",k); refresh(); };
+$("gConnect").onclick=e=>{ connectMode=!connectMode; connectSrc=null; e.target.classList.toggle("active",connectMode); closeEdgeMenu();
+  $("gHint").innerHTML=connectMode?"<b>연결모드</b>: 노드A → 노드B 클릭으로 엣지 생성 (버튼 다시 눌러 해제)":"노드 드래그=배치 · <b>연결</b> 켜고 노드A→노드B 클릭=엣지 · 엣지 클릭=방향/양방향/삭제"; renderGraph(); };
+$("gAuto").onclick=()=>{ autoLayout(true); renderGraph(); };
+$("graph").addEventListener("click",()=>{ closeEdgeMenu(); if(connectSrc){ connectSrc=null; renderGraph(); } });
 
 // 로드 / 내보내기
-async function loadManifest(m,base){ M=m; baseUrl=base||""; selected=null; renderForm(); refresh(); requestAnimationFrame(compose); if(M.initial) goto(M.initial); }
+async function loadManifest(m,base){ M=migrateToV02(m); baseUrl=base||""; selected=null; renderForm(); refresh(); requestAnimationFrame(compose);
+  const d=derive(M); if(d.idleKey) goto(d.idleKey); }
 $("loadDemo").onclick=async()=>{ const base="../../examples/demo.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent="데모 로드됨 — 편집/돌려보기/내보내기"; };
 $("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const zip=await JSZip.loadAsync(f);
   const mf=await zip.file("manifest.json").async("string"); blobMap={}; baseUrl="";
@@ -271,11 +388,34 @@ $("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const 
 $("exportBtn").onclick=async()=>{
   if(!M){ alert("로드 먼저"); return; } const r=validateManifest(M); if(!r.ok){ alert("유효성 오류 — 내보내기 차단:\n"+r.errors.join("\n")); return; }
   const zip=new JSZip(); zip.file("manifest.json", JSON.stringify(M,null,2));
-  const clips=new Set([...Object.values(M.states||{}).map(s=>s.clip),...Object.values(M.transitions||{}).map(t=>t.clip)].filter(Boolean));
+  const clips=new Set(Object.values(M.animations||{}).map(a=>a.clip).filter(Boolean));
+  const vr=M.meta?.voice_ref?.audio_path; if(vr) clips.add(vr);
   for(const c of clips){ try{ if(blobMap[c]) zip.file(c,blobMap[c].blob); else if(baseUrl){ const b=await (await fetch(`${baseUrl}/${c}`)).blob(); zip.file(c,b); } }catch(e){} }
   const out=await zip.generateAsync({type:"blob"}); const a=document.createElement("a"); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||"character")+".nva"; a.click();
-  $("status").textContent="내보내기 완료 (.nva)";
+  $("status").textContent="내보내기 완료 (.nva v0.2)";
 };
+// ── cascade 연결 (실시간 발화 뷰잉) ──
+const casUrl=()=>$("casUrl").value.trim().replace(/\/+$/,"");
+$("casConnect").onclick=async()=>{ $("casStatus").textContent="연결 중…";
+  try{ const h=await (await fetch(casUrl()+"/health")).json();
+    $("casStatus").textContent=`✅ 연결됨 · mode=${h.mode} · tts=${h.tts} · avatar=${h.avatar} · alpha=${h.alpha_enabled}`;
+  }catch(e){ $("casStatus").textContent="❌ 연결 실패: "+e.message+" (cascade :8910 떠 있는지 확인)"; } };
+// cascade 재생을 **맨 위 캔버스(공유 video)** 로 라우팅 — 별도 플레이어 없이 하나로 통합
+function casPlay(blob, loop, muted, status){
+  busy=true; scnPlaying=false; current=null; speaking=false;   // 로컬 재생/오버레이 중지(cascade 실렌더)
+  video.loop=loop; video.muted=muted; video.src=URL.createObjectURL(blob);
+  video.play().catch(()=>{}); busy=false; $("casStatus").textContent=status;
+}
+$("casIdle").onclick=async()=>{
+  try{ $("casStatus").textContent="대기 클립 로딩…"; const b=await (await fetch(casUrl()+"/idle")).blob();
+    casPlay(b, true, true, "▶ 대기(idle) — 위 플레이어에 재생");
+  }catch(e){ $("casStatus").textContent="idle 실패: "+e.message; } };
+$("casSpeak").onclick=async()=>{ const text=$("casText").value.trim(); if(!text) return;
+  try{ $("casStatus").textContent="🎙 발화 렌더 중(TTS→Ditto)…";
+    const r=await fetch(casUrl()+"/stream_text",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
+    if(!r.ok) throw new Error("HTTP "+r.status); const b=await r.blob();
+    casPlay(b, false, false, "🔊 발화 재생 (위 플레이어, 음성 포함)");
+  }catch(e){ $("casStatus").textContent="발화 실패: "+e.message; } };
 $("helpBtn").onclick=()=>$("guide").classList.add("on");
 $("guideClose").onclick=()=>$("guide").classList.remove("on");
 $("guide").onclick=e=>{ if(e.target.id==="guide") $("guide").classList.remove("on"); };
