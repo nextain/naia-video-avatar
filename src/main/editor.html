@@ -241,7 +241,10 @@ function autoLayout(force){
   const startK=keys.find(k=>nodes[k].type==="start");
   const scenes=keys.filter(k=>k!==startK);
   if(startK && !nodePos[startK]) nodePos[startK]={x:16, y:h/2-NB.h/2};
-  scenes.forEach((k,i)=>{ if(!nodePos[k]){ const x=160+(i%3)*140, y=24+Math.floor(i/3)*96+(i%2)*22; nodePos[k]={x:Math.min(x,w-NB.w-10), y:Math.min(y,h-NB.h-8)}; } });
+  // 2열 그리드, 노드 크기+여유 간격 → 겹침 방지(겹치면 다음 행으로 내려감)
+  scenes.forEach((k,i)=>{ if(!nodePos[k]){ const col=i%2, row=Math.floor(i/2);
+    const x=150+col*(NB.w+70), y=16+row*(NB.h+34);
+    nodePos[k]={x:Math.min(x,w-NB.w-10), y:Math.min(y,h-NB.h-8)}; } });
 }
 function nodeCenter(k){ const p=nodePos[k]||{x:0,y:0}; return {x:p.x+NB.w/2, y:p.y+NB.h/2}; }
 function hasEdge(a,b){ return (M.scenario?.edges||[]).some(e=>e.from===a&&e.to===b); }
