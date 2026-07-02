@@ -59,6 +59,7 @@
 <body>
 <header>
   <h1>nva 에디터 <span class="pill">v0.2 · 제작 도구</span></h1>
+  <button id="loadNaia">Naia 로드</button>
   <button id="loadDemo">데모 로드</button>
   <label class="sm" style="display:inline-block"><input type="file" id="openNva" accept=".nva,.zip" style="display:none">
     <button class="sm" onclick="document.getElementById('openNva').click()">.nva 열기</button></label>
@@ -380,6 +381,7 @@ $("graph").addEventListener("click",()=>{ closeEdgeMenu(); if(connectSrc){ conne
 // 로드 / 내보내기
 async function loadManifest(m,base){ M=migrateToV02(m); baseUrl=base||""; selected=null; renderForm(); refresh(); requestAnimationFrame(compose);
   const d=derive(M); if(d.idleKey) goto(d.idleKey); }
+$("loadNaia").onclick=async()=>{ const base="../../examples/naia.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent="Naia 기본 캐릭터(액체 고양이) 로드됨"; };
 $("loadDemo").onclick=async()=>{ const base="../../examples/demo.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent="데모 로드됨 — 편집/돌려보기/내보내기"; };
 $("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const zip=await JSZip.loadAsync(f);
   const mf=await zip.file("manifest.json").async("string"); blobMap={}; baseUrl="";

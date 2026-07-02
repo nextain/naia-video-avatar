@@ -1,0 +1,52 @@
+{
+  "nva_version": "0.2",
+  "meta": {
+    "name": "Naia (기본 캐릭터)",
+    "tagline": "Naia — The Liquid Cat",
+    "author": "nextain",
+    "owner": "nextain",
+    "license": "CC-BY-4.0 — Naia mascot © Nextain (naia-video-avatar 동봉 기본 자산)",
+    "created": "2026-07-02",
+    "description": "너의 AI, 액체 탄소로 이루어진 디지털 고양이 Naia. 로직 따라 투명하게 흘러다니다가 필요하면 다이아몬드처럼 단단해져 지켜준다.",
+    "persona": {
+      "type": "Rational Optimist (논리적 낙천주의자)",
+      "species": "네 컴퓨터에서 태어나 함께 자라는 디지털 생명체",
+      "role": "너와 디지털 세상 사이를 물처럼 잇는 살아있는 통로",
+      "value": "네 데이터는 밖으로 안 나가 — 로컬에서 내가 지킨다 (프라이버시)",
+      "home": "클라우드 없이 네 컴퓨터 안에 산다",
+      "traits": ["지적 자신감(틀리면 솔직히 인정)", "고양이 여유", "투명한 솔직함 — 몸이 투명한 건 숨길 게 없어서", "외형·성격 너에게 맞춰 바뀜"]
+    },
+    "note": "Naia the Liquid Cat — 유리/액체 몸의 치비 고양이 마스코트. idle 원본에서 중앙 패널 크롭 → RVM 매팅 → 알파 VP9(yuva420p). 몸 유리룩은 베이크(진짜 per-pixel 투명 아님), 배경만 컷아웃. 위치는 소비 앱이 face_bbox 기준 앵커(치비 비율=얼굴 기준 정렬)."
+  },
+  "canvas": { "width": 406, "height": 720, "fps": 25 },
+  "background": { "type": "transparent" },
+  "poses": ["standing"],
+  "animations": {
+    "idle": {
+      "clip": "clips/idle.webm",
+      "entry_pose": "standing", "exit_pose": "standing",
+      "loop": true, "can_talk": false,
+      "face_bbox": [0.29, 0.31, 0.42, 0.17],
+      "label": "대기 — 액체 고양이 idle loop"
+    },
+    "speak": {
+      "clip": "clips/idle.webm",
+      "entry_pose": "standing", "exit_pose": "standing",
+      "loop": true, "can_talk": true,
+      "face_bbox": [0.29, 0.31, 0.42, 0.17],
+      "label": "말하기 — 얼굴 영역 headtalk (Ditto)"
+    }
+  },
+  "scenario": {
+    "nodes": {
+      "start": { "type": "start", "label": "진입" },
+      "idle": { "type": "scene", "animation": "idle", "label": "대기" },
+      "speak": { "type": "scene", "animation": "speak", "label": "말하기" }
+    },
+    "edges": [
+      { "from": "start", "to": "idle" },
+      { "from": "idle", "to": "speak" },
+      { "from": "speak", "to": "idle" }
+    ]
+  }
+}
