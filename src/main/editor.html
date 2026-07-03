@@ -98,6 +98,16 @@
         <button class="sm go" id="casSpeak">🎙 말하기(cascade)</button>
       </div>
       <p class="muted" id="casStatus">미연결 — cascade(:8910) 띄우고 [연결]. 로드된 nva의 실시간 발화를 봅니다.</p>
+      <div class="ctrls" style="margin-top:6px">
+        <label class="muted" style="align-self:center">🔊 레퍼런스 음색 (URL)</label>
+        <select id="refVoice" class="sm" style="min-width:200px"></select>
+        <span class="muted" id="refStatus"></span>
+      </div>
+      <div class="ctrls" style="margin-top:4px">
+        <label class="muted" style="align-self:center">또는 URL 직접</label>
+        <input id="refUrl" class="sm" placeholder="http://localhost:8910/ref/audio/ref_neutral.wav" style="min-width:300px;display:inline-block">
+        <button class="sm" id="refApply">적용</button>
+      </div>
     </div>
     <h2 style="align-self:flex-start">유효성 (validator)</h2>
     <div id="valid">…</div>
@@ -136,11 +146,12 @@ function compose(ts){
   }
   const curA = current && M?.animations?.[current.key];   // manifest 실시간 참조(폼 편집 즉시 반영)
   if(curA?.can_talk&&curA.face_bbox){
-    // face_bbox = [x, y, l] : 좌상단(x,y) + 정사각 한 변 l(폭 기준). Ditto 256² 정규화 = 픽셀 정사각.
-    const[x,y,l]=curA.face_bbox, px=x*cv.width,py=y*cv.height,s=l*cv.width;
-    ctx.strokeStyle=speaking?"#27c08a":"#ffffff88"; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.strokeRect(px,py,s,s); ctx.setLineDash([]); ctx.lineWidth=1;
-    ctx.fillStyle=speaking?"#27c08a":"#ffffffaa"; ctx.font="10px system-ui"; ctx.fillText("headtalk 256² (Ditto)", px, py-4);
-    if(speaking){ const o=Math.sin(ts/90)*0.5+0.5; ctx.fillStyle="#7a1f1f"; ctx.fillRect(px+s*0.3,py+s*0.62,s*0.4,s*0.1*(0.3+o)+2); }
+    // face_bbox = 머리 영역 [x,y,w,h] 직사각(권장) 또는 [x,y,l] 정사각(하위호환). Ditto 머리 overlay 대상.
+    const bb=curA.face_bbox, x=bb[0], y=bb[1];
+    const px=x*cv.width, py=y*cv.height, bw=(bb[2]||0)*cv.width, bh=(bb.length>=4?bb[3]:bb[2]||0)*cv.height;
+    ctx.strokeStyle=speaking?"#27c08a":"#ffffff88"; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.strokeRect(px,py,bw,bh); ctx.setLineDash([]); ctx.lineWidth=1;
+    ctx.fillStyle=speaking?"#27c08a":"#ffffffaa"; ctx.font="10px system-ui"; ctx.fillText("머리 영역 (Ditto overlay)", px, py-4);
+    if(speaking){ const o=Math.sin(ts/90)*0.5+0.5; ctx.fillStyle="#7a1f1f"; ctx.fillRect(px+bw*0.3,py+bh*0.62,bw*0.4,bh*0.1*(0.3+o)+2); }
   }
   requestAnimationFrame(compose);
 }
@@ -178,7 +189,7 @@ function renderForm(){
 const fInp=(k,l,v)=>`<label class="f">${l}</label><input data-k="${k}" value="${v??""}">`;
 const fChk=(k,l,v)=>`<label class="f"><input type="checkbox" data-k="${k}" ${v?"checked":""} style="width:auto"> ${l}</label>`;
 const fClip=(k,l,v)=>`<label class="f">${l} (클립 파일 — 알파 webm 권장)</label><input data-k="${k}" value="${v??""}"><input type="file" accept="video/*,.webm" data-clip="${k}" style="font-size:11px;margin-top:3px">`;
-const fBbox=(v)=>{ const a=v||[0.33,0.32,0.3]; return `<label class="f">face_bbox [x, y, l] (0~1) — 좌상단(x,y)+정사각 한 변 l(폭 기준). 얼굴 감싸게</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">${["x","y","l"].map((lb,i)=>`<div><div class="muted" style="text-align:center">${lb}</div><input data-bbox="${i}" value="${a[i]??0}" style="font-size:12px"></div>`).join("")}</div>`; };
+const fBbox=(v)=>{ const a=(Array.isArray(v)&&v.length>=4)?v:(Array.isArray(v)&&v.length===3?[v[0],v[1],v[2],v[2]]:[0.11,0.10,0.78,0.46]); return `<label class="f">face_bbox = <b>머리 영역</b> [x, y, w, h] (0~1) — 좌상단(x,y) + 폭 w + 높이 h. Ditto 가 머리 전체(고개 움직임 포함)를 이 영역에 overlay. <b>머리+머리카락~목선</b>까지 감싸게(얼굴만 X).</label><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${["x","y","w","h"].map((lb,i)=>`<div><div class="muted" style="text-align:center">${lb}</div><input data-bbox="${i}" value="${a[i]??0}" style="font-size:12px"></div>`).join("")}</div>`; };
 function bindForm(apply){
   $("formBody").querySelectorAll("[data-k]").forEach(el=>el.onchange=()=>{ const k=el.dataset.k, v=el.type==="checkbox"?el.checked:el.value; apply({[k]:v}); refresh(); });
   const bb=$("formBody").querySelectorAll("[data-bbox]");
@@ -218,7 +229,7 @@ function ensureBase(){
 $("addAnim").onclick=()=>{ const k="anim_"+(nseq++); M.animations[k]={clip:"",loop:false,can_talk:false,label:k}; select(k); refresh(); };
 
 // 로드 / 내보내기
-async function loadManifest(m,base){ M=migrateToV02(m); ensureBase(); baseUrl=base||""; selected=null; renderForm(); refresh();
+async function loadManifest(m,base){ M=migrateToV02(m); ensureBase(); baseUrl=base||""; selected=null; renderForm(); refresh(); syncRefVoice();
   const idle=Object.keys(M.animations||{}).find(k=>M.animations[k].loop&&!M.animations[k].can_talk)||Object.keys(M.animations||{})[0]; if(idle) goto(idle); }
 async function loadNaiaBundle(){ const base="../../examples/naia.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent="Naia 기본 캐릭터(액체 고양이) 로드됨"; }
 $("loadNaia").onclick=loadNaiaBundle;
@@ -258,9 +269,31 @@ async function casUpload(){
 $("casConnect").onclick=async()=>{ if(!M){ alert("로드 먼저"); return; }
   $("casStatus").textContent="연결 중 (nva 생성→cascade 셋팅)…";
   try{ await (await fetch(casUrl()+"/health")).json();
+    await loadRefVoices();   // ref 음색 URL 목록 로드
     const id=await casUpload(); $("casStatus").textContent=`✅ 연결·셋팅됨 · ${id} — [말하기]로 발화`; }
   catch(e){ casLoaded=false; $("casStatus").textContent="❌ 연결/셋팅 실패: "+e.message+" (cascade :8910 확인)"; } };
 $("casIdle").onclick=async()=>{ try{ $("casStatus").textContent="대기 로딩…"; const b=await (await fetch(casUrl()+"/idle")).blob(); casPlay(b,true,false,"▶ 대기(idle) — 위 플레이어"); }catch(e){ $("casStatus").textContent="idle 실패: "+e.message; } };
+
+// 레퍼런스 음색 셋 — cascade TTS(voxcpm2)가 읽는 서버측 ref wav. 선택 시 nva meta.voice_ref 로 저장
+// → [연결]/[말하기] 시 그 음색으로 발화. (경로 = TTS 서버가 읽는 절대경로.)
+// 레퍼런스 음색 = **URL 지정**. cascade 가 /ref/voices 로 음색 URL 목록 제공(오사랑 제외), /ref/audio/{name}
+// 으로 서빙. 선택 URL 을 nva meta.voice_ref.audio_path 로 저장 → cascade 가 URL→로컬경로 해석 → TTS 발화.
+// 커스텀 URL 직접 입력도 가능. (연결 시 목록 로드.)
+async function loadRefVoices(){ const sel=$("refVoice"); if(!sel) return;
+  try{ const j=await (await fetch(casUrl()+"/ref/voices")).json(); const vs=j.voices||[];
+    sel.innerHTML='<option value="">(선택 / URL 직접)</option>'+vs.map(v=>`<option value="${v.url}">${v.name.replace(/\.wav$/,"")}</option>`).join("");
+    $("refStatus").textContent=vs.length?`${vs.length}개 음색`:"음색 목록 비어있음(REF_DIR)"; syncRefVoice(); }
+  catch(e){ sel.innerHTML='<option value="">([연결] 후 목록 로드)</option>'; $("refStatus").textContent="목록 로드 실패"; } }
+function setRefVoice(url){ if(!M) return; M.meta=M.meta||{};
+  if(url){ M.meta.voice_ref={audio_path:url, sample_rate:48000}; $("refStatus").textContent="음색 URL 설정됨 (연결/말하기 시 반영)"; }
+  else { delete M.meta.voice_ref; $("refStatus").textContent="음색 해제(TTS 기본)"; }
+  refresh(); }
+(function initRef(){ const sel=$("refVoice");
+  if(sel){ sel.innerHTML='<option value="">([연결] 후 목록 로드 / URL 직접)</option>'; sel.onchange=()=>{ if($("refUrl")) $("refUrl").value=sel.value; setRefVoice(sel.value); }; }
+  const btn=$("refApply"); if(btn) btn.onclick=()=>setRefVoice(($("refUrl").value||"").trim());
+})();
+function syncRefVoice(){ const u=M?.meta?.voice_ref?.audio_path||""; if($("refUrl")) $("refUrl").value=u;
+  const sel=$("refVoice"); if(sel) sel.value=[...sel.options].some(o=>o.value===u)?u:""; }
 $("casSpeak").onclick=async()=>{ const text=$("casText").value.trim(); if(!text) return;
   try{
     if(!casLoaded){ $("casStatus").textContent="먼저 [연결]로 cascade 에 셋팅하세요"; return; }

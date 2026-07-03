@@ -14,38 +14,74 @@
       "role": "너와 디지털 세상 사이를 물처럼 잇는 살아있는 통로",
       "value": "네 데이터는 밖으로 안 나가 — 로컬에서 내가 지킨다 (프라이버시)",
       "home": "클라우드 없이 네 컴퓨터 안에 산다",
-      "traits": ["지적 자신감(틀리면 솔직히 인정)", "고양이 여유", "투명한 솔직함 — 몸이 투명한 건 숨길 게 없어서", "외형·성격 너에게 맞춰 바뀜"]
+      "traits": [
+        "지적 자신감(틀리면 솔직히 인정)",
+        "고양이 여유",
+        "투명한 솔직함 — 몸이 투명한 건 숨길 게 없어서",
+        "외형·성격 너에게 맞춰 바뀜"
+      ]
     },
     "note": "구조(v0.2 단일상태): 시작=idle(loop, 말하기 베이스) + 동작 N개(gesture, LLM 트리거). 포즈/전환/시나리오는 다음 버전(멀티 idle 상태). 3개 소스 영상 각각 크롭→RVM 매팅→알파 VP9(yuva420p)+원본 오디오(opus). 몸 유리룩=베이크(배경만 컷아웃). face_bbox=근사치(에디터 조정 가능)."
   },
-  "canvas": { "width": 406, "height": 720, "fps": 25 },
-  "background": { "type": "transparent" },
+  "canvas": {
+    "width": 406,
+    "height": 720,
+    "fps": 25
+  },
+  "background": {
+    "type": "transparent"
+  },
   "animations": {
     "idle": {
       "clip": "clips/sijak.webm",
-      "loop": true, "can_talk": false,
-      "face_bbox": [0.34, 0.34, 0.30],
+      "loop": true,
+      "can_talk": false,
+      "face_bbox": [
+        0.34,
+        0.34,
+        0.3
+      ],
       "label": "대기 (진입) — 액체 고양이"
     },
     "speak": {
       "clip": "clips/speak_body.webm",
-      "loop": true, "can_talk": true,
-      "face_bbox": [0.27, 0.25, 0.46],
-      "label": "서서 말하기 — 반짝이 body(얼굴 고정) + Ditto headtalk"
+      "loop": true,
+      "can_talk": true,
+      "face_bbox": [
+        0.13,
+        0.11,
+        0.74,
+        0.32
+      ],
+      "label": "서서 말하기 — 반짝이 body + Ditto 머리 overlay(머리 영역 [x,y,w,h])"
     },
     "water_drop": {
       "clip": "clips/water_drop.webm",
-      "loop": false, "can_talk": false,
+      "loop": false,
+      "can_talk": false,
       "label": "물방울 만들기",
       "intent": "잠깐의 장난·여유·환기 (물방울을 만들며)",
-      "triggers": ["여유", "장난기", "생각중", "환기", "가벼운분위기"]
+      "triggers": [
+        "여유",
+        "장난기",
+        "생각중",
+        "환기",
+        "가벼운분위기"
+      ]
     },
     "heart_dance": {
       "clip": "clips/heart.webm",
-      "loop": false, "can_talk": false,
+      "loop": false,
+      "can_talk": false,
       "label": "하트 · 춤추기",
       "intent": "애정·기쁨 표현 (하트 만들고 춤)",
-      "triggers": ["기쁨", "애정", "칭찬받음", "감사", "축하"]
+      "triggers": [
+        "기쁨",
+        "애정",
+        "칭찬받음",
+        "감사",
+        "축하"
+      ]
     }
   },
   "expressions": {
