@@ -37,11 +37,11 @@
   #guide h3{ margin:0 0 10px; font-size:17px; } #guide h4{ margin:16px 0 4px; color:#8fb8ff; font-size:13px; }
   #guide code{ background:#0c1118; padding:1px 6px; border-radius:4px; } #guide .close{ float:right; } #guide .tag{ color:#8b98a9; font-size:12px; }
 /* cascade 연결 시 = 모든 편집 lock (애니 선택·재생은 유지). 해제하면 편집 복귀. */
+/* 애니 리스트(animList) 선택은 연결 중에도 허용 = 선택하면 재생 + 말하기 애니면 말하기 활성.
+   편집(오른쪽 폼·메타·추가·내보내기)만 잠근다. */
 .cas-connected #struct input, .cas-connected #struct select, .cas-connected #addAnim,
-.cas-connected #animList,                                   /* 편집 선택 잠금(재생은 아래 playCtrls 라벨로) */
-.cas-connected #form input, .cas-connected #form select, .cas-connected #form [data-del],
 .cas-connected #exportBtn, .cas-connected #loadDemo, .cas-connected #openNvaBtn,
-.cas-connected #loadNaia { pointer-events:none; opacity:.5; }
+.cas-connected #loadNaia { pointer-events:none; opacity:.5; }   /* 편집 잠금(#formBody 는 아래 규칙으로 통째 잠금, cascade/말하기 컨트롤은 #form 이지만 #formBody 밖이라 활성) */
 .cas-connected #playCtrls{ pointer-events:auto; opacity:1; }   /* 재생 라벨(태그)은 연결 중에도 활성 */
 .cas-connected #formBody{ pointer-events:none; opacity:.5; }   /* 오른쪽 애니 편집 폼 전체 잠금 */
 .cas-connected #struct::after{ content:"🔒 연결 중 — 편집 잠금 (연결 해제 시 편집)"; display:block; font-size:11px; color:#27c08a; margin-top:6px; }
@@ -96,38 +96,40 @@
     <div id="player">
       <canvas id="cv" width="360" height="640"></canvas>
       <div class="ctrls" id="playCtrls"></div>
-      <div class="ctrls"><button id="speakBtn" class="sm">🎙 말하기 OFF</button> <span class="muted">애니/cascade 발화가 여기 재생</span></div>
     </div>
-    <h2 style="align-self:flex-start;width:100%;max-width:560px">cascade 연결 — 실시간 발화 미리보기 (선택 · Ditto)
-      <span><input id="casUrl" style="width:160px;display:inline-block" value="http://localhost:8910"><button class="sm" id="casConnect">연결</button></span></h2>
-    <p class="muted" id="casStatus" style="width:100%;max-width:560px;margin:2px 0 6px">미연결 — cascade(:8910) 띄우고 [연결]하면 현재 nva가 cascade에 셋팅됩니다. (저작은 cascade 없이 가능)</p>
-    <div id="casWrap" style="width:100%;max-width:560px">
-      <div class="ctrls" id="speakArea">
-        <input id="casText" placeholder="말할 문장…" style="width:250px;display:inline-block" value="안녕하세요. 나이아입니다.">
-        <button class="sm go" id="casSpeak">🎙 말하기(cascade)</button>
-        <span class="muted" id="speakHint"></span>
-      </div>
-      <div id="refBlock">
-        <div class="ctrls" style="margin-top:6px">
-          <label class="muted" style="align-self:center">🔊 레퍼런스 음색 (URL)</label>
-          <select id="refVoice" class="sm" style="min-width:180px"></select>
-          <button class="sm" id="refPreview">▶ 듣기</button>
-          <span class="muted" id="refStatus"></span>
-        </div>
-        <div class="ctrls" style="margin-top:4px">
-          <label class="muted" style="align-self:center">또는 URL 직접</label>
-          <input id="refUrl" class="sm" placeholder="http://localhost:8910/ref/audio/ref_ko_485.wav" style="min-width:280px;display:inline-block">
-          <button class="sm" id="refApply">적용</button>
-          <button class="sm" id="refPreviewUrl">▶ 듣기</button>
-        </div>
-      </div>
-    </div>
+    <!-- cascade 연결·말하기 UI → 오른쪽 #form 패널 상단으로 이동 -->
     <h2 style="align-self:flex-start">유효성 (validator)</h2>
     <div id="valid">…</div>
   </main>
 
-  <!-- 우: 선택 항목 편집 -->
-  <aside id="form"><div id="formBody"><p class="muted">왼쪽 animations 항목을 선택하면 편집합니다.</p></div></aside>
+  <!-- 우: cascade 연결(상단) + 선택 애니 편집 + 말하기(speak 애니 선택 시) -->
+  <aside id="form">
+    <div id="casPanel">
+      <h2 style="margin-top:0">cascade 연결 <span class="muted" style="font-weight:400;font-size:12px">(nva 전송·로딩)</span></h2>
+      <div class="ctrls"><input id="casUrl" style="width:150px" value="http://localhost:8910"><button class="sm" id="casConnect">연결</button></div>
+      <p class="muted" id="casStatus" style="margin:4px 0">미연결 — [연결]하면 현재 nva가 cascade에 로딩되고 편집이 잠깁니다(플레이어 모드).</p>
+    </div>
+    <div id="modeBanner" class="muted" style="font-size:12px;margin:6px 0;padding:4px 6px;border-radius:6px;background:#1b2733">✏ 편집 모드 — 왼쪽 animations 선택해 편집</div>
+    <div id="formBody"><p class="muted">왼쪽 animations 항목을 선택하면 편집합니다.</p></div>
+    <div id="speakArea" class="ctrls" style="margin-top:8px">
+      <input id="casText" placeholder="말할 문장…" style="width:100%;box-sizing:border-box" value="안녕하세요. 나이아입니다.">
+      <button class="sm go" id="casSpeak">🎙 말하기</button>
+      <span class="muted" id="speakHint"></span>
+    </div>
+    <div id="refBlock">
+      <div class="ctrls" style="margin-top:6px">
+        <label class="muted" style="align-self:center">🔊 레퍼런스 음색</label>
+        <select id="refVoice" class="sm" style="min-width:150px"></select>
+        <button class="sm" id="refPreview">▶ 듣기</button>
+        <span class="muted" id="refStatus"></span>
+      </div>
+      <div class="ctrls" style="margin-top:4px">
+        <input id="refUrl" class="sm" placeholder="…/ref/audio/ref_ko_485.wav" style="width:100%;box-sizing:border-box">
+        <button class="sm" id="refApply">적용</button>
+        <button class="sm" id="refPreviewUrl">▶ 듣기</button>
+      </div>
+    </div>
+  </aside>
 </div>
 
 <script type="module">
@@ -192,17 +194,21 @@ function select(key){ selected=key; renderStruct(); renderForm(); goto(key); }
 function renderForm(){
   const fb=$("formBody"); if(!selected||!M.animations[selected]){ fb.innerHTML='<p class="muted">왼쪽 animations 항목을 선택하면 편집합니다.</p>'; return; }
   const a=M.animations[selected];
+  // 순서: 삭제 · 클립 · type(idle/talking/gesture) · 라벨 · (talking 만) face_bbox
   fb.innerHTML=`<h2>animation: ${selected} <span class="tag kind-${animKind(a)}">${animKind(a)}</span> <button class="sm" data-del>삭제</button></h2>`+
     fClip("clip","클립",a.clip)+
-    fChk("loop","루프 (대기/말하기 base)",a.loop)+fChk("can_talk","말하기 가능(헤드토킹)",a.can_talk)+
-    fBbox(a.face_bbox)+fInp("label","라벨",a.label)+
-    `<p class="muted" style="margin-top:8px">종류=조합: 말하기=loop+can_talk / 대기=loop / 동작=off</p>`;
+    fType(a)+
+    fInp("label","라벨",a.label)+
+    (a.can_talk ? fBbox(a.face_bbox) : "");
   bindForm(v=>Object.assign(a,v));
+  const ts=fb.querySelector("[data-type]");   // type 변경 → loop/can_talk 세팅 + 재렌더(face_bbox 노출 갱신)
+  if(ts) ts.onchange=()=>{ const v=ts.value; a.loop=(v!=="gesture"); a.can_talk=(v==="talking"); renderForm(); refresh(); };
   const del=fb.querySelector("[data-del]"); if(del) del.onclick=()=>{ delete M.animations[selected]; selected=null; renderForm(); refresh(); };
 }
 const fInp=(k,l,v)=>`<label class="f">${l}</label><input data-k="${k}" value="${v??""}">`;
 const fChk=(k,l,v)=>`<label class="f"><input type="checkbox" data-k="${k}" ${v?"checked":""} style="width:auto"> ${l}</label>`;
 const fClip=(k,l,v)=>`<label class="f">${l} (클립 파일 — 알파 webm 권장)</label><input data-k="${k}" value="${v??""}"><input type="file" accept="video/*,.webm" data-clip="${k}" style="font-size:11px;margin-top:3px">`;
+const fType=(a)=>{ const k=a.can_talk?"talking":(a.loop?"idle":"gesture"); return `<label class="f">type</label><select data-type>${[["idle","idle (대기)"],["talking","talking (말하기 · 헤드토킹)"],["gesture","gesture (동작)"]].map(([v,l])=>`<option value="${v}" ${k===v?"selected":""}>${l}</option>`).join("")}</select>`; };
 const fBbox=(v)=>{ const a=(Array.isArray(v)&&v.length>=4)?v:(Array.isArray(v)&&v.length===3?[v[0],v[1],v[2],v[2]]:[0.11,0.10,0.78,0.46]); return `<label class="f">face_bbox = <b>머리 영역</b> [x, y, w, h] (0~1) — 좌상단(x,y) + 폭 w + 높이 h. Ditto 가 머리 전체(고개 움직임 포함)를 이 영역에 overlay. <b>머리+머리카락~목선</b>까지 감싸게(얼굴만 X).</label><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${["x","y","w","h"].map((lb,i)=>`<div><div class="muted" style="text-align:center">${lb}</div><input data-bbox="${i}" value="${a[i]??0}" style="font-size:12px"></div>`).join("")}</div>`; };
 function bindForm(apply){
   $("formBody").querySelectorAll("[data-k]").forEach(el=>el.onchange=()=>{ const k=el.dataset.k, v=el.type==="checkbox"?el.checked:el.value; apply({[k]:v}); refresh(); });
@@ -229,7 +235,6 @@ $("m_bgtype").onchange=e=>{ (M.background=M.background||{}).type=e.target.value;
 $("m_bg").onchange=e=>{ (M.background=M.background||{type:"color"}).color=e.target.value; };
 $("m_chroma").onchange=e=>{ M.chroma_key=e.target.value; };
 $("m_chroma_clr").onclick=()=>{ delete M.chroma_key; refresh(); };
-$("speakBtn").onclick=e=>{ speaking=!speaking; e.target.textContent=speaking?"🎙 말하기 ON":"🎙 말하기 OFF"; };
 
 // 애니 추가
 let nseq=1;
@@ -293,8 +298,13 @@ $("casConnect").onclick=async()=>{
   catch(e){ casLoaded=false; setConnectedUI(false); $("casStatus").textContent="❌ 연결/셋팅 실패: "+e.message+" (cascade :8910 확인)"; } };
 // 연결 상태에 따라 편집 잠금 + 말하기 영역 게이팅.
 function setConnectedUI(on){
-  document.body.classList.toggle("cas-connected", on);   // CSS 로 편집영역 잠금(.cas-connected .editable{pointer-events:none;opacity:.5})
+  document.body.classList.toggle("cas-connected", on);   // CSS 로 편집영역 잠금(.cas-connected #formBody 등)
   const cbtn=$("casConnect"); if(cbtn) cbtn.textContent = on ? "🔒 연결됨 (해제)" : "연결";
+  const mb=$("modeBanner");
+  if(mb){ mb.textContent = on
+      ? "🔒 플레이어 모드 — 편집 잠금 · 라벨(태그)로 애니 재생 / talking 선택 시 발화. (연결 해제 시 편집)"
+      : "✏ 편집 모드 — 왼쪽 animations 선택해 편집 (cascade 없이 저작 가능)";
+    mb.style.background = on ? "#1e2b1e" : "#1b2733"; mb.style.color = on ? "#27c08a" : "#8a99a8"; }
   updateSpeakUI();
 }
 // 말하기 영역(텍스트+발화+ref음색) = **연결됨 + 현재 애니가 말하기(can_talk)** 일 때만 표시·활성.
