@@ -36,6 +36,12 @@
   #guide .box{ background:#11151c; border:1px solid #33415a; border-radius:12px; max-width:620px; max-height:82vh; overflow:auto; padding:22px 26px; line-height:1.6; }
   #guide h3{ margin:0 0 10px; font-size:17px; } #guide h4{ margin:16px 0 4px; color:#8fb8ff; font-size:13px; }
   #guide code{ background:#0c1118; padding:1px 6px; border-radius:4px; } #guide .close{ float:right; } #guide .tag{ color:#8b98a9; font-size:12px; }
+/* cascade 연결 시 = 모든 편집 lock (애니 선택·재생은 유지). 해제하면 편집 복귀. */
+.cas-connected #struct input, .cas-connected #struct select, .cas-connected #addAnim,
+.cas-connected #form input, .cas-connected #form select, .cas-connected #form [data-del],
+.cas-connected #exportBtn, .cas-connected #loadDemo, .cas-connected #openNvaBtn,
+.cas-connected #loadNaia { pointer-events:none; opacity:.5; }
+.cas-connected #struct::after{ content:"🔒 연결 중 — 편집 잠금 (연결 해제 시 편집)"; display:block; font-size:11px; color:#27c08a; margin-top:6px; }
 </style>
 </head>
 <body>
@@ -89,15 +95,15 @@
       <div class="ctrls" id="playCtrls"></div>
       <div class="ctrls"><button id="speakBtn" class="sm">🎙 말하기 OFF</button> <span class="muted">애니/cascade 발화가 여기 재생</span></div>
     </div>
-    <h2 style="align-self:flex-start;width:100%;max-width:560px">cascade 연결 — 실시간 발화 (Ditto)
+    <h2 style="align-self:flex-start;width:100%;max-width:560px">cascade 연결 — 실시간 발화 미리보기 (선택 · Ditto)
       <span><input id="casUrl" style="width:160px;display:inline-block" value="http://localhost:8910"><button class="sm" id="casConnect">연결</button></span></h2>
+    <p class="muted" id="casStatus" style="width:100%;max-width:560px;margin:2px 0 6px">미연결 — cascade(:8910) 띄우고 [연결]하면 현재 nva가 cascade에 셋팅됩니다. (저작은 cascade 없이 가능)</p>
     <div id="casWrap" style="width:100%;max-width:560px">
-      <div class="ctrls">
-        <button class="sm" id="casIdle">▶ 대기(idle)</button>
-        <input id="casText" placeholder="말할 문장…" style="width:230px;display:inline-block" value="안녕하세요. 나이아입니다.">
+      <div class="ctrls" id="speakArea">
+        <input id="casText" placeholder="말할 문장…" style="width:250px;display:inline-block" value="안녕하세요. 나이아입니다.">
         <button class="sm go" id="casSpeak">🎙 말하기(cascade)</button>
+        <span class="muted" id="speakHint"></span>
       </div>
-      <p class="muted" id="casStatus">미연결 — cascade(:8910) 띄우고 [연결]. 로드된 nva의 실시간 발화를 봅니다.</p>
       <div class="ctrls" style="margin-top:6px">
         <label class="muted" style="align-self:center">🔊 레퍼런스 음색 (URL)</label>
         <select id="refVoice" class="sm" style="min-width:180px"></select>
@@ -160,6 +166,7 @@ function compose(ts){
 function playClip(clip,loop){ video.muted=!soundOn; video.src=clipUrl(clip); video.loop=loop; video.play().catch(()=>{}); }
 function goto(key){ const a=M?.animations?.[key]; if(!a||busy) return; busy=true;
   current={key,clip:a.clip,loop:!!a.loop,can_talk:!!a.can_talk,face_bbox:a.face_bbox||null};
+  if(typeof updateSpeakUI==="function") updateSpeakUI();   // 말하기 애니면 말하기 활성(연결 상태)
   playClip(a.clip, !!a.loop); busy=false; }
 
 // ── 좌측 구조 + 플레이 버튼 ──
@@ -267,14 +274,34 @@ async function casUpload(){
   if(!r.ok||!j.ok) throw new Error(j.detail||j.error||("HTTP "+r.status));
   casLoaded=true; nvaDirty=false; return j.bundle_id;
 }
-// 연결 = cascade 헬스 확인 → 현재 nva 생성해 cascade 에 셋팅(/upload_nva). (에디터→nva→cascade→뷰어)
-$("casConnect").onclick=async()=>{ if(!M){ alert("로드 먼저"); return; }
-  $("casStatus").textContent="연결 중 (nva 생성→cascade 셋팅)…";
+// 연결 = 현재 nva 를 cascade 에 전송·로딩(/upload_nva) + **모든 편집 lock**. 다시 누르면 해제(편집 가능).
+$("casConnect").onclick=async()=>{
+  if(document.body.classList.contains("cas-connected")){   // 이미 연결됨 → 해제(편집 복귀)
+    casLoaded=false; setConnectedUI(false); $("casStatus").textContent="연결 해제 — 편집 가능"; return;
+  }
+  if(!M){ alert("로드 먼저"); return; }
+  $("casStatus").textContent="연결 중 (nva → cascade 전송·로딩)…";
   try{ await (await fetch(casUrl()+"/health")).json();
     await loadRefVoices();   // ref 음색 URL 목록 로드
-    const id=await casUpload(); $("casStatus").textContent=`✅ 연결·셋팅됨 · ${id} — [말하기]로 발화`; }
-  catch(e){ casLoaded=false; $("casStatus").textContent="❌ 연결/셋팅 실패: "+e.message+" (cascade :8910 확인)"; } };
-$("casIdle").onclick=async()=>{ try{ $("casStatus").textContent="대기 로딩…"; const b=await (await fetch(casUrl()+"/idle")).blob(); casPlay(b,true,false,"▶ 대기(idle) — 위 플레이어"); }catch(e){ $("casStatus").textContent="idle 실패: "+e.message; } };
+    const id=await casUpload(); setConnectedUI(true);       // 편집 lock
+    $("casStatus").textContent=`🔒 연결됨 · ${id} — 왼쪽에서 애니 선택(재생) / '말하기' 애니 선택 시 발화`; }
+  catch(e){ casLoaded=false; setConnectedUI(false); $("casStatus").textContent="❌ 연결/셋팅 실패: "+e.message+" (cascade :8910 확인)"; } };
+// 연결 상태에 따라 편집 잠금 + 말하기 영역 게이팅.
+function setConnectedUI(on){
+  document.body.classList.toggle("cas-connected", on);   // CSS 로 편집영역 잠금(.cas-connected .editable{pointer-events:none;opacity:.5})
+  const cbtn=$("casConnect"); if(cbtn) cbtn.textContent = on ? "🔒 연결됨 (해제)" : "연결";
+  updateSpeakUI();
+}
+// 말하기 영역 = **연결됨 + 현재 애니가 말하기(can_talk)** 일 때만 활성.
+function updateSpeakUI(){
+  const on = document.body.classList.contains("cas-connected");
+  const talking = on && !!(current && current.can_talk);
+  const area=$("speakArea"), hint=$("speakHint");
+  if(area) area.style.opacity = talking ? "1" : "0.4";
+  const t=$("casText"), s=$("casSpeak");
+  if(t) t.disabled=!talking; if(s) s.disabled=!talking;
+  if(hint) hint.textContent = !on ? "" : (talking ? "" : "← 왼쪽에서 '말하기' 애니를 선택하면 활성화");
+}
 
 // 레퍼런스 음색 셋 — cascade TTS(voxcpm2)가 읽는 서버측 ref wav. 선택 시 nva meta.voice_ref 로 저장
 // → [연결]/[말하기] 시 그 음색으로 발화. (경로 = TTS 서버가 읽는 절대경로.)
