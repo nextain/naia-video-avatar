@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>nva 에디터 — naia video clip avatar 제작 도구</title>
+<title>nva 에디터</title>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
   :root{ color-scheme:dark; }
@@ -14,7 +14,7 @@
   button{ background:#222c3a; color:#e6edf3; border:1px solid #33415a; border-radius:7px; padding:6px 11px; cursor:pointer; font-size:13px; }
   button:hover{ background:#2c3a4e; } button.primary{ background:#2f6feb; border-color:#2f6feb; } button.go{ background:#27c08a; border-color:#27c08a; color:#06281d; }
   button.sm{ padding:3px 8px; font-size:12px; }
-  input,select{ background:#0c1118; color:#cfe3ff; border:1px solid #33415a; border-radius:6px; padding:5px 7px; font-size:13px; width:100%; }
+  input,select,textarea{ background:#0c1118; color:#cfe3ff; border:1px solid #33415a; border-radius:6px; padding:5px 7px; font-size:13px; width:100%; }
   label.f{ display:block; font-size:11px; color:#8b98a9; margin:8px 0 3px; }
   #wrap{ display:flex; height:calc(100vh - 50px); }
   aside{ width:320px; overflow:auto; padding:12px; } #struct{ border-right:1px solid #222c3a; } #form{ border-left:1px solid #222c3a; }
@@ -37,108 +37,283 @@
   #guide h3{ margin:0 0 10px; font-size:17px; } #guide h4{ margin:16px 0 4px; color:#8fb8ff; font-size:13px; }
   #guide code{ background:#0c1118; padding:1px 6px; border-radius:4px; } #guide .close{ float:right; } #guide .tag{ color:#8b98a9; font-size:12px; }
 /* cascade 연결 시 = 모든 편집 lock (애니 선택·재생은 유지). 해제하면 편집 복귀. */
-/* 애니 리스트(animList) 선택은 연결 중에도 허용 = 선택하면 재생 + 말하기 애니면 말하기 활성.
-   편집(오른쪽 폼·메타·추가·내보내기)만 잠근다. */
 .cas-connected #struct input, .cas-connected #struct select, .cas-connected #addAnim,
 .cas-connected #exportBtn, .cas-connected #loadDemo, .cas-connected #openNvaBtn,
-.cas-connected #loadNaia { pointer-events:none; opacity:.5; }   /* 편집 잠금(#formBody 는 아래 규칙으로 통째 잠금, cascade/말하기 컨트롤은 #form 이지만 #formBody 밖이라 활성) */
+.cas-connected #loadNaia { pointer-events:none; opacity:.5; }
 .cas-connected #playCtrls{ pointer-events:auto; opacity:1; }   /* 재생 라벨(태그)은 연결 중에도 활성 */
-.cas-connected #formBody{ pointer-events:none; opacity:.5; }   /* 오른쪽 애니 편집 폼 전체 잠금 */
-.cas-connected #struct::after{ content:"🔒 연결 중 — 편집 잠금 (연결 해제 시 편집)"; display:block; font-size:11px; color:#27c08a; margin-top:6px; }
+.cas-connected #formBody{ display:none; }                      /* 연결 = 애니 편집 폼 숨김(플레이어 모드) */
+.cas-connected #animList [data-del]{ display:none; }           /* 연결 중엔 삭제 숨김 */
+/* 영역 구분선 — cascade|애니메이션(오른쪽), 메타|애니메이션(왼쪽) 을 다른 영역으로 */
+#casPanel{ border-bottom:1px solid #2c3a48; padding-bottom:10px; margin-bottom:6px; }
+#struct h2{ border-top:1px solid #2c3a48; padding-top:12px; margin-top:14px; }
+#struct > h2:first-of-type{ border-top:none; padding-top:0; margin-top:0; }
+#modeBanner{ border-bottom:1px solid #2c3a48; padding-bottom:8px; }
+.cas-connected #struct::after{ content:attr(data-lockmsg); display:block; font-size:11px; color:#27c08a; margin-top:6px; }
 </style>
 </head>
 <body>
 <header>
-  <h1>nva 에디터 <span class="pill">v0.2 · 제작 도구</span></h1>
-  <button id="loadNaia">Naia 로드</button>
-  <button id="loadDemo">박스 데모</button>
+  <h1>nva <span data-i18n="app.editor">에디터</span> <span class="pill" data-i18n="app.pill">v0.2 · 제작 도구</span></h1>
+  <button id="loadNaia" data-i18n="btn.loadNaia">Naia 불러오기</button>
+  <button id="loadDemo" data-i18n="btn.loadDemo">박스 데모</button>
   <label class="sm" style="display:inline-block"><input type="file" id="openNva" accept=".nva,.zip" style="display:none">
-    <button class="sm" onclick="document.getElementById('openNva').click()">.nva 열기</button></label>
-  <button id="exportBtn" class="go">⬇ .nva 내보내기</button>
-  <button id="helpBtn">❔ 사용법</button>
-  <span><span class="dot bad" id="vdot"></span><span id="status">로딩…</span></span>
+    <button class="sm" id="openNvaBtn" onclick="document.getElementById('openNva').click()" data-i18n="btn.openNva">.nva 열기</button></label>
+  <button id="exportBtn" class="go" data-i18n="btn.export">⬇ .nva 내보내기</button>
+  <button id="helpBtn" data-i18n="btn.help">❔ 사용법</button>
+  <button id="langBtn" class="sm" style="margin-left:auto">English</button>
+  <span class="pill" id="buildTag" title="빌드 — 캐시 확인용">build ?</span>
+  <span><span class="dot bad" id="vdot"></span><span id="status" data-i18n="status.loading">로딩…</span></span>
 </header>
 <div id="guide"><div class="box">
-  <button class="close" id="guideClose">✕ 닫기</button>
-  <h3>nva 에디터 — 사용법 (v0.2)</h3>
-  <p class="tag">naia video clip avatar — 비디오 클립 아바타 포맷 제작/편집</p>
-  <h4>구조 (단일 상태)</h4>
-  <b>진입=대기(idle, loop)</b> → 말 안 할 땐 대기 루프, 말할 땐 그 위에 Ditto 얼굴.
-  <b>말하기(speak, loop+can_talk)</b> = 헤드토킹 베이스. <b>동작(gesture, 비loop)</b> = LLM이 트리거하는 표정/제스처.
-  <p class="muted">종류는 loop / can_talk 조합으로 자동 판별. 포즈/전환/상태(앉기·눕기 등)는 다음 버전.</p>
-  <h4>사용</h4>
-  <b>Naia 로드</b>(기본) / <b>.nva 열기</b> → 좌측 animations 편집(클립 교체·loop·can_talk·face_bbox) → 우측 플레이어에서 미리보기 → <b>cascade 연결</b>로 실시간 발화 확인 → <b>내보내기</b>.
-  <h4>배경 · 알파</h4>
-  알파(VP9 yuva420p webm) 클립은 배경 위에 그대로 합성. 미리보기 배경색으로 확인. cascade <code>enable_alpha</code> 면 발화도 투명.
-  <h4>LLM 트리거 (VRM 유사)</h4>
-  동작 애니에 <code>intent</code>/<code>triggers</code> + 최상위 <code>expressions</code> 맵(감정→animation). naia-shell LLM이 대화 감정으로 애니 선택.
+  <button class="close" id="guideClose" data-i18n="btn.close">✕ 닫기</button>
+  <div id="guideBody"></div>
 </div></div>
 <div id="wrap">
   <!-- 좌: 리소스 -->
   <aside id="struct">
-    <h2>메타</h2>
-    <label class="f">이름</label><input id="m_name">
-    <label class="f">제작자/소유 (author / owner)</label><input id="m_owner">
-    <h2>배경 / 레이어</h2>
-    <label class="f">배경 종류</label>
-    <select id="m_bgtype"><option value="transparent">transparent (알파 — 소비자 합성)</option><option value="color">color (단색)</option></select>
-    <label class="f">미리보기 배경색 <span class="muted">(transparent 도 이 색 뒤에 깔아 확인)</span></label><input id="m_bg" type="color">
-    <label class="f">크로마키 색 <span class="muted">(구형 불투명 클립만 — 알파 webm 이면 비움)</span></label>
-    <div style="display:flex;gap:6px;align-items:center"><input id="m_chroma" type="color" style="flex:1"><button class="sm" id="m_chroma_clr">지움</button></div>
-    <h2>animations <span><button class="sm" id="addAnim">+동작 추가</button></span></h2>
+    <h2 data-i18n="sec.meta">메타 정보</h2>
+    <label class="f" data-i18n="meta.name">이름</label><input id="m_name">
+    <label class="f" data-i18n="meta.owner">제작자 / 소유자</label><input id="m_owner">
+    <h2 data-i18n="sec.bg">배경 / 레이어</h2>
+    <label class="f" data-i18n="bg.type">배경 종류</label>
+    <select id="m_bgtype"><option value="transparent" data-i18n="bg.transparent">투명 (알파 — 소비자가 합성)</option><option value="color" data-i18n="bg.color">단색</option></select>
+    <label class="f"><span data-i18n="bg.preview">미리보기 배경색</span> <span class="muted" data-i18n="bg.previewNote">(투명 배경도 이 색 위에 얹어 확인)</span></label><input id="m_bg" type="color">
+    <label class="f"><span data-i18n="bg.chroma">크로마키 지움 색</span> <span class="muted" data-i18n="bg.chromaNote">(구형 불투명 클립만 — 알파 webm 이면 비움)</span></label>
+    <div style="display:flex;gap:6px;align-items:center"><input id="m_chroma" type="color" style="flex:1"><button class="sm" id="m_chroma_clr" data-i18n="btn.clear">지움</button></div>
+    <h2><span data-i18n="sec.anim">애니메이션</span> <span><button class="sm" id="addAnim" data-i18n="btn.addAnim">+ 동작 추가</button></span></h2>
     <div id="animList"></div>
-    <p class="muted">기본 2개 = <b>시작(idle)</b> · <b>말하기(speak)</b>. 그 아래 <b>동작</b> n개(LLM 트리거)를 +동작으로 추가. 포즈/전환/상태는 다음 버전.</p>
+    <p class="muted" id="animHelp" data-i18n="anim.help">기본 2개 = 대기(idle) · 말하기(speak). 그 아래 동작(gesture-n)을 필요한 만큼 추가.</p>
   </aside>
 
-  <!-- 중앙: 플레이어 + cascade + 유효성 -->
+  <!-- 중앙: 플레이어 + 유효성 -->
   <main>
-    <h2 style="align-self:center">플레이어 (미리보기 · cascade)</h2>
+    <h2 style="align-self:center" data-i18n="sec.player">플레이어 (미리보기 · cascade)</h2>
     <div id="player">
       <canvas id="cv" width="360" height="640"></canvas>
       <div class="ctrls" id="playCtrls"></div>
     </div>
-    <!-- cascade 연결·말하기 UI → 오른쪽 #form 패널 상단으로 이동 -->
-    <h2 style="align-self:flex-start">유효성 (validator)</h2>
+    <h2 style="align-self:flex-start" data-i18n="sec.valid">검사</h2>
     <div id="valid">…</div>
   </main>
 
-  <!-- 우: cascade 연결(상단) + 선택 애니 편집 + 말하기(speak 애니 선택 시) -->
+  <!-- 우: cascade 연결(상단) + 선택 애니 편집 + 말하기 -->
   <aside id="form">
     <div id="casPanel">
-      <h2 style="margin-top:0">cascade 연결 <span class="muted" style="font-weight:400;font-size:12px">(nva 전송·로딩)</span></h2>
-      <div class="ctrls"><input id="casUrl" style="width:150px" value="http://localhost:8910"><button class="sm" id="casConnect">연결</button></div>
-      <p class="muted" id="casStatus" style="margin:4px 0">미연결 — [연결]하면 현재 nva가 cascade에 로딩되고 편집이 잠깁니다(플레이어 모드).</p>
+      <h2 style="margin-top:0"><span data-i18n="cas.title">cascade 연결</span> <span class="muted" style="font-weight:400;font-size:12px" data-i18n="cas.titleNote">(nva 전송·로딩)</span></h2>
+      <div class="ctrls"><input id="casUrl" style="width:150px" value="http://localhost:8910"><button class="sm" id="casConnect" data-i18n="btn.connect">연결</button></div>
+      <p class="muted" id="casStatus" style="margin:4px 0" data-i18n="cas.idle">미연결 — [연결]하면 현재 nva가 cascade에 로딩되고 편집이 잠깁니다(플레이어 모드).</p>
     </div>
-    <div id="modeBanner" class="muted" style="font-size:12px;margin:6px 0;padding:4px 6px;border-radius:6px;background:#1b2733">✏ 편집 모드 — 왼쪽 animations 선택해 편집</div>
-    <div id="formBody"><p class="muted">왼쪽 animations 항목을 선택하면 편집합니다.</p></div>
+    <div id="modeBanner" class="muted" style="font-size:12px;margin:6px 0;padding:4px 6px;border-radius:6px;background:#1b2733" data-i18n="banner.edit">✏ 편집 모드 — 왼쪽 애니메이션을 선택해 편집 (cascade 없이 저작 가능)</div>
+    <div id="formBody"><p class="muted" data-i18n="form.empty">왼쪽 애니메이션 항목을 선택하면 편집합니다.</p></div>
     <div id="speakArea" class="ctrls" style="margin-top:8px">
-      <input id="casText" placeholder="말할 문장…" style="width:100%;box-sizing:border-box" value="안녕하세요. 나이아입니다.">
-      <button class="sm go" id="casSpeak">🎙 말하기</button>
+      <input id="casText" placeholder="말할 문장…" data-i18n-ph="speak.placeholder" style="width:100%;box-sizing:border-box" value="안녕하세요. 나이아입니다.">
+      <button class="sm go" id="casSpeak" data-i18n="btn.speak">🎙 말하기</button>
       <span class="muted" id="speakHint"></span>
     </div>
     <div id="refBlock">
-      <div class="ctrls" style="margin-top:6px">
-        <label class="muted" style="align-self:center">🔊 레퍼런스 음색</label>
-        <select id="refVoice" class="sm" style="min-width:150px"></select>
-        <button class="sm" id="refPreview">▶ 듣기</button>
-        <span class="muted" id="refStatus"></span>
+      <label class="muted" style="display:block;margin-top:6px" data-i18n="ref.title">🔊 레퍼런스 음색</label>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:4px">
+        <select id="refVoice" class="sm" style="flex:1;min-width:0"></select>
+        <button class="sm" id="refPreview" data-i18n="btn.listen">▶ 듣기</button>
       </div>
-      <div class="ctrls" style="margin-top:4px">
-        <input id="refUrl" class="sm" placeholder="…/ref/audio/ref_ko_485.wav" style="width:100%;box-sizing:border-box">
-        <button class="sm" id="refApply">적용</button>
-        <button class="sm" id="refPreviewUrl">▶ 듣기</button>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+        <input id="refUrl" class="sm" placeholder="…/ref/audio/ref_ko_485.wav" style="flex:1;min-width:0">
+        <button class="sm" id="refPreviewUrl" data-i18n="btn.listen">▶ 듣기</button>
       </div>
+      <div style="margin-top:6px"><span class="muted" id="refStatus"></span></div>
     </div>
   </aside>
 </div>
 
 <script type="module">
-import { validateManifest, migrateToV02, animKind } from "./nva-core.js?v=20260703b";
+import { validateManifest, migrateToV02, animKind } from "./nva-core.js?v=20260703l";
+const BUILD="20260703l";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
+
+// ─────────────────────────────────────────────────────────────
+//  i18n — 한국어/English. 고유명사(naia·cascade·Ditto·nva·VP9·TTS·URL·AI·LLM·webm)만
+//  양쪽 공통으로 유지, 나머지 일반어는 각 언어로. (한/영 혼용 금지.)
+// ─────────────────────────────────────────────────────────────
+const I18N = {
+  ko: {
+    "doc.title":"nva 에디터",
+    "app.editor":"에디터", "app.pill":"v0.2 · 제작 도구",
+    "btn.loadNaia":"Naia 불러오기", "btn.loadDemo":"박스 데모", "btn.openNva":".nva 열기",
+    "btn.export":"⬇ .nva 내보내기", "btn.help":"❔ 사용법", "btn.close":"✕ 닫기",
+    "btn.clear":"지움", "btn.addAnim":"+ 동작 추가", "btn.connect":"연결",
+    "btn.speak":"🎙 말하기", "btn.listen":"▶ 듣기", "btn.apply":"적용", "btn.del":"삭제",
+    "lang.toggle":"English",
+    "status.loading":"로딩…",
+    "status.loadNaia":"Naia 기본 캐릭터(액체 고양이) 불러옴",
+    "status.loadDemo":"박스 데모 불러옴",
+    "status.opened":"{name} 불러옴",
+    "status.exported":"내보내기 완료 (.nva v0.2)",
+    "sec.meta":"메타 정보", "sec.bg":"배경 / 레이어", "sec.anim":"애니메이션",
+    "sec.player":"플레이어 (미리보기 · cascade)", "sec.valid":"검사",
+    "meta.name":"이름", "meta.owner":"제작자 / 소유자",
+    "bg.type":"배경 종류",
+    "bg.transparent":"투명 (알파 — 소비자가 합성)", "bg.color":"단색",
+    "bg.preview":"미리보기 배경색", "bg.previewNote":"(투명 배경도 이 색 위에 얹어 확인)",
+    "bg.chroma":"크로마키 지움 색", "bg.chromaNote":"(구형 불투명 클립만 — 알파 webm 이면 비움)",
+    "anim.help":"기본 2개 = 대기(idle) · 말하기(speak). 그 아래 동작(gesture-n)을 필요한 만큼 추가.",
+    "lockmsg":"🔒 연결 중 — 편집 잠금 (연결 해제 시 편집)",
+    "cas.title":"cascade 연결", "cas.titleNote":"(nva 전송·로딩)",
+    "cas.idle":"미연결 — [연결]하면 현재 nva가 cascade에 로딩되고 편집이 잠깁니다(플레이어 모드).",
+    "cas.connecting":"연결 중 (nva → cascade 전송·로딩)…",
+    "cas.connected":"🔒 연결됨 · {id} — 왼쪽에서 애니메이션 선택(재생) / '말하기' 선택 시 발화",
+    "cas.disconnected":"연결 해제 — 편집 가능",
+    "cas.fail":"❌ 연결/설정 실패: {msg} (cascade :8910 확인)",
+    "cas.lockedNoTalk":"🔒 연결됨 — 재생 라벨(태그)로 애니메이션 재생 / '말하기' 태그 선택 시 발화 가능",
+    "cas.speakFirst":"먼저 [연결]로 cascade 에 설정하세요",
+    "cas.resetting":"변경 반영 중 (cascade 재설정)…",
+    "cas.rendering":"🎙 발화 렌더 중 (TTS→Ditto)…",
+    "cas.playing":"🔊 발화 재생 (위 플레이어, 음성 포함)",
+    "cas.speakFail":"발화 실패: {msg}",
+    "banner.edit":"✏ 편집 모드 — 왼쪽 애니메이션을 선택해 편집 (cascade 없이 저작 가능)",
+    "banner.player":"🔒 플레이어 모드 — 편집 잠금 · 라벨(태그)로 애니메이션 재생 / '말하기' 선택 시 발화. (연결 해제 시 편집)",
+    "connect.on":"🔒 연결됨 (해제)",
+    "form.empty":"왼쪽 애니메이션 항목을 선택하면 편집합니다.",
+    "form.clip":"클립 (파일 — 알파 webm 권장)",
+    "form.type":"종류",
+    "form.type.idle":"대기", "form.type.talking":"말하기 (헤드토킹)", "form.type.gesture":"동작",
+    "form.label":"라벨 (AI가 이 이름으로 지목 — 유일해야 함)",
+    "form.desc":"설명 (AI가 이 설명을 보고 언제 재생할지 판단)",
+    "form.bbox":"머리 영역 [x, y, w, h] (0~1) — 좌상단(x,y) + 폭 w + 높이 h. Ditto 가 머리 전체(고개 움직임 포함)를 이 영역에 얹음. 머리+머리카락~목선까지 감싸게(얼굴만 X).",
+    "canvas.head":"머리 영역 (Ditto)", "canvas.face":"Ditto 얼굴 인식", "form.bboxColor":"가이드 색",
+    "head.title":"헤드 이미지 (투명 PNG — 없으면 영상 frame0 자동)",
+    "head.fromVideo":"영상에서 생성", "head.upload":"PNG 업로드", "head.clear":"지움",
+    "head.none":"없음 (영상 frame0 자동)", "head.set":"헤드 이미지 설정됨", "head.genFail":"생성 실패(클립·영역 확인)",
+    "head.chroma":"헤드 크로마 색", "head.chromaNote":"(Ditto 배경 제거색 · 배경/레이어와 별개)",
+    "head.chromaDefault":"기본 마젠타 (투명 PNG면 신경 안 써도 됨)",
+    "speak.placeholder":"말할 문장…",
+    "ref.title":"🔊 레퍼런스 음색",
+    "gender.female":"여성", "gender.male":"남성", "vlang.ko":"한국어", "vlang.en":"영어",
+    "ref.voiceLabel":"{g}{i} · {l}",
+    "confirm.del":"'{key}' 동작을 삭제할까요?",
+    "ref.optDefault":"(선택 / URL 직접)",
+    "ref.optAfterConnect":"([연결] 후 목록 불러옴)",
+    "ref.optAfterConnect2":"([연결] 후 목록 불러옴 / URL 직접)",
+    "ref.count":"{n}개 음색", "ref.empty":"음색 목록 비어있음 (REF_DIR)", "ref.loadFail":"목록 불러오기 실패",
+    "ref.set":"음색 URL 설정됨 (연결/말하기 시 반영)", "ref.cleared":"음색 해제 (TTS 기본)",
+    "ref.noUrl":"URL 없음", "ref.playing":"▶ 재생 중", "ref.playFail":"듣기 실패 (URL 확인)", "ref.playFailMsg":"듣기 실패: {msg}",
+    "alert.loadFirst":"먼저 불러오세요", "alert.exportBlocked":"내보내기 차단 — {msg}",
+    "err.validation":"유효성 오류:\n{errs}",
+    "valid.valid":"✅ 유효", "valid.invalid":"❌ 오류", "valid.err":"오류  ", "valid.warn":"경고  ", "valid.noWarn":"(경고 없음)",
+    "seed.idle":"대기", "seed.speak":"말하기", "seed.gesture":"동작{n}",
+  },
+  en: {
+    "doc.title":"nva editor",
+    "app.editor":"editor", "app.pill":"v0.2 · authoring tool",
+    "btn.loadNaia":"Load Naia", "btn.loadDemo":"Box demo", "btn.openNva":"Open .nva",
+    "btn.export":"⬇ Export .nva", "btn.help":"❔ Help", "btn.close":"✕ Close",
+    "btn.clear":"Clear", "btn.addAnim":"+ Add gesture", "btn.connect":"Connect",
+    "btn.speak":"🎙 Speak", "btn.listen":"▶ Play", "btn.apply":"Apply", "btn.del":"Delete",
+    "lang.toggle":"한국어",
+    "status.loading":"Loading…",
+    "status.loadNaia":"Naia default character (liquid cat) loaded",
+    "status.loadDemo":"Box demo loaded",
+    "status.opened":"{name} loaded",
+    "status.exported":"Exported (.nva v0.2)",
+    "sec.meta":"Meta", "sec.bg":"Background / Layer", "sec.anim":"Animations",
+    "sec.player":"Player (preview · cascade)", "sec.valid":"Validation",
+    "meta.name":"Name", "meta.owner":"Author / Owner",
+    "bg.type":"Background type",
+    "bg.transparent":"transparent (alpha — composited downstream)", "bg.color":"solid color",
+    "bg.preview":"Preview background color", "bg.previewNote":"(shown behind transparent clips too)",
+    "bg.chroma":"Chroma-key (remove) color", "bg.chromaNote":"(legacy opaque clips only — leave empty for alpha webm)",
+    "anim.help":"Two base entries = idle · speak. Add gesture-n entries below as needed.",
+    "lockmsg":"🔒 Connected — editing locked (disconnect to edit)",
+    "cas.title":"cascade connect", "cas.titleNote":"(send · load nva)",
+    "cas.idle":"Not connected — [Connect] loads the current nva into cascade and locks editing (player mode).",
+    "cas.connecting":"Connecting (nva → cascade send · load)…",
+    "cas.connected":"🔒 Connected · {id} — pick an animation on the left (plays) / 'speak' triggers speech",
+    "cas.disconnected":"Disconnected — editing enabled",
+    "cas.fail":"❌ Connect/setup failed: {msg} (check cascade :8910)",
+    "cas.lockedNoTalk":"🔒 Connected — pick a label (tag) to play an animation / 'speak' tag enables speech",
+    "cas.speakFirst":"Press [Connect] to set up cascade first",
+    "cas.resetting":"Applying changes (cascade re-setup)…",
+    "cas.rendering":"🎙 Rendering speech (TTS→Ditto)…",
+    "cas.playing":"🔊 Playing speech (player above, with audio)",
+    "cas.speakFail":"Speech failed: {msg}",
+    "banner.edit":"✏ Edit mode — pick an animation on the left to edit (authoring works without cascade)",
+    "banner.player":"🔒 Player mode — editing locked · play animations by label (tag) / 'speak' triggers speech. (disconnect to edit)",
+    "connect.on":"🔒 Connected (disconnect)",
+    "form.empty":"Select an animation on the left to edit.",
+    "form.clip":"Clip (file — alpha webm recommended)",
+    "form.type":"Type",
+    "form.type.idle":"Idle", "form.type.talking":"Talking (head)", "form.type.gesture":"Gesture",
+    "form.label":"Label (AI selects by this — must be unique)",
+    "form.desc":"Description (AI decides when to play from this)",
+    "form.bbox":"Head region [x, y, w, h] (0–1) — top-left (x,y) + width w + height h. Ditto overlays the whole head (incl. head motion) here. Wrap head+hair down to the neckline (not just the face).",
+    "canvas.head":"Head region (Ditto)", "canvas.face":"Ditto face", "form.bboxColor":"Guide color",
+    "head.title":"Head image (transparent PNG — auto frame0 if empty)",
+    "head.fromVideo":"From video", "head.upload":"Upload PNG", "head.clear":"Clear",
+    "head.none":"None (auto frame0 from clip)", "head.set":"Head image set", "head.genFail":"Generate failed (check clip/region)",
+    "head.chroma":"Head chroma color", "head.chromaNote":"(Ditto background-removal color · separate from Background/Layer)",
+    "head.chromaDefault":"Default magenta (ignore for transparent PNG)",
+    "speak.placeholder":"Text to speak…",
+    "ref.title":"🔊 Reference voice",
+    "gender.female":"Female", "gender.male":"Male", "vlang.ko":"Korean", "vlang.en":"English",
+    "ref.voiceLabel":"{g} {i} · {l}",
+    "confirm.del":"Delete gesture '{key}'?",
+    "ref.optDefault":"(select / enter URL)",
+    "ref.optAfterConnect":"(list loads after [Connect])",
+    "ref.optAfterConnect2":"(list loads after [Connect] / enter URL)",
+    "ref.count":"{n} voices", "ref.empty":"Voice list empty (REF_DIR)", "ref.loadFail":"List load failed",
+    "ref.set":"Voice URL set (applied on connect/speak)", "ref.cleared":"Voice cleared (TTS default)",
+    "ref.noUrl":"No URL", "ref.playing":"▶ Playing", "ref.playFail":"Play failed (check URL)", "ref.playFailMsg":"Play failed: {msg}",
+    "alert.loadFirst":"Load first", "alert.exportBlocked":"Export blocked — {msg}",
+    "err.validation":"Validation errors:\n{errs}",
+    "valid.valid":"✅ VALID", "valid.invalid":"❌ INVALID", "valid.err":"ERROR  ", "valid.warn":"WARN   ", "valid.noWarn":"(no warnings)",
+    "seed.idle":"Idle", "seed.speak":"Speak", "seed.gesture":"Gesture {n}",
+  },
+};
+const GUIDE = {
+  ko:`<h3>nva 에디터 — 사용법 (v0.2)</h3>
+  <p class="tag">naia video clip avatar — 비디오 클립 아바타 포맷 제작/편집</p>
+  <h4>구조 (단일 상태)</h4>
+  <b>진입 = 대기(idle, loop)</b> → 말 안 할 땐 대기 루프, 말할 땐 그 위에 Ditto 얼굴.
+  <b>말하기(speak, loop + 발화)</b> = 헤드토킹 베이스. <b>동작(gesture, 비loop)</b> = AI가 트리거하는 표정/제스처.
+  <p class="muted">종류는 대기/말하기/동작 중 선택. 포즈/전환/상태(앉기·눕기 등)는 다음 버전.</p>
+  <h4>사용</h4>
+  <b>Naia 불러오기</b>(기본) / <b>.nva 열기</b> → 왼쪽 애니메이션 편집(클립·종류·라벨·설명·머리 영역) → 가운데 플레이어에서 미리보기 → <b>cascade 연결</b>로 실시간 발화 확인 → <b>내보내기</b>.
+  <h4>배경 · 알파</h4>
+  알파(VP9 yuva420p webm) 클립은 배경 위에 그대로 합성. 미리보기 배경색으로 확인. cascade 알파가 켜지면 발화도 투명.
+  <h4>AI 트리거</h4>
+  각 애니메이션의 <b>라벨</b>과 <b>설명</b>을 AI가 읽고 대화 상황에 맞는 동작을 골라 재생. 라벨은 유일해야 함.`,
+  en:`<h3>nva editor — Guide (v0.2)</h3>
+  <p class="tag">naia video clip avatar — authoring for the video-clip avatar format</p>
+  <h4>Structure (single state)</h4>
+  <b>Entry = idle (loop)</b> → idle loop when silent; Ditto face overlaid when speaking.
+  <b>speak (loop + can_talk)</b> = head-talking base. <b>gesture (non-loop)</b> = AI-triggered expressions/gestures.
+  <p class="muted">Pick a type among idle/speak/gesture. Poses/transitions/states (sit, lie) are a later version.</p>
+  <h4>Usage</h4>
+  <b>Load Naia</b> (default) / <b>Open .nva</b> → edit animations on the left (clip · type · label · description · head region) → preview in the center player → <b>cascade connect</b> for live speech → <b>Export</b>.
+  <h4>Background · Alpha</h4>
+  Alpha (VP9 yuva420p webm) clips composite straight over the background. Check with the preview color. When cascade alpha is on, speech is transparent too.
+  <h4>AI triggers</h4>
+  The AI reads each animation's <b>label</b> and <b>description</b> and plays the one that fits the conversation. Labels must be unique.`,
+};
+let lang = localStorage.getItem("nva_lang") || "ko";
+function t(key, vars){ let s = (I18N[lang] && I18N[lang][key]) || (I18N.ko[key]) || key;
+  if(vars) for(const k in vars) s = s.split("{"+k+"}").join(vars[k]); return s; }
+function applyI18n(){
+  document.documentElement.lang = lang;
+  document.title = t("doc.title");
+  document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el=>{ el.placeholder = t(el.dataset.i18nPh); });
+  $("langBtn").textContent = t("lang.toggle");
+  $("struct").dataset.lockmsg = t("lockmsg");
+  $("guideBody").innerHTML = GUIDE[lang] || GUIDE.ko;
+  // 동적 영역 재렌더(현재 언어 반영)
+  if(M){ renderStruct(); renderForm(); refresh(); setConnectedUI(document.body.classList.contains("cas-connected")); }
+}
 
 let M=null, baseUrl="", blobMap={}, selected=null, busy=false;
-let casLoaded=false, nvaDirty=false;   // cascade 연결·셋팅 여부 / nva 변경(재업로드 필요) 플래그
+let casLoaded=false, nvaDirty=false;   // cascade 연결·설정 여부 / nva 변경(재업로드 필요) 플래그
 let speaking=false, current=null;
 let soundOn=false;
+let bboxColor=localStorage.getItem("nva_bbox_color")||"#ff3b30";   // face_bbox 가이드 박스 색(미리보기 전용, 출력 무관)
+const BBOX_COLORS=["#ffffff","#000000","#ff3b30","#2f6feb","#ffd60a","#34c759"];  // 흰·검·빨·파·노·초
 const $=id=>document.getElementById(id);
 const cv=$("cv"), ctx=cv.getContext("2d"), off=document.createElement("canvas"), octx=off.getContext("2d",{willReadFrequently:true});
 const video=document.createElement("video"); video.muted=true; video.playsInline=true;
@@ -161,11 +336,19 @@ function compose(ts){
   }
   const curA = current && M?.animations?.[current.key];   // manifest 실시간 참조(폼 편집 즉시 반영)
   if(curA?.can_talk&&curA.face_bbox){
-    // face_bbox = 머리 영역 [x,y,w,h] 직사각(권장) 또는 [x,y,l] 정사각(하위호환). Ditto 머리 overlay 대상.
     const bb=curA.face_bbox, x=bb[0], y=bb[1];
     const px=x*cv.width, py=y*cv.height, bw=(bb[2]||0)*cv.width, bh=(bb.length>=4?bb[3]:bb[2]||0)*cv.height;
-    ctx.strokeStyle=speaking?"#27c08a":"#ffffff88"; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.strokeRect(px,py,bw,bh); ctx.setLineDash([]); ctx.lineWidth=1;
-    ctx.fillStyle=speaking?"#27c08a":"#ffffffaa"; ctx.font="10px system-ui"; ctx.fillText("머리 영역 (Ditto overlay)", px, py-4);
+    if(curA.head_image){ ensureHeadImg(curA.head_image); if(_headImg) ctx.drawImage(_headImg, px,py,bw,bh); }  // 헤드 PNG를 face_bbox에 얹음(Live2D식)
+    ctx.save();
+    ctx.shadowColor="rgba(0,0,0,.65)"; ctx.shadowBlur=2;   // 어떤 배경색에도 보이게 대비 그림자
+    ctx.strokeStyle=bboxColor; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.strokeRect(px,py,bw,bh); ctx.setLineDash([]);
+    ctx.fillStyle=bboxColor; ctx.font="bold 10px system-ui"; ctx.fillText(t("canvas.head"), px, py-4);
+    // Ditto 가 실제 얼굴을 찾는 영역(파생 face_src) — 서버 composite 와 **동일 공식**(WFRAC .5·HFRAC .55·YOFF .33).
+    // 입이 안 움직이면 보통 이 상자가 얼굴(눈·입)에 안 맞는 것 → 머리 영역을 조정해 이 상자를 얼굴에 맞춘다.
+    const fw=bw*0.5, fh=bh*0.55, fx=px+(bw-fw)/2, fy=py+bh*0.33;
+    ctx.strokeStyle="#00e5ff"; ctx.lineWidth=1.5; ctx.strokeRect(fx,fy,fw,fh);
+    ctx.fillStyle="#00e5ff"; ctx.fillText(t("canvas.face"), fx, fy+fh+11);
+    ctx.restore();
     if(speaking){ const o=Math.sin(ts/90)*0.5+0.5; ctx.fillStyle="#7a1f1f"; ctx.fillRect(px+bw*0.3,py+bh*0.62,bw*0.4,bh*0.1*(0.3+o)+2); }
   }
   requestAnimationFrame(compose);
@@ -173,7 +356,7 @@ function compose(ts){
 function playClip(clip,loop){ video.muted=!soundOn; video.src=clipUrl(clip); video.loop=loop; video.play().catch(()=>{}); }
 function goto(key){ const a=M?.animations?.[key]; if(!a||busy) return; busy=true;
   current={key,clip:a.clip,loop:!!a.loop,can_talk:!!a.can_talk,face_bbox:a.face_bbox||null};
-  if(typeof updateSpeakUI==="function") updateSpeakUI();   // 말하기 애니면 말하기 활성(연결 상태)
+  updateSpeakUI();   // 말하기 애니면 말하기 활성(연결 상태)
   playClip(a.clip, !!a.loop); busy=false; }
 
 // ── 좌측 구조 + 플레이 버튼 ──
@@ -187,42 +370,119 @@ function renderStruct(){
   for(const[k,a]of Object.entries(M.animations||{})){ const b=document.createElement("button"); b.className="sm"; b.textContent=a.label||k; b.onclick=()=>goto(k); pc.appendChild(b); }
 }
 function itemRow(key,tag){ const d=document.createElement("div"); d.className="item"+(selected===key?" sel":"");
-  d.innerHTML=`<span>${key}</span><span class="tag kind-${tag}">${tag}</span>`; d.onclick=()=>select(key); return d; }
+  const del = tag==="gesture" ? `<button class="sm" data-del title="${t("btn.del")}" style="padding:0 6px;margin-left:6px;background:#3a2530;border-color:#5a3542;color:#e6a">✕</button>` : "";
+  d.innerHTML=`<span>${key}</span><span style="display:flex;align-items:center;gap:2px"><span class="tag kind-${tag}">${tag}</span>${del}</span>`;
+  d.onclick=()=>select(key);
+  const db=d.querySelector("[data-del]"); if(db) db.onclick=e=>{ e.stopPropagation();
+    if(confirm(t("confirm.del",{key}))){ delete M.animations[key]; if(selected===key) selected=null; renderForm(); refresh(); } };
+  return d; }
 function select(key){ selected=key; renderStruct(); renderForm(); goto(key); }
 
 // ── 우측 편집 폼 (animation 전용) ──
 function renderForm(){
-  const fb=$("formBody"); if(!selected||!M.animations[selected]){ fb.innerHTML='<p class="muted">왼쪽 animations 항목을 선택하면 편집합니다.</p>'; return; }
+  const fb=$("formBody"); if(!selected||!M.animations[selected]){ fb.innerHTML=`<p class="muted">${t("form.empty")}</p>`; return; }
   const a=M.animations[selected];
-  // 순서: 삭제 · 클립 · type(idle/talking/gesture) · 라벨 · (talking 만) face_bbox
-  fb.innerHTML=`<h2>animation: ${selected} <span class="tag kind-${animKind(a)}">${animKind(a)}</span> <button class="sm" data-del>삭제</button></h2>`+
-    fClip("clip","클립",a.clip)+
+  // 순서: 삭제 · 클립 · 종류(idle/talking/gesture) · 라벨 · 설명 · (talking 만) 머리 영역
+  fb.innerHTML=`<h2>${selected} <span class="tag kind-${animKind(a)}">${animKind(a)}</span></h2>`+
+    fClip(a.clip)+
     fType(a)+
-    fInp("label","라벨",a.label)+
-    (a.can_talk ? fBbox(a.face_bbox) : "");
+    fInp("label",t("form.label"),a.label)+
+    fArea("description",t("form.desc"),a.description)+
+    (a.can_talk ? fBbox(a.face_bbox)+fHead(a) : "");
   bindForm(v=>Object.assign(a,v));
-  const ts=fb.querySelector("[data-type]");   // type 변경 → loop/can_talk 세팅 + 재렌더(face_bbox 노출 갱신)
+  const ts=fb.querySelector("[data-type]");   // 종류 변경 → loop/can_talk 설정 + 재렌더(머리영역 노출 갱신)
   if(ts) ts.onchange=()=>{ const v=ts.value; a.loop=(v!=="gesture"); a.can_talk=(v==="talking"); renderForm(); refresh(); };
-  const del=fb.querySelector("[data-del]"); if(del) del.onclick=()=>{ delete M.animations[selected]; selected=null; renderForm(); refresh(); };
 }
-const fInp=(k,l,v)=>`<label class="f">${l}</label><input data-k="${k}" value="${v??""}">`;
-const fChk=(k,l,v)=>`<label class="f"><input type="checkbox" data-k="${k}" ${v?"checked":""} style="width:auto"> ${l}</label>`;
-const fClip=(k,l,v)=>`<label class="f">${l} (클립 파일 — 알파 webm 권장)</label><input data-k="${k}" value="${v??""}"><input type="file" accept="video/*,.webm" data-clip="${k}" style="font-size:11px;margin-top:3px">`;
-const fType=(a)=>{ const k=a.can_talk?"talking":(a.loop?"idle":"gesture"); return `<label class="f">type</label><select data-type>${[["idle","idle (대기)"],["talking","talking (말하기 · 헤드토킹)"],["gesture","gesture (동작)"]].map(([v,l])=>`<option value="${v}" ${k===v?"selected":""}>${l}</option>`).join("")}</select>`; };
-const fBbox=(v)=>{ const a=(Array.isArray(v)&&v.length>=4)?v:(Array.isArray(v)&&v.length===3?[v[0],v[1],v[2],v[2]]:[0.11,0.10,0.78,0.46]); return `<label class="f">face_bbox = <b>머리 영역</b> [x, y, w, h] (0~1) — 좌상단(x,y) + 폭 w + 높이 h. Ditto 가 머리 전체(고개 움직임 포함)를 이 영역에 overlay. <b>머리+머리카락~목선</b>까지 감싸게(얼굴만 X).</label><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${["x","y","w","h"].map((lb,i)=>`<div><div class="muted" style="text-align:center">${lb}</div><input data-bbox="${i}" value="${a[i]??0}" style="font-size:12px"></div>`).join("")}</div>`; };
+const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+const fInp=(k,l,v)=>`<label class="f">${l}</label><input data-k="${k}" value="${esc(v)}">`;
+const fArea=(k,l,v)=>`<label class="f">${l}</label><textarea data-k="${k}" rows="2" style="width:100%;box-sizing:border-box;font:inherit;padding:4px">${esc(v)}</textarea>`;
+const fClip=(v)=>`<label class="f">${t("form.clip")}</label><input data-k="clip" value="${esc(v)}"><input type="file" accept="video/*,.webm" data-clip="clip" style="font-size:11px;margin-top:3px">`;
+const fType=(a)=>{ const k=a.can_talk?"talking":(a.loop?"idle":"gesture");
+  return `<label class="f">${t("form.type")}</label><select data-type>${[["idle","form.type.idle"],["talking","form.type.talking"],["gesture","form.type.gesture"]].map(([v,lk])=>`<option value="${v}" ${k===v?"selected":""}>${t(lk)}</option>`).join("")}</select>`; };
+const fBbox=(v)=>{ const a=(Array.isArray(v)&&v.length>=4)?v:(Array.isArray(v)&&v.length===3?[v[0],v[1],v[2],v[2]]:[0.11,0.10,0.78,0.46]);
+  return `<label class="f">${t("form.bbox")}</label><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${["x","y","w","h"].map((lb,i)=>`<div><div class="muted" style="text-align:center">${lb}</div><input data-bbox="${i}" value="${a[i]??0}" style="font-size:12px"></div>`).join("")}</div>`+
+    `<div style="display:flex;gap:5px;align-items:center;margin-top:5px"><span class="muted">${t("form.bboxColor")}</span>${BBOX_COLORS.map(c=>`<button class="sm" data-bboxcolor="${c}" title="${c}" style="width:18px;height:18px;padding:0;border-radius:4px;background:${c};border:1px solid #667;${bboxColor===c?"outline:2px solid #2f6feb;outline-offset:1px":""}"></button>`).join("")}</div>`; };
+// 헤드 이미지(투명 PNG) — Ditto 소스. 업로드 or 영상 frame0에서 생성. 없으면 cascade가 frame0 자동추출.
+const fHead=(a)=>{ const h=a.head_image;
+  const chk="background:conic-gradient(#2a3340 90deg,#171f2b 0 180deg,#2a3340 0 270deg,#171f2b 0) 0 0/14px 14px";
+  return `<label class="f">${t("head.title")}</label>`+
+    `<div class="muted" style="margin:2px 0 4px">${t("head.fromVideo")}</div>`+
+    `<div style="display:flex;gap:8px;margin-bottom:6px">`+
+      `<button data-headgen="first" style="flex:1">${t("head.first")}</button>`+
+      `<button data-headgen="middle" style="flex:1">${t("head.middle")}</button>`+
+      `<button data-headgen="last" style="flex:1">${t("head.last")}</button>`+
+    `</div>`+
+    `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">`+
+      `<input type="number" data-headtime value="${a.head_time??0}" step="0.01" min="0" style="width:80px" title="${t("head.time")}">`+
+      `<span class="muted">${t("head.sec")}</span>`+
+      `<button data-headgen="time" style="flex:1">${t("head.atTime")}</button>`+
+    `</div>`+
+    `<div style="display:flex;gap:8px;align-items:center;margin-bottom:2px">`+
+      `<label style="cursor:pointer;background:#222c3a;border:1px solid #33415a;border-radius:7px;padding:6px 11px;font-size:13px">`+
+        `<input type="file" accept="image/png,image/*" data-headupload style="display:none">${t("head.upload")}</label>`+
+      (h?`<button data-headclear>${t("head.clear")}</button>`:"")+
+    `</div>`+
+    `<div style="margin-top:6px;display:flex;gap:8px;align-items:center">`+
+      `<div style="width:104px;height:104px;border:1px solid #33415a;border-radius:8px;${chk};display:flex;align-items:center;justify-content:center;overflow:hidden">`+
+        (h?`<img src="${clipUrl(h)}" alt="head" data-headpreview title="${t("head.clickPreview")}" style="max-width:100%;max-height:100%;display:block;cursor:zoom-in">`
+           :`<span class="muted" style="text-align:center;padding:4px">${t("head.none")}</span>`)+
+      `</div>`+
+      `<span class="muted" id="headStatus">${h?t("head.clickPreview"):""}</span>`+
+    `</div>`+
+    `<label class="f">${t("head.chroma")} <span class="muted">${t("head.chromaNote")}</span></label>`+
+    `<div style="display:flex;gap:6px;align-items:center">`+
+      `<input type="color" data-headchroma value="${a.head_chroma||"#00ff00"}" style="width:48px;height:26px;padding:0">`+
+      (a.head_chroma?`<button class="sm" data-headchroma-clr>${t("head.clear")}</button>`:`<span class="muted">${t("head.chromaDefault")}</span>`)+
+    `</div>`; };
+let _headImg=null, _headKey=null;
+// 캐시 key = 실제 URL(같은 파일명으로 교체해도 blob URL 이 바뀌므로 재로딩됨). 해제 시 즉시 사라짐.
+function ensureHeadImg(key){ const url=key?clipUrl(key):null; if(url===_headKey) return; _headKey=url; _headImg=null;
+  if(url){ const im=new Image(); im.onload=()=>{ if(_headKey===url) _headImg=im; }; im.src=url; } }
+function setHeadStatus(msg){ const el=$("headStatus"); if(el) el.textContent=msg; }
+// 영상(body 클립)의 지정 위치(처음/중간/끝/직접시간) face_bbox 영역을 잘라 투명 PNG 헤드로 생성(알파 보존).
+async function genHeadFromVideo(pos){ const a=M.animations[selected]; const bb=a&&a.face_bbox;
+  if(!a||!a.clip||!Array.isArray(bb)||bb.length<4){ setHeadStatus(t("head.genFail")); return; }
+  try{
+    const v=document.createElement("video"); v.muted=true; v.playsInline=true; v.crossOrigin="anonymous"; v.src=clipUrl(a.clip);
+    await new Promise((res,rej)=>{ v.onloadeddata=res; v.onerror=()=>rej(new Error("load")); });
+    const dur=isFinite(v.duration)?v.duration:0;
+    const tin=Number(($("formBody").querySelector("[data-headtime]")||{}).value)||0;
+    let time = pos==="last" ? Math.max(0,dur-0.05) : pos==="middle" ? dur/2 : pos==="time" ? tin : 0.01;
+    if(!isFinite(time)||time<0) time=0.01;
+    a.head_time=time;
+    await new Promise(res=>{ v.onseeked=res; v.currentTime=time; setTimeout(res,500); });
+    const vw=v.videoWidth||360, vh=v.videoHeight||640;
+    const sx=Math.max(0,bb[0]*vw), sy=Math.max(0,bb[1]*vh), sw=bb[2]*vw, sh=bb[3]*vh;
+    const c=document.createElement("canvas"); c.width=Math.max(2,Math.round(sw)); c.height=Math.max(2,Math.round(sh));
+    c.getContext("2d").drawImage(v, sx,sy,sw,sh, 0,0,c.width,c.height);   // 알파 webm frame → 알파 보존
+    const blob=await new Promise(res=>c.toBlob(res,"image/png"));
+    const name="clips/"+selected+"_head.png"; blobMap[name]={url:URL.createObjectURL(blob),blob};
+    a.head_image=name; _headKey=null; renderForm(); refresh();
+  }catch(e){ setHeadStatus(t("head.genFail")); } }
 function bindForm(apply){
   $("formBody").querySelectorAll("[data-k]").forEach(el=>el.onchange=()=>{ const k=el.dataset.k, v=el.type==="checkbox"?el.checked:el.value; apply({[k]:v}); refresh(); });
   const bb=$("formBody").querySelectorAll("[data-bbox]");
   if(bb.length) bb.forEach(el=>el.onchange=()=>{ apply({face_bbox:[...bb].map(e=>parseFloat(e.value)||0)}); refresh(); });
   $("formBody").querySelectorAll("[data-clip]").forEach(el=>el.onchange=()=>{
-    const f=el.files[0]; if(!f)return; const name="clips/"+f.name; blobMap[name]={url:URL.createObjectURL(f),blob:f}; apply({[el.dataset.clip]:name}); refresh(); });
+    const f=el.files[0]; if(!f)return; const name="clips/"+f.name; blobMap[name]={url:URL.createObjectURL(f),blob:f}; apply({[el.dataset.clip]:name}); refresh();
+    if(current&&current.key===selected){ busy=false; current=null; goto(selected); } });   // 새 클립 즉시 플레이어 재생
+  $("formBody").querySelectorAll("[data-bboxcolor]").forEach(el=>el.onclick=()=>{   // 가이드 색(미리보기 전용)
+    bboxColor=el.dataset.bboxcolor; localStorage.setItem("nva_bbox_color",bboxColor); renderForm(); });
+  $("formBody").querySelectorAll("[data-headgen]").forEach(el=>el.onclick=()=>genHeadFromVideo(el.dataset.headgen));  // 처음/중간/끝/시간
+  const hu=$("formBody").querySelector("[data-headupload]"); if(hu) hu.onchange=()=>{ const f=hu.files[0]; if(!f)return;
+    const name="clips/"+selected+"_head.png"; blobMap[name]={url:URL.createObjectURL(f),blob:f}; _headKey=null;
+    M.animations[selected].head_image=name; renderForm(); refresh(); };   // renderForm=폼 썸네일 갱신
+  const hc=$("formBody").querySelector("[data-headclear]"); if(hc) hc.onclick=()=>{ delete M.animations[selected].head_image; _headKey=null; renderForm(); refresh(); };
+  const hcc=$("formBody").querySelector("[data-headchroma]"); if(hcc) hcc.onchange=()=>{ M.animations[selected].head_chroma=hcc.value; renderForm(); refresh(); };
+  const hccc=$("formBody").querySelector("[data-headchroma-clr]"); if(hccc) hccc.onclick=()=>{ delete M.animations[selected].head_chroma; renderForm(); refresh(); };
+  const hp=$("formBody").querySelector("[data-headpreview]"); if(hp) hp.onclick=()=>{ if(selected){ busy=false; current=null; goto(selected); } };  // 썸네일 클릭 → 플레이어에 헤드 오버레이
 }
 
 // ── 갱신 ──
 function refresh(){
   nvaDirty=true;   // 편집됨 → 다음 발화 전 cascade 재업로드 필요
   const r=validateManifest(M);
-  $("valid").textContent=(r.ok?"✅ VALID\n":"❌ INVALID\n")+r.errors.map(e=>"ERROR  "+e).join("\n")+(r.errors.length?"\n":"")+r.warnings.map(w=>"WARN   "+w).join("\n")+(r.warnings.length?"":"(경고 없음)");
+  $("valid").textContent=(r.ok?t("valid.valid")+"\n":t("valid.invalid")+"\n")+r.errors.map(e=>t("valid.err")+e).join("\n")+(r.errors.length?"\n":"")+r.warnings.map(w=>t("valid.warn")+w).join("\n")+(r.warnings.length?"":t("valid.noWarn"));
   $("vdot").className="dot "+(r.ok?"ok":"bad");
   cv.width=M.canvas?.width||360; cv.height=M.canvas?.height||640;
   renderStruct();
@@ -236,47 +496,47 @@ $("m_bg").onchange=e=>{ (M.background=M.background||{type:"color"}).color=e.targ
 $("m_chroma").onchange=e=>{ M.chroma_key=e.target.value; };
 $("m_chroma_clr").onclick=()=>{ delete M.chroma_key; refresh(); };
 
-// 애니 추가
-let nseq=1;
-// 기본 2개(시작 idle + 말하기 speak) 보장 — 로드/신규 시 없으면 생성
+// 기본 2개(대기 idle + 말하기 speak) 보장 — 로드/신규 시 없으면 생성
 function ensureBase(){
   M.animations = M.animations || {};
   const has = pred => Object.values(M.animations).some(a=>pred(a));
-  if(!has(a=>a.loop && !a.can_talk)) M.animations = { idle:{clip:"",loop:true,can_talk:false,label:"시작 (대기)"}, ...M.animations };
-  if(!has(a=>a.loop &&  a.can_talk)) M.animations = { ...M.animations, speak:{clip:"",loop:true,can_talk:true,face_bbox:[0.33,0.32,0.30],label:"말하기"} };
+  if(!has(a=>a.loop && !a.can_talk)) M.animations = { idle:{clip:"",loop:true,can_talk:false,label:t("seed.idle")}, ...M.animations };
+  if(!has(a=>a.loop &&  a.can_talk)) M.animations = { ...M.animations, speak:{clip:"",loop:true,can_talk:true,face_bbox:[0.11,0.10,0.78,0.46],label:t("seed.speak")} };
 }
-$("addAnim").onclick=()=>{ const k="anim_"+(nseq++); M.animations[k]={clip:"",loop:false,can_talk:false,label:k}; select(k); refresh(); };
+$("addAnim").onclick=()=>{ let n=1; while(M.animations["gesture-"+n]) n++; const k="gesture-"+n;
+  M.animations[k]={clip:"",loop:false,can_talk:false,label:t("seed.gesture",{n}),description:""}; select(k); refresh(); };
 
 // 로드 / 내보내기
 async function loadManifest(m,base){ M=migrateToV02(m); ensureBase(); baseUrl=base||""; selected=null; renderForm(); refresh(); syncRefVoice();
   const idle=Object.keys(M.animations||{}).find(k=>M.animations[k].loop&&!M.animations[k].can_talk)||Object.keys(M.animations||{})[0]; if(idle) goto(idle); }
-async function loadNaiaBundle(){ const base="../../examples/naia.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent="Naia 기본 캐릭터(액체 고양이) 로드됨"; }
+async function loadNaiaBundle(){ const base="../../examples/naia.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent=t("status.loadNaia"); }
 $("loadNaia").onclick=loadNaiaBundle;
-$("loadDemo").onclick=async()=>{ const base="../../examples/demo.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent="박스 데모 로드됨"; };
+$("loadDemo").onclick=async()=>{ const base="../../examples/demo.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent=t("status.loadDemo"); };
 $("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const zip=await JSZip.loadAsync(f);
   const mf=await zip.file("manifest.json").async("string"); blobMap={}; baseUrl="";
   for(const [path,zf] of Object.entries(zip.files)){ if(/\.(webm|mp4|jpg|png|wav)$/.test(path)){ const blob=await zf.async("blob"); blobMap[path]={url:URL.createObjectURL(blob),blob}; } }
-  loadManifest(JSON.parse(mf),""); $("status").textContent=`${f.name} 로드됨`; };
+  loadManifest(JSON.parse(mf),""); $("status").textContent=t("status.opened",{name:f.name}); };
 // nva(manifest + clips)를 zip blob 으로 — 내보내기·cascade 업로드 공용.
 async function buildNvaZip(){
-  const r=validateManifest(M); if(!r.ok) throw new Error("유효성 오류:\n"+r.errors.join("\n"));
+  const r=validateManifest(M); if(!r.ok) throw new Error(t("err.validation",{errs:r.errors.join("\n")}));
   const zip=new JSZip(); zip.file("manifest.json", JSON.stringify(M,null,2));
   const clips=new Set(Object.values(M.animations||{}).map(a=>a.clip).filter(Boolean));
+  for(const a of Object.values(M.animations||{})){ if(a.head_image) clips.add(a.head_image); }  // 헤드 PNG도 번들에
   const vr=M.meta?.voice_ref?.audio_path; if(vr) clips.add(vr);
   for(const c of clips){ try{ if(blobMap[c]) zip.file(c,blobMap[c].blob); else if(baseUrl){ const b=await (await fetch(`${baseUrl}/${c}`)).blob(); zip.file(c,b); } }catch(e){} }
   return await zip.generateAsync({type:"blob"});
 }
 $("exportBtn").onclick=async()=>{
-  if(!M){ alert("로드 먼저"); return; }
-  try{ const out=await buildNvaZip(); const a=document.createElement("a"); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||"character")+".nva"; a.click(); $("status").textContent="내보내기 완료 (.nva v0.2)"; }
-  catch(e){ alert("내보내기 차단 — "+e.message); }
+  if(!M){ alert(t("alert.loadFirst")); return; }
+  try{ const out=await buildNvaZip(); const a=document.createElement("a"); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||"character")+".nva"; a.click(); $("status").textContent=t("status.exported"); }
+  catch(e){ alert(t("alert.exportBlocked",{msg:e.message})); }
 };
 
 // cascade 연결 (실시간 발화 → 위 플레이어 통합)
 const casUrl=()=>$("casUrl").value.trim().replace(/\/+$/,"");
 function casPlay(blob, loop, muted, status){ busy=true; current=null; speaking=false;
   video.loop=loop; video.muted=muted; video.src=URL.createObjectURL(blob); video.play().catch(()=>{}); busy=false; $("casStatus").textContent=status; }
-// 현재 nva 를 zip 으로 만들어 cascade 에 업로드(생성→cascade 안에 넣어 셋팅). 연결/변경-후-발화 공용.
+// 현재 nva 를 zip 으로 만들어 cascade 에 업로드(생성→cascade 안에 넣어 설정). 연결/변경-후-발화 공용.
 async function casUpload(){
   const out=await buildNvaZip();
   const r=await fetch(casUrl()+"/upload_nva",{method:"POST",headers:{"Content-Type":"application/zip"},body:out});
@@ -284,68 +544,67 @@ async function casUpload(){
   if(!r.ok||!j.ok) throw new Error(j.detail||j.error||("HTTP "+r.status));
   casLoaded=true; nvaDirty=false; return j.bundle_id;
 }
-// 연결 = 현재 nva 를 cascade 에 전송·로딩(/upload_nva) + **모든 편집 lock**. 다시 누르면 해제(편집 가능).
+// 연결 = 현재 nva 를 cascade 에 전송·로딩(/upload_nva) + 모든 편집 lock. 다시 누르면 해제(편집 가능).
 $("casConnect").onclick=async()=>{
   if(document.body.classList.contains("cas-connected")){   // 이미 연결됨 → 해제(편집 복귀)
-    casLoaded=false; setConnectedUI(false); $("casStatus").textContent="연결 해제 — 편집 가능"; return;
+    casLoaded=false; setConnectedUI(false); $("casStatus").textContent=t("cas.disconnected"); return;
   }
-  if(!M){ alert("로드 먼저"); return; }
-  $("casStatus").textContent="연결 중 (nva → cascade 전송·로딩)…";
+  if(!M){ alert(t("alert.loadFirst")); return; }
+  $("casStatus").textContent=t("cas.connecting");
   try{ await (await fetch(casUrl()+"/health")).json();
     await loadRefVoices();   // ref 음색 URL 목록 로드
     const id=await casUpload(); setConnectedUI(true);       // 편집 lock
-    $("casStatus").textContent=`🔒 연결됨 · ${id} — 왼쪽에서 애니 선택(재생) / '말하기' 애니 선택 시 발화`; }
-  catch(e){ casLoaded=false; setConnectedUI(false); $("casStatus").textContent="❌ 연결/셋팅 실패: "+e.message+" (cascade :8910 확인)"; } };
+    const spk=Object.keys(M.animations||{}).find(k=>M.animations[k].loop&&M.animations[k].can_talk);  // 연결 즉시 speak 로
+    if(spk){ selected=spk; goto(spk); renderStruct(); }
+    $("casStatus").textContent=t("cas.connected",{id}); }
+  catch(e){ casLoaded=false; setConnectedUI(false); $("casStatus").textContent=t("cas.fail",{msg:e.message}); } };
 // 연결 상태에 따라 편집 잠금 + 말하기 영역 게이팅.
 function setConnectedUI(on){
   document.body.classList.toggle("cas-connected", on);   // CSS 로 편집영역 잠금(.cas-connected #formBody 등)
-  const cbtn=$("casConnect"); if(cbtn) cbtn.textContent = on ? "🔒 연결됨 (해제)" : "연결";
+  const cbtn=$("casConnect"); if(cbtn) cbtn.textContent = on ? t("connect.on") : t("btn.connect");
   const mb=$("modeBanner");
-  if(mb){ mb.textContent = on
-      ? "🔒 플레이어 모드 — 편집 잠금 · 라벨(태그)로 애니 재생 / talking 선택 시 발화. (연결 해제 시 편집)"
-      : "✏ 편집 모드 — 왼쪽 animations 선택해 편집 (cascade 없이 저작 가능)";
+  if(mb){ mb.textContent = on ? t("banner.player") : t("banner.edit");
     mb.style.background = on ? "#1e2b1e" : "#1b2733"; mb.style.color = on ? "#27c08a" : "#8a99a8"; }
   updateSpeakUI();
 }
-// 말하기 영역(텍스트+발화+ref음색) = **연결됨 + 현재 애니가 말하기(can_talk)** 일 때만 표시·활성.
+// 말하기 영역(텍스트+발화+ref음색) = 연결됨 + 현재 애니가 말하기(can_talk) 일 때만 표시·활성.
 function updateSpeakUI(){
   const on = document.body.classList.contains("cas-connected");
   const talking = on && !!(current && current.can_talk);
-  const area=$("speakArea"), refb=$("refBlock"), hint=$("speakHint");
+  const area=$("speakArea"), refb=$("refBlock");
   if(area) area.style.display = talking ? "" : "none";
   if(refb) refb.style.display = talking ? "" : "none";      // ref 음색도 말하기 영역에 포함
-  const t=$("casText"), s=$("casSpeak");
-  if(t) t.disabled=!talking; if(s) s.disabled=!talking;
-  if(hint) hint.textContent = "";
+  const tx=$("casText"), s=$("casSpeak");
+  if(tx) tx.disabled=!talking; if(s) s.disabled=!talking;
   const st=$("casStatus");
-  if(on && !talking && st) st.textContent="🔒 연결됨 — 재생 라벨(태그)로 애니 재생 / '말하기' 태그 선택 시 발화 가능";
+  if(on && !talking && st) st.textContent=t("cas.lockedNoTalk");
 }
 
-// 레퍼런스 음색 셋 — cascade TTS(voxcpm2)가 읽는 서버측 ref wav. 선택 시 nva meta.voice_ref 로 저장
-// → [연결]/[말하기] 시 그 음색으로 발화. (경로 = TTS 서버가 읽는 절대경로.)
-// 레퍼런스 음색 = **URL 지정**. cascade 가 /ref/voices 로 음색 URL 목록 제공(오사랑 제외), /ref/audio/{name}
-// 으로 서빙. 선택 URL 을 nva meta.voice_ref.audio_path 로 저장 → cascade 가 URL→로컬경로 해석 → TTS 발화.
-// 커스텀 URL 직접 입력도 가능. (연결 시 목록 로드.)
+// 레퍼런스 음색 = URL 지정. cascade 가 /ref/voices 로 음색 URL 목록(오사랑 제외) 제공, /ref/audio/{name} 서빙.
+// 선택 URL → nva meta.voice_ref.audio_path 저장 → cascade 가 URL→로컬경로 해석 → TTS 발화. 커스텀 URL 도 가능.
+const voiceLabel=v=>t("ref.voiceLabel",{g:t("gender."+(v.gender||"female")),i:v.idx||1,l:t("vlang."+(v.lang||"ko"))});
 async function loadRefVoices(){ const sel=$("refVoice"); if(!sel) return;
   try{ const j=await (await fetch(casUrl()+"/ref/voices")).json(); const vs=j.voices||[];
-    sel.innerHTML='<option value="">(선택 / URL 직접)</option>'+vs.map(v=>`<option value="${v.url}">${v.name.replace(/\.wav$/,"")}</option>`).join("");
-    $("refStatus").textContent=vs.length?`${vs.length}개 음색`:"음색 목록 비어있음(REF_DIR)"; syncRefVoice(); }
-  catch(e){ sel.innerHTML='<option value="">([연결] 후 목록 로드)</option>'; $("refStatus").textContent="목록 로드 실패"; } }
+    sel.innerHTML=`<option value="">${t("ref.optDefault")}</option>`+vs.map(v=>`<option value="${v.url}">${voiceLabel(v)}</option>`).join("");
+    $("refStatus").textContent=vs.length?t("ref.count",{n:vs.length}):t("ref.empty");
+    if(!M?.meta?.voice_ref?.audio_path){ const def=vs.find(v=>v.default)||vs[0]; if(def) setRefVoice(def.url); }  // 기본 음색(ref_ko_485)
+    syncRefVoice(); }
+  catch(e){ sel.innerHTML=`<option value="">${t("ref.optAfterConnect")}</option>`; $("refStatus").textContent=t("ref.loadFail"); } }
 function setRefVoice(url){ if(!M) return; M.meta=M.meta||{};
-  if(url){ M.meta.voice_ref={audio_path:url, sample_rate:48000}; $("refStatus").textContent="음색 URL 설정됨 (연결/말하기 시 반영)"; }
-  else { delete M.meta.voice_ref; $("refStatus").textContent="음색 해제(TTS 기본)"; }
+  if(url){ M.meta.voice_ref={audio_path:url, sample_rate:48000}; $("refStatus").textContent=t("ref.set"); }
+  else { delete M.meta.voice_ref; $("refStatus").textContent=t("ref.cleared"); }
   refresh(); }
 let _refAudio=null;
-function previewRef(url){ if(!url){ $("refStatus").textContent="URL 없음"; return; }
+function previewRef(url){ if(!url){ $("refStatus").textContent=t("ref.noUrl"); return; }
   try{ if(_refAudio){ _refAudio.pause(); } _refAudio=new Audio(url);
-    _refAudio.onplaying=()=>{ $("refStatus").textContent="▶ 재생 중"; };
+    _refAudio.onplaying=()=>{ $("refStatus").textContent=t("ref.playing"); };
     _refAudio.onended=()=>{ $("refStatus").textContent=""; };
-    _refAudio.onerror=()=>{ $("refStatus").textContent="듣기 실패(URL 확인)"; };
-    _refAudio.play().catch(e=>{ $("refStatus").textContent="듣기 실패: "+e.message; }); }
-  catch(e){ $("refStatus").textContent="듣기 실패: "+e.message; } }
+    _refAudio.onerror=()=>{ $("refStatus").textContent=t("ref.playFail"); };
+    _refAudio.play().catch(e=>{ $("refStatus").textContent=t("ref.playFailMsg",{msg:e.message}); }); }
+  catch(e){ $("refStatus").textContent=t("ref.playFailMsg",{msg:e.message}); } }
 (function initRef(){ const sel=$("refVoice");
-  if(sel){ sel.innerHTML='<option value="">([연결] 후 목록 로드 / URL 직접)</option>'; sel.onchange=()=>{ if($("refUrl")) $("refUrl").value=sel.value; setRefVoice(sel.value); }; }
-  const btn=$("refApply"); if(btn) btn.onclick=()=>setRefVoice(($("refUrl").value||"").trim());
+  if(sel){ sel.innerHTML=`<option value="">${t("ref.optAfterConnect2")}</option>`; sel.onchange=()=>{ if($("refUrl")) $("refUrl").value=sel.value; setRefVoice(sel.value); }; }
+  const url=$("refUrl"); if(url) url.onchange=()=>{ const v=(url.value||"").trim(); if(sel){ sel.value=[...sel.options].some(o=>o.value===v)?v:""; } setRefVoice(v); };  // URL 변경 즉시 적용
   const pv=$("refPreview"); if(pv) pv.onclick=()=>previewRef($("refVoice").value);
   const pvu=$("refPreviewUrl"); if(pvu) pvu.onclick=()=>previewRef(($("refUrl").value||"").trim());
 })();
@@ -353,16 +612,20 @@ function syncRefVoice(){ const u=M?.meta?.voice_ref?.audio_path||""; if($("refUr
   const sel=$("refVoice"); if(sel) sel.value=[...sel.options].some(o=>o.value===u)?u:""; }
 $("casSpeak").onclick=async()=>{ const text=$("casText").value.trim(); if(!text) return;
   try{
-    if(!casLoaded){ $("casStatus").textContent="먼저 [연결]로 cascade 에 셋팅하세요"; return; }
-    if(nvaDirty){ $("casStatus").textContent="변경 반영 중 (cascade 재셋팅)…"; await casUpload(); }  // 파일 변경 있으면 재업로드
-    $("casStatus").textContent="🎙 발화 렌더 중(TTS→Ditto)…";
+    if(!casLoaded){ $("casStatus").textContent=t("cas.speakFirst"); return; }
+    if(nvaDirty){ $("casStatus").textContent=t("cas.resetting"); await casUpload(); }  // 파일 변경 있으면 재업로드
+    $("casStatus").textContent=t("cas.rendering");
     const r=await fetch(casUrl()+"/stream_text",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
-    if(!r.ok) throw new Error("HTTP "+r.status); const b=await r.blob(); casPlay(b,false,false,"🔊 발화 재생 (위 플레이어, 음성 포함)");
-  }catch(e){ $("casStatus").textContent="발화 실패: "+e.message; } };
+    if(!r.ok) throw new Error("HTTP "+r.status); const b=await r.blob(); casPlay(b,false,false,t("cas.playing"));
+  }catch(e){ $("casStatus").textContent=t("cas.speakFail",{msg:e.message}); } };
 
 $("helpBtn").onclick=()=>$("guide").classList.add("on");
 $("guideClose").onclick=()=>$("guide").classList.remove("on");
 $("guide").onclick=e=>{ if(e.target.id==="guide") $("guide").classList.remove("on"); };
+$("langBtn").onclick=()=>{ lang = (lang==="ko") ? "en" : "ko"; localStorage.setItem("nva_lang", lang); applyI18n(); };
+
+const _bt=$("buildTag"); if(_bt) _bt.textContent="build "+BUILD;   // 캐시 확인용 — 헤더에 현재 빌드 표시
+applyI18n();
 requestAnimationFrame(compose);
 loadNaiaBundle();
 updateSpeakUI();   // 초기: 미연결 → 말하기 영역 숨김
