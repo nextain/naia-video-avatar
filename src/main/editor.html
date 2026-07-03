@@ -38,9 +38,12 @@
   #guide code{ background:#0c1118; padding:1px 6px; border-radius:4px; } #guide .close{ float:right; } #guide .tag{ color:#8b98a9; font-size:12px; }
 /* cascade 연결 시 = 모든 편집 lock (애니 선택·재생은 유지). 해제하면 편집 복귀. */
 .cas-connected #struct input, .cas-connected #struct select, .cas-connected #addAnim,
+.cas-connected #animList,                                   /* 편집 선택 잠금(재생은 아래 playCtrls 라벨로) */
 .cas-connected #form input, .cas-connected #form select, .cas-connected #form [data-del],
 .cas-connected #exportBtn, .cas-connected #loadDemo, .cas-connected #openNvaBtn,
 .cas-connected #loadNaia { pointer-events:none; opacity:.5; }
+.cas-connected #playCtrls{ pointer-events:auto; opacity:1; }   /* 재생 라벨(태그)은 연결 중에도 활성 */
+.cas-connected #formBody{ pointer-events:none; opacity:.5; }   /* 오른쪽 애니 편집 폼 전체 잠금 */
 .cas-connected #struct::after{ content:"🔒 연결 중 — 편집 잠금 (연결 해제 시 편집)"; display:block; font-size:11px; color:#27c08a; margin-top:6px; }
 </style>
 </head>
@@ -104,17 +107,19 @@
         <button class="sm go" id="casSpeak">🎙 말하기(cascade)</button>
         <span class="muted" id="speakHint"></span>
       </div>
-      <div class="ctrls" style="margin-top:6px">
-        <label class="muted" style="align-self:center">🔊 레퍼런스 음색 (URL)</label>
-        <select id="refVoice" class="sm" style="min-width:180px"></select>
-        <button class="sm" id="refPreview">▶ 듣기</button>
-        <span class="muted" id="refStatus"></span>
-      </div>
-      <div class="ctrls" style="margin-top:4px">
-        <label class="muted" style="align-self:center">또는 URL 직접</label>
-        <input id="refUrl" class="sm" placeholder="http://localhost:8910/ref/audio/ref_ko_485.wav" style="min-width:280px;display:inline-block">
-        <button class="sm" id="refApply">적용</button>
-        <button class="sm" id="refPreviewUrl">▶ 듣기</button>
+      <div id="refBlock">
+        <div class="ctrls" style="margin-top:6px">
+          <label class="muted" style="align-self:center">🔊 레퍼런스 음색 (URL)</label>
+          <select id="refVoice" class="sm" style="min-width:180px"></select>
+          <button class="sm" id="refPreview">▶ 듣기</button>
+          <span class="muted" id="refStatus"></span>
+        </div>
+        <div class="ctrls" style="margin-top:4px">
+          <label class="muted" style="align-self:center">또는 URL 직접</label>
+          <input id="refUrl" class="sm" placeholder="http://localhost:8910/ref/audio/ref_ko_485.wav" style="min-width:280px;display:inline-block">
+          <button class="sm" id="refApply">적용</button>
+          <button class="sm" id="refPreviewUrl">▶ 듣기</button>
+        </div>
       </div>
     </div>
     <h2 style="align-self:flex-start">유효성 (validator)</h2>
@@ -292,15 +297,18 @@ function setConnectedUI(on){
   const cbtn=$("casConnect"); if(cbtn) cbtn.textContent = on ? "🔒 연결됨 (해제)" : "연결";
   updateSpeakUI();
 }
-// 말하기 영역 = **연결됨 + 현재 애니가 말하기(can_talk)** 일 때만 활성.
+// 말하기 영역(텍스트+발화+ref음색) = **연결됨 + 현재 애니가 말하기(can_talk)** 일 때만 표시·활성.
 function updateSpeakUI(){
   const on = document.body.classList.contains("cas-connected");
   const talking = on && !!(current && current.can_talk);
-  const area=$("speakArea"), hint=$("speakHint");
-  if(area) area.style.opacity = talking ? "1" : "0.4";
+  const area=$("speakArea"), refb=$("refBlock"), hint=$("speakHint");
+  if(area) area.style.display = talking ? "" : "none";
+  if(refb) refb.style.display = talking ? "" : "none";      // ref 음색도 말하기 영역에 포함
   const t=$("casText"), s=$("casSpeak");
   if(t) t.disabled=!talking; if(s) s.disabled=!talking;
-  if(hint) hint.textContent = !on ? "" : (talking ? "" : "← 왼쪽에서 '말하기' 애니를 선택하면 활성화");
+  if(hint) hint.textContent = "";
+  const st=$("casStatus");
+  if(on && !talking && st) st.textContent="🔒 연결됨 — 재생 라벨(태그)로 애니 재생 / '말하기' 태그 선택 시 발화 가능";
 }
 
 // 레퍼런스 음색 셋 — cascade TTS(voxcpm2)가 읽는 서버측 ref wav. 선택 시 nva meta.voice_ref 로 저장
@@ -347,6 +355,7 @@ $("guideClose").onclick=()=>$("guide").classList.remove("on");
 $("guide").onclick=e=>{ if(e.target.id==="guide") $("guide").classList.remove("on"); };
 requestAnimationFrame(compose);
 loadNaiaBundle();
+updateSpeakUI();   // 초기: 미연결 → 말하기 영역 숨김
 </script>
 </body>
 </html>
