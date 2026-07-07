@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "description": "프로세스 현황 SoT. 세션 시작/종료 시 반드시 업데이트. 구조명세·이슈·리소스를 유기적으로 링크.",
+
+  "refs": {
+    "project_structure": "docs/project-structure.md",
+    "agents_rules": ".agents/context/agents-rules.json",
+    "issue_docs_dir": "docs/progress/99.dev-comm/"
+  },
+
+  "current_work": {
+    "issue": "nva-poc",
+    "title": "nva 포맷 v0.2 + 웹 뷰어/에디터(노드그래프·cascade 연결) + 실시간 발화(알파)",
+    "issue_doc": null,
+    "github_issue": null,
+    "started": "2026-06-21",
+    "last_updated": "2026-07-02",
+    "status": "active",
+    "note": "v0.1→v0.2 전환(animations/scenario 그래프, 캐스케이드 정합). editor=알파 webm 렌더 + scenario SVG 노드그래프(드래그·연결·양방향) + 캐스케이드 연결 패널(실시간 발화 뷰잉, 상단 플레이어 통합, 미리보기 배경색). 캐스케이드 enable_alpha=1 로 발화도 투명(정적 matte)."
+  },
+
+  "sdlc_gates": {
+    "P01": { "status": "done", "name": "user_scenarios", "deliverable": "docs/progress/02.user-scenarios/INDEX.md", "ref": "UC-001..UC-004" },
+    "P02": { "status": "done", "name": "test_scenarios", "deliverable": "docs/progress/03.uc-tests/INDEX.md", "ref": "TEST-S-001..TEST-S-005" },
+    "P03": { "status": "done", "name": "requirements", "deliverable": "docs/progress/01.requirements/INDEX.md", "ref": "REQ-001..REQ-007, NFR-001..NFR-004" },
+    "P04": { "status": "done", "name": "integration_test", "deliverable": "headless 캡쳐(/var/tmp/nva_*.png) + node nva-core 검증 + export unzip", "ref": "TEST-F-001..TEST-F-004" },
+    "P05": { "status": "partial", "name": "requirements_complete", "deliverable": "포맷·뷰어·에디터·export = Done / 캐스케이드 연결 배포 = 잔여(GPU 외부 의존)", "ref": null }
+  },
+
+  "resource_registry": {
+    "last_enforce_run": "2026-06-21",
+    "violations": []
+  },
+
+  "_usage": {
+    "session_start": [
+      "1. 이 파일 읽기",
+      "2. current_work 확인",
+      "3. last_updated를 현재 시각으로 갱신",
+      "4. sdlc_gates 상태 확인 후 작업 시작"
+    ],
+    "session_end": [
+      "1. 완료된 게이트 status → done",
+      "2. deliverable 경로 기재",
+      "3. last_updated 갱신",
+      "4. .users/context/process-status.md 동기화",
+      "5. 이 파일을 커밋에 포함"
+    ],
+    "new_issue": [
+      "1. current_work 필드 업데이트",
+      "2. docs/progress/99.dev-comm/issue-{N}-{slug}.md 신규 생성",
+      "3. sdlc_gates 전체 status → pending으로 리셋",
+      "4. resource_registry.violations 초기화"
+    ]
+  }
+}

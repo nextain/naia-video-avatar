@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nextain.io/nva/0.2/schema.json",
+  "title": "nva — naia video clip avatar manifest (v0.2)",
+  "description": "비디오 클립 아바타 포맷 v0.2. animations 재료풀 + scenario 노드 그래프. states/transitions(v0.1) 폐기 — 종류는 loop/can_talk 조합, 전환은 entry_pose!=exit_pose 로 유도.",
+  "type": "object",
+  "required": ["nva_version", "canvas", "animations"],
+  "additionalProperties": true,
+  "properties": {
+    "nva_version": { "type": "string", "const": "0.2" },
+    "meta": {
+      "type": "object",
+      "description": "이름/저작권/음색 참조 등 자유 메타.",
+      "properties": {
+        "name": { "type": "string" },
+        "author": { "type": "string" },
+        "owner": { "type": "string" },
+        "license": { "type": "string" },
+        "voice_ref": {
+          "type": "object",
+          "description": "음성 클로닝 참조(TTS). audio_path(번들 내 상대경로) + sample_rate.",
+          "properties": {
+            "audio_path": { "type": "string" },
+            "sample_rate": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "canvas": {
+      "type": "object",
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "fps": { "type": "integer", "minimum": 1, "default": 25 }
+      }
+    },
+    "background": {
+      "type": "object",
+      "description": "배경 레이어. transparent = 캐스케이드가 알파(VP9) 스트림 → 소비자(웹/셸 앱)가 배경색 합성. color = 단색.",
+      "properties": {
+        "type": { "enum": ["color", "image", "video", "transparent"] },
+        "color": { "type": "string" },
+        "src": { "type": "string" }
+      }
+    },
+    "chroma_key": {
+      "type": "string",
+      "description": "구형 불투명 클립의 크로마키 색(#RRGGBB) — 하위호환. 알파(VP9 yuva420p) 클립이면 불요."
+    },
+    "poses": {
+      "type": "array",
+      "description": "포즈 어휘. animation.entry_pose/exit_pose 는 이 목록의 값이어야 한다.",
+      "items": { "type": "string" }
+    },
+    "animations": {
+      "type": "object",
+      "description": "재료 풀. 종류(kind) 필드 없음 — 조합으로 유도: 말하기=loop&can_talk / 대기·듣기=loop&!can_talk / 제스처=둘 다 off / 전환=entry_pose!=exit_pose.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["clip"],
+        "additionalProperties": false,
+        "properties": {
+          "clip": { "type": "string", "description": "번들 내 상대경로 (clips/*.webm 권장 — 알파)" },
+          "entry_pose": { "type": "string", "description": "선택 — 자세 변화(앉기/눕기)가 있는 멀티 상태에서만. 단일 상태(서있기) 아바타는 불요. (다음 버전)" },
+          "exit_pose": { "type": "string", "description": "선택 — entry_pose 참조." },
+          "loop": { "type": "boolean", "default": false },
+          "can_talk": { "type": "boolean", "default": false },
+          "face_bbox": {
+            "type": "array",
+            "description": "[x, y, l] 정규화 0~1. 좌상단(x,y) + 정사각 한 변 l(폭 기준). can_talk:true면 필수 — 립싱크 렌더러 256² 헤드토킹 크롭/오버레이(정사각).",
+            "items": { "type": "number" },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "label": { "type": "string" },
+          "intent": {
+            "type": "string",
+            "description": "이 애니를 언제 재생하면 좋은지(LLM/런타임 힌트). VRM expression 유사 — event 애니 트리거 판단용."
+          },
+          "triggers": {
+            "type": "array",
+            "description": "감정·의도 키워드. 소비 앱 LLM이 대화 맥락이 이에 맞으면 재생.",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "expressions": {
+      "type": "object",
+      "description": "VRM 프리셋 유사 — 표준 감정/의도 키 → animation 키 매핑. 소비 앱(naia-shell) LLM이 감정을 이 키로 내면 해당 animation 재생. 값은 animations 의 키(또는 _note).",
+      "additionalProperties": { "type": "string" }
+    },
+    "scenario": {
+      "type": "object",
+      "description": "노드 그래프. start 노드가 가리키는 첫 scene = idle 진입점. cascade 가 idle/흐름 유도에 사용.",
+      "properties": {
+        "nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": { "enum": ["start", "scene"] },
+              "animation": { "type": "string", "description": "type=scene 이면 animations 의 키" },
+              "label": { "type": "string" },
+              "dwell_ms": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
