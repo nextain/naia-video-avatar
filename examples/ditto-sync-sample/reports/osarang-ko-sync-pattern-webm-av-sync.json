@@ -1,0 +1,31 @@
+{
+  "video": "examples/ditto-sync-sample/video/osarang-ko-sync-pattern-ditto.webm",
+  "duration_sec": 7.621,
+  "streams": {
+    "video": {
+      "codec": "vp9",
+      "width": 720,
+      "height": 1280
+    },
+    "audio": {
+      "codec": "opus"
+    }
+  },
+  "analysis": {
+    "fps": 25,
+    "frames_analyzed": 190,
+    "roi": "crop=iw*0.22:ih*0.10:iw*0.39:ih*0.10",
+    "mean_motion": 0.9353,
+    "p90_motion": 1.6253,
+    "best_audio_motion_correlation": 0.2478,
+    "best_lag_ms": -280,
+    "duration_delta_sec": 0
+  },
+  "pass": {
+    "has_audio_video": true,
+    "mouth_roi_moves": true,
+    "lag_within_240ms": false,
+    "positive_audio_motion_correlation": true
+  },
+  "note": "This is an objective proxy. Final quality still needs a short visual review of the saved sample."
+}

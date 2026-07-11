@@ -1,7 +1,7 @@
 // nva-core — naia video clip avatar 코어 로직 (브라우저 + node 양용 ESM) — **nva v0.2**
 //
 // 포맷의 진짜 IP: 비디오 파일이 아니라 "클립의 위치·조합·순서" = animations 풀 + scenario 그래프.
-// 의존 0 (순수 JS). 뷰어·에디터·검증기가 공유. cascade(output_cascade/nva_loader.py)와 동일 계약.
+// 의존 0 (순수 JS). 뷰어·에디터·검증기가 공유하는 NVA 계약.
 //
 // v0.2 모델 (states/transitions 폐기):
 //  - animations{}: 재료 풀. 각 원소 = clip + entry/exit_pose + loop + can_talk + face_bbox.
@@ -10,12 +10,12 @@
 //      전환   = entry_pose != exit_pose
 //  - scenario{nodes,edges}: 노드 그래프. nodes[k]={type:"start"|"scene", animation, label, dwell_ms},
 //    edges=[{from,to}]. start 노드가 가리키는 첫 scene = idle 진입점.
-//  - 헤드토킹: can_talk 애니의 face_bbox 영역만 Ditto 로 렌더해 재생 클립 위에 오버레이.
+//  - 발화: 새 슬롯형 NVA에서는 미리 생성한 webm speech/viseme 클립을 선택 재생.
 
 export const NVA_VERSION = "0.2";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 0. 파생 규칙 헬퍼 (cascade nva_loader.py 와 동일 규칙)
+// 0. 파생 규칙 헬퍼
 // ─────────────────────────────────────────────────────────────────────────────
 export function isTransition(a) {
   return (a?.entry_pose || "") !== (a?.exit_pose || "");
@@ -39,7 +39,7 @@ export function scenarioStartAnim(m) {
   return nx && nodes[nx] ? nodes[nx].animation : null;
 }
 
-// cascade 로더와 동일한 파생 필드(idle/talking/listening/events).
+// 구형 로더 호환 파생 필드(idle/talking/listening/events).
 export function derive(m) {
   const anims = m.animations || {};
   const isBase = (a) => a.loop && !isTransition(a);
@@ -187,13 +187,49 @@ export function validateManifest(m, opts = {}) {
     else seenLabels.set(lb, k);
   }
 
-  // base 루프 권장 (cascade 파생이 idle/talking 을 뽑으려면 필요)
+  // base 루프 권장 (구형 런타임이 idle/talking 을 뽑으려면 필요)
   const hasIdle = Object.values(anims).some((a) => a.loop && !isTransition(a) && !a.can_talk);
   const hasTalk = Object.values(anims).some((a) => a.loop && !isTransition(a) && a.can_talk);
   if (animKeys.length && !hasIdle)
-    W("대기 base 루프(loop & !can_talk & 비전환) 없음 — cascade idle 클립 유도 실패");
-  if (animKeys.length && !hasTalk)
-    W("말하기 base 루프(loop & can_talk) 없음 — 헤드토킹 대상 없음");
+    W("대기 base 루프(loop & !can_talk & 비전환) 없음 — idle 클립 유도 실패");
+  const hasPrebakedSpeech = !!m.vrm_slots?.speech && Object.keys(m.vrm_slots.speech || {}).length > 0;
+  if (animKeys.length && !hasTalk && !hasPrebakedSpeech)
+    W("말하기 base 루프(loop & can_talk) 없음 — 구형 talking 클립 유도 실패");
+
+  const slots = m.vrm_slots;
+  if (slots) {
+    const expressions = slots.expressions || {};
+    const visemes = slots.visemes || {};
+    const motions = slots.motions || {};
+    const speech = slots.speech || {};
+    const profile = slots.profile || {};
+    const availableLocales = new Set(profile.available_locales || profile.locales || []);
+    if (profile.default_expression && !expressions[profile.default_expression])
+      E(`vrm_slots.profile.default_expression '${profile.default_expression}' 없음`);
+    if (profile.default_motion && !motions[profile.default_motion])
+      E(`vrm_slots.profile.default_motion '${profile.default_motion}' 없음`);
+    if (profile.default_locale && availableLocales.size && !availableLocales.has(profile.default_locale))
+      E(`vrm_slots.profile.default_locale '${profile.default_locale}'가 available_locales에 없음`);
+    for (const [k, v] of Object.entries(expressions)) {
+      if (v.animation && !anims[v.animation]) E(`vrm_slots.expressions.${k}: animation '${v.animation}' 없음`);
+    }
+    for (const [k, v] of Object.entries(visemes)) {
+      if (!v.clip) E(`vrm_slots.visemes.${k}: clip 없음`);
+    }
+    for (const [k, v] of Object.entries(speech)) {
+      if (!v.clip) E(`vrm_slots.speech.${k}: clip 없음`);
+      if (v.expression && !expressions[v.expression])
+        E(`vrm_slots.speech.${k}: expression '${v.expression}' 없음`);
+      if (v.viseme && !visemes[v.viseme])
+        E(`vrm_slots.speech.${k}: viseme '${v.viseme}' 없음`);
+      for (const [locale, localized] of Object.entries(v.by_locale || {})) {
+        if (!localized.clip) E(`vrm_slots.speech.${k}.by_locale.${locale}: clip 없음`);
+        if (!localized.text) W(`vrm_slots.speech.${k}.by_locale.${locale}: text 없음`);
+        if (localized.viseme && !visemes[localized.viseme])
+          E(`vrm_slots.speech.${k}.by_locale.${locale}: viseme '${localized.viseme}' 없음`);
+      }
+    }
+  }
 
   // scenario 그래프
   const scen = m.scenario || {};

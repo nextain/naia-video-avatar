@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>prebaked nva player</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; }
+  header { padding: 12px 16px; border-bottom: 1px solid #263241; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  h1 { font-size: 16px; margin: 0; }
+  .pill { font-size: 12px; color: #a9b7c6; background: #1b2430; border: 1px solid #2c3a4c; border-radius: 999px; padding: 3px 8px; }
+  #layout { display: grid; grid-template-columns: 300px minmax(320px, 1fr) 340px; min-height: calc(100vh - 53px); }
+  aside { padding: 14px; border-right: 1px solid #263241; overflow: auto; }
+  aside.right { border-right: 0; border-left: 1px solid #263241; }
+  main { padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  video { width: min(406px, 92vw); aspect-ratio: 406 / 720; background: #111; border-radius: 10px; object-fit: contain; box-shadow: 0 18px 50px #0008; }
+  button { background: #202938; color: #e6edf3; border: 1px solid #38475c; border-radius: 7px; padding: 8px 10px; cursor: pointer; text-align: left; }
+  button:hover { background: #2a3648; }
+  button.active { background: #2f6feb; border-color: #2f6feb; }
+  h2 { margin: 8px 0 10px; font-size: 12px; color: #9ba9ba; text-transform: uppercase; letter-spacing: .04em; }
+  .list { display: grid; gap: 7px; }
+  .card { background: #151c27; border: 1px solid #263241; border-radius: 8px; padding: 10px; }
+  .label { font-weight: 700; font-size: 13px; }
+  .desc { color: #9ba9ba; font-size: 12px; margin-top: 3px; line-height: 1.4; }
+  img { width: 100%; border-radius: 8px; background: #111; border: 1px solid #263241; display: block; }
+  code { color: #b7d6ff; }
+  #meta { max-width: 760px; color: #9ba9ba; line-height: 1.5; font-size: 13px; }
+  #now { color: #7ee787; }
+  @media (max-width: 980px) {
+    #layout { grid-template-columns: 1fr; }
+    aside, aside.right { border: 0; border-bottom: 1px solid #263241; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>prebaked nva player</h1>
+  <span class="pill" id="title">loading</span>
+  <span class="pill">VRM식 슬롯 → webm 조합</span>
+  <label class="pill">locale <select id="localeSelect"></select></label>
+</header>
+<div id="layout">
+  <aside>
+    <h2>Expressions</h2>
+    <div id="states" class="list"></div>
+    <h2>Visemes</h2>
+    <div id="visemes" class="list"></div>
+  </aside>
+  <main>
+    <video id="video" playsinline controls loop muted></video>
+    <div id="now" class="pill">ready</div>
+    <p id="meta"></p>
+  </main>
+  <aside class="right">
+    <h2>Speech</h2>
+    <div id="utterances" class="list"></div>
+  </aside>
+</div>
+<script type="module">
+const qs = new URLSearchParams(location.search);
+const base = (qs.get("nva") || "../../examples/osarang-prebaked.nva").replace(/\/$/, "");
+let currentLocale = qs.get("locale") || "";
+const video = document.getElementById("video");
+const title = document.getElementById("title");
+const now = document.getElementById("now");
+const meta = document.getElementById("meta");
+const localeSelect = document.getElementById("localeSelect");
+let active = null;
+
+const clipUrl = (path) => `${base}/${path}`;
+const setActive = (button) => {
+  if (active) active.classList.remove("active");
+  active = button;
+  if (active) active.classList.add("active");
+};
+const play = (clip, label, loop, button) => {
+  setActive(button);
+  video.loop = loop;
+  video.muted = false;
+  video.src = clipUrl(clip);
+  video.play().catch(() => {
+    video.muted = true;
+    video.play().catch(() => {});
+  });
+  now.textContent = label;
+};
+const button = ({ label, desc, onClick }) => {
+  const b = document.createElement("button");
+  b.innerHTML = `<div class="label">${label}</div>${desc ? `<div class="desc">${desc}</div>` : ""}`;
+  b.onclick = () => onClick(b);
+  return b;
+};
+
+const m = await (await fetch(`${base}/manifest.json`)).json();
+title.textContent = m.meta?.name || "nva";
+meta.textContent = m.meta?.note || "";
+
+const slots = m.vrm_slots || {};
+const availableLocales = slots.profile?.available_locales || slots.profile?.locales || Object.keys(Object.values(slots.speech || {})[0]?.by_locale || {});
+currentLocale = availableLocales.includes(currentLocale) ? currentLocale : (slots.profile?.default_locale || availableLocales[0] || "ko-KR");
+localeSelect.innerHTML = availableLocales.map((locale) => `<option value="${locale}">${locale}</option>`).join("");
+localeSelect.value = currentLocale;
+localeSelect.onchange = () => {
+  currentLocale = localeSelect.value;
+  renderSpeech();
+};
+function localizedSpeech(slot) {
+  return slot?.by_locale?.[currentLocale] || slot?.by_locale?.[slots.profile?.default_locale] || slot || {};
+}
+
+const states = document.getElementById("states");
+for (const [key, state] of Object.entries(slots.expressions || m.expression_states || {})) {
+  const box = document.createElement("div");
+  box.className = "card";
+  const img = state.preview_image || state.image;
+  box.innerHTML = img ? `<img src="${clipUrl(img)}" alt="${state.label}">` : "";
+  box.appendChild(button({
+    label: `${state.label} (${key})`,
+    desc: `animation: ${state.animation}`,
+    onClick: (b) => {
+      const a = m.animations[state.animation];
+      if (a) play(a.clip, `${state.label} 상태`, true, b);
+    },
+  }));
+  states.appendChild(box);
+}
+
+const visemes = document.getElementById("visemes");
+for (const [key, v] of Object.entries(slots.visemes || m.viseme_clips || {})) {
+  visemes.appendChild(button({
+    label: `${v.label} (${key})`,
+    desc: v.clip,
+    onClick: (b) => play(v.clip, `${v.label} 입모양`, false, b),
+  }));
+}
+
+const utterances = document.getElementById("utterances");
+function renderSpeech() {
+  utterances.innerHTML = "";
+  for (const [key, u] of Object.entries(slots.speech || m.prebaked_speech?.utterances || {})) {
+    const lu = localizedSpeech(u);
+    utterances.appendChild(button({
+      label: lu.text || u.text,
+      desc: `locale=${currentLocale}, expression=${u.expression || u.state}, viseme=${lu.viseme || u.viseme}, intent=${u.intent || key}`,
+      onClick: (b) => play(lu.clip || u.clip, lu.text || u.text, false, b),
+    }));
+  }
+}
+renderSpeech();
+
+const idle = m.animations?.idle;
+if (idle) {
+  video.src = clipUrl(idle.clip);
+  now.textContent = "대기";
+}
+</script>
+</body>
+</html>

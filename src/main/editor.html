@@ -36,25 +36,16 @@
   #guide .box{ background:#11151c; border:1px solid #33415a; border-radius:12px; max-width:620px; max-height:82vh; overflow:auto; padding:22px 26px; line-height:1.6; }
   #guide h3{ margin:0 0 10px; font-size:17px; } #guide h4{ margin:16px 0 4px; color:#8fb8ff; font-size:13px; }
   #guide code{ background:#0c1118; padding:1px 6px; border-radius:4px; } #guide .close{ float:right; } #guide .tag{ color:#8b98a9; font-size:12px; }
-/* cascade 연결 시 = 모든 편집 lock (애니 선택·재생은 유지). 해제하면 편집 복귀. */
-.cas-connected #struct input, .cas-connected #struct select, .cas-connected #addAnim,
-.cas-connected #exportBtn, .cas-connected #loadDemo, .cas-connected #openNvaBtn,
-.cas-connected #loadNaia { pointer-events:none; opacity:.5; }
-.cas-connected #playCtrls{ pointer-events:auto; opacity:1; }   /* 재생 라벨(태그)은 연결 중에도 활성 */
-.cas-connected #formBody{ display:none; }                      /* 연결 = 애니 편집 폼 숨김(플레이어 모드) */
-.cas-connected #animList [data-del]{ display:none; }           /* 연결 중엔 삭제 숨김 */
-/* 영역 구분선 — cascade|애니메이션(오른쪽), 메타|애니메이션(왼쪽) 을 다른 영역으로 */
-#casPanel{ border-bottom:1px solid #2c3a48; padding-bottom:10px; margin-bottom:6px; }
 #struct h2{ border-top:1px solid #2c3a48; padding-top:12px; margin-top:14px; }
 #struct > h2:first-of-type{ border-top:none; padding-top:0; margin-top:0; }
-#modeBanner{ border-bottom:1px solid #2c3a48; padding-bottom:8px; }
-.cas-connected #struct::after{ content:attr(data-lockmsg); display:block; font-size:11px; color:#27c08a; margin-top:6px; }
+#ttsPanel{ border-bottom:1px solid #2c3a48; padding-bottom:10px; margin-bottom:10px; }
 </style>
 </head>
 <body>
 <header>
   <h1>nva <span data-i18n="app.editor">에디터</span> <span class="pill" data-i18n="app.pill">v0.2 · 제작 도구</span></h1>
-  <button id="loadNaia" data-i18n="btn.loadNaia">Naia 불러오기</button>
+  <button id="loadNaia" data-i18n="btn.loadNaia">Naia 슬롯 NVA</button>
+  <button id="loadOsarang" data-i18n="btn.loadOsarang">오사랑 슬롯 NVA</button>
   <button id="loadDemo" data-i18n="btn.loadDemo">박스 데모</button>
   <label class="sm" style="display:inline-block"><input type="file" id="openNva" accept=".nva,.zip" style="display:none">
     <button class="sm" id="openNvaBtn" onclick="document.getElementById('openNva').click()" data-i18n="btn.openNva">.nva 열기</button></label>
@@ -83,11 +74,13 @@
     <h2><span data-i18n="sec.anim">애니메이션</span> <span><button class="sm" id="addAnim" data-i18n="btn.addAnim">+ 동작 추가</button></span></h2>
     <div id="animList"></div>
     <p class="muted" id="animHelp" data-i18n="anim.help">기본 2개 = 대기(idle) · 말하기(speak). 그 아래 동작(gesture-n)을 필요한 만큼 추가.</p>
+    <h2><span data-i18n="sec.vrm">VRM식 슬롯</span></h2>
+    <div id="vrmSlots" class="muted"></div>
   </aside>
 
   <!-- 중앙: 플레이어 + 유효성 -->
   <main>
-    <h2 style="align-self:center" data-i18n="sec.player">플레이어 (미리보기 · cascade)</h2>
+    <h2 style="align-self:center" data-i18n="sec.player">플레이어 (webm 미리보기)</h2>
     <div id="player">
       <canvas id="cv" width="360" height="640"></canvas>
       <div class="ctrls" id="playCtrls"></div>
@@ -96,32 +89,23 @@
     <div id="valid">…</div>
   </main>
 
-  <!-- 우: cascade 연결(상단) + 선택 애니 편집 + 말하기 -->
+  <!-- 우: 무료 TTS 테스트 + 선택 애니 편집 -->
   <aside id="form">
-    <div id="casPanel">
-      <h2 style="margin-top:0"><span data-i18n="cas.title">cascade 연결</span> <span class="muted" style="font-weight:400;font-size:12px" data-i18n="cas.titleNote">(nva 전송·로딩)</span></h2>
-      <div class="ctrls"><input id="casUrl" style="width:150px" value="http://localhost:8910"><button class="sm" id="casConnect" data-i18n="btn.connect">연결</button></div>
-      <p class="muted" id="casStatus" style="margin:4px 0" data-i18n="cas.idle">미연결 — [연결]하면 현재 nva가 cascade에 로딩되고 편집이 잠깁니다(플레이어 모드).</p>
+    <div id="ttsPanel">
+      <h2 style="margin-top:0"><span data-i18n="tts.title">무료 TTS 테스트</span></h2>
+      <label class="f" data-i18n="locale.current">발화 언어</label>
+      <select id="localeSelect"></select>
+      <label class="f" data-i18n="tts.text">테스트 문장</label>
+      <textarea id="ttsText" rows="3" data-i18n-ph="tts.placeholder">안녕하세요. 강남구청 안내원 오사랑입니다.</textarea>
+      <label class="f" data-i18n="tts.voice">브라우저 음성</label>
+      <select id="ttsVoice"></select>
+      <div class="ctrls">
+        <button class="sm go" id="ttsSpeak" data-i18n="tts.speak">▶ TTS 재생</button>
+        <button class="sm" id="ttsStop" data-i18n="tts.stop">정지</button>
+      </div>
+      <p class="muted" id="ttsStatus" data-i18n="tts.note">브라우저 내장 Web Speech API를 사용합니다. NVA에는 저장되지 않습니다.</p>
     </div>
-    <div id="modeBanner" class="muted" style="font-size:12px;margin:6px 0;padding:4px 6px;border-radius:6px;background:#1b2733" data-i18n="banner.edit">✏ 편집 모드 — 왼쪽 애니메이션을 선택해 편집 (cascade 없이 저작 가능)</div>
     <div id="formBody"><p class="muted" data-i18n="form.empty">왼쪽 애니메이션 항목을 선택하면 편집합니다.</p></div>
-    <div id="speakArea" class="ctrls" style="margin-top:8px">
-      <input id="casText" placeholder="말할 문장…" data-i18n-ph="speak.placeholder" style="width:100%;box-sizing:border-box" value="안녕하세요. 나이아입니다.">
-      <button class="sm go" id="casSpeak" data-i18n="btn.speak">🎙 말하기</button>
-      <span class="muted" id="speakHint"></span>
-    </div>
-    <div id="refBlock">
-      <label class="muted" style="display:block;margin-top:6px" data-i18n="ref.title">🔊 레퍼런스 음색</label>
-      <div style="display:flex;gap:6px;align-items:center;margin-top:4px">
-        <select id="refVoice" class="sm" style="flex:1;min-width:0"></select>
-        <button class="sm" id="refPreview" data-i18n="btn.listen">▶ 듣기</button>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
-        <input id="refUrl" class="sm" placeholder="…/ref/audio/ref_ko_485.wav" style="flex:1;min-width:0">
-        <button class="sm" id="refPreviewUrl" data-i18n="btn.listen">▶ 듣기</button>
-      </div>
-      <div style="margin-top:6px"><span class="muted" id="refStatus"></span></div>
-    </div>
   </aside>
 </div>
 
@@ -130,166 +114,150 @@ import { validateManifest, migrateToV02, animKind } from "./nva-core.js?v=202607
 const BUILD="20260703l";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
 
 // ─────────────────────────────────────────────────────────────
-//  i18n — 한국어/English. 고유명사(naia·cascade·Ditto·nva·VP9·TTS·URL·AI·LLM·webm)만
+//  i18n — 한국어/English. 고유명사(naia·nva·VP9·TTS·URL·AI·LLM·webm)만
 //  양쪽 공통으로 유지, 나머지 일반어는 각 언어로. (한/영 혼용 금지.)
 // ─────────────────────────────────────────────────────────────
 const I18N = {
   ko: {
     "doc.title":"nva 에디터",
     "app.editor":"에디터", "app.pill":"v0.2 · 제작 도구",
-    "btn.loadNaia":"Naia 불러오기", "btn.loadDemo":"박스 데모", "btn.openNva":".nva 열기",
+    "btn.loadNaia":"Naia 슬롯 NVA", "btn.loadOsarang":"오사랑 슬롯 NVA", "btn.loadDemo":"박스 데모", "btn.openNva":".nva 열기",
     "btn.export":"⬇ .nva 내보내기", "btn.help":"❔ 사용법", "btn.close":"✕ 닫기",
-    "btn.clear":"지움", "btn.addAnim":"+ 동작 추가", "btn.connect":"연결",
+    "btn.clear":"지움", "btn.addAnim":"+ 동작 추가",
     "btn.speak":"🎙 말하기", "btn.listen":"▶ 듣기", "btn.apply":"적용", "btn.del":"삭제",
     "lang.toggle":"English",
     "status.loading":"로딩…",
-    "status.loadNaia":"Naia 기본 캐릭터(액체 고양이) 불러옴",
+    "status.loadNaia":"Naia VRM식 슬롯 NVA 불러옴",
     "status.loadDemo":"박스 데모 불러옴",
+    "status.loadOsarang":"오사랑 VRM식 슬롯 NVA 불러옴",
     "status.opened":"{name} 불러옴",
     "status.exported":"내보내기 완료 (.nva v0.2)",
     "sec.meta":"메타 정보", "sec.bg":"배경 / 레이어", "sec.anim":"애니메이션",
-    "sec.player":"플레이어 (미리보기 · cascade)", "sec.valid":"검사",
+    "sec.player":"플레이어 (webm 미리보기)", "sec.valid":"검사", "sec.vrm":"VRM식 슬롯",
     "meta.name":"이름", "meta.owner":"제작자 / 소유자",
     "bg.type":"배경 종류",
     "bg.transparent":"투명 (알파 — 소비자가 합성)", "bg.color":"단색",
     "bg.preview":"미리보기 배경색", "bg.previewNote":"(투명 배경도 이 색 위에 얹어 확인)",
     "bg.chroma":"크로마키 지움 색", "bg.chromaNote":"(구형 불투명 클립만 — 알파 webm 이면 비움)",
-    "anim.help":"기본 2개 = 대기(idle) · 말하기(speak). 그 아래 동작(gesture-n)을 필요한 만큼 추가.",
-    "lockmsg":"🔒 연결 중 — 편집 잠금 (연결 해제 시 편집)",
-    "cas.title":"cascade 연결", "cas.titleNote":"(nva 전송·로딩)",
-    "cas.idle":"미연결 — [연결]하면 현재 nva가 cascade에 로딩되고 편집이 잠깁니다(플레이어 모드).",
-    "cas.connecting":"연결 중 (nva → cascade 전송·로딩)…",
-    "cas.connected":"🔒 연결됨 · {id} — 왼쪽에서 애니메이션 선택(재생) / '말하기' 선택 시 발화",
-    "cas.disconnected":"연결 해제 — 편집 가능",
-    "cas.fail":"❌ 연결/설정 실패: {msg} (cascade :8910 확인)",
-    "cas.lockedNoTalk":"🔒 연결됨 — 재생 라벨(태그)로 애니메이션 재생 / '말하기' 태그 선택 시 발화 가능",
-    "cas.speakFirst":"먼저 [연결]로 cascade 에 설정하세요",
-    "cas.resetting":"변경 반영 중 (cascade 재설정)…",
-    "cas.rendering":"🎙 발화 렌더 중 (TTS→Ditto)…",
-    "cas.playing":"🔊 발화 재생 (위 플레이어, 음성 포함)",
-    "cas.speakFail":"발화 실패: {msg}",
-    "banner.edit":"✏ 편집 모드 — 왼쪽 애니메이션을 선택해 편집 (cascade 없이 저작 가능)",
-    "banner.player":"🔒 플레이어 모드 — 편집 잠금 · 라벨(태그)로 애니메이션 재생 / '말하기' 선택 시 발화. (연결 해제 시 편집)",
-    "connect.on":"🔒 연결됨 (해제)",
+    "anim.help":"기본 = 대기(idle) · 발화/표정 webm 슬롯. 필요한 동작(gesture-n)을 추가.",
     "form.empty":"왼쪽 애니메이션 항목을 선택하면 편집합니다.",
     "form.clip":"클립 (파일 — 알파 webm 권장)",
     "form.type":"종류",
-    "form.type.idle":"대기", "form.type.talking":"말하기 (헤드토킹)", "form.type.gesture":"동작",
+    "form.type.idle":"대기", "form.type.talking":"발화 루프", "form.type.gesture":"동작",
     "form.label":"라벨 (AI가 이 이름으로 지목 — 유일해야 함)",
     "form.desc":"설명 (AI가 이 설명을 보고 언제 재생할지 판단)",
-    "form.bbox":"머리 영역 [x, y, w, h] (0~1) — 좌상단(x,y) + 폭 w + 높이 h. Ditto 가 머리 전체(고개 움직임 포함)를 이 영역에 얹음. 머리+머리카락~목선까지 감싸게(얼굴만 X).",
-    "canvas.head":"머리 영역 (Ditto)", "canvas.face":"Ditto 얼굴 인식", "form.bboxColor":"가이드 색",
+    "form.bbox":"머리 영역 [x, y, w, h] (0~1) — 구형 NVA 호환 필드.",
+    "canvas.head":"머리 영역", "canvas.face":"얼굴 영역", "form.bboxColor":"가이드 색",
     "head.title":"헤드 이미지 (투명 PNG — 없으면 영상 frame0 자동)",
     "head.fromVideo":"영상에서 생성", "head.upload":"PNG 업로드", "head.clear":"지움",
     "head.none":"없음 (영상 frame0 자동)", "head.set":"헤드 이미지 설정됨", "head.genFail":"생성 실패(클립·영역 확인)",
-    "head.chroma":"헤드 크로마 색", "head.chromaNote":"(Ditto 배경 제거색 · 배경/레이어와 별개)",
+    "head.chroma":"헤드 크로마 색", "head.chromaNote":"(구형 합성용 · 배경/레이어와 별개)",
     "head.chromaDefault":"기본 마젠타 (투명 PNG면 신경 안 써도 됨)",
-    "speak.placeholder":"말할 문장…",
-    "ref.title":"🔊 레퍼런스 음색",
-    "gender.female":"여성", "gender.male":"남성", "vlang.ko":"한국어", "vlang.en":"영어",
-    "ref.voiceLabel":"{g}{i} · {l}",
+    "tts.title":"무료 TTS 테스트",
+    "locale.current":"발화 언어",
+    "tts.text":"테스트 문장",
+    "tts.placeholder":"안녕하세요. 강남구청 안내원 오사랑입니다.",
+    "tts.voice":"브라우저 음성",
+    "tts.speak":"▶ TTS 재생",
+    "tts.stop":"정지",
+    "tts.note":"브라우저 내장 Web Speech API를 사용합니다. NVA에는 저장되지 않습니다.",
+    "tts.ready":"사용 가능한 브라우저 음성 {n}개",
+    "tts.empty":"사용 가능한 브라우저 음성이 아직 없습니다.",
+    "tts.unsupported":"이 브라우저는 Web Speech API를 지원하지 않습니다.",
+    "tts.playing":"TTS 재생 중",
+    "tts.done":"TTS 재생 완료",
+    "tts.stopped":"TTS 정지",
     "confirm.del":"'{key}' 동작을 삭제할까요?",
-    "ref.optDefault":"(선택 / URL 직접)",
-    "ref.optAfterConnect":"([연결] 후 목록 불러옴)",
-    "ref.optAfterConnect2":"([연결] 후 목록 불러옴 / URL 직접)",
-    "ref.count":"{n}개 음색", "ref.empty":"음색 목록 비어있음 (REF_DIR)", "ref.loadFail":"목록 불러오기 실패",
-    "ref.set":"음색 URL 설정됨 (연결/말하기 시 반영)", "ref.cleared":"음색 해제 (TTS 기본)",
-    "ref.noUrl":"URL 없음", "ref.playing":"▶ 재생 중", "ref.playFail":"듣기 실패 (URL 확인)", "ref.playFailMsg":"듣기 실패: {msg}",
     "alert.loadFirst":"먼저 불러오세요", "alert.exportBlocked":"내보내기 차단 — {msg}",
     "err.validation":"유효성 오류:\n{errs}",
     "valid.valid":"✅ 유효", "valid.invalid":"❌ 오류", "valid.err":"오류  ", "valid.warn":"경고  ", "valid.noWarn":"(경고 없음)",
     "seed.idle":"대기", "seed.speak":"말하기", "seed.gesture":"동작{n}",
+    "vrm.empty":"VRM식 슬롯 없음 — animations만 사용하는 구형 NVA",
+    "vrm.summary":"expression {e}개 · viseme {v}개 · motion {m}개 · speech {s}개",
+    "vrm.llm":"LLM 출력 권장: { expression, motion, speech 또는 viseme }",
   },
   en: {
     "doc.title":"nva editor",
     "app.editor":"editor", "app.pill":"v0.2 · authoring tool",
-    "btn.loadNaia":"Load Naia", "btn.loadDemo":"Box demo", "btn.openNva":"Open .nva",
+    "btn.loadNaia":"Naia slot NVA", "btn.loadOsarang":"Osarang slot NVA", "btn.loadDemo":"Box demo", "btn.openNva":"Open .nva",
     "btn.export":"⬇ Export .nva", "btn.help":"❔ Help", "btn.close":"✕ Close",
-    "btn.clear":"Clear", "btn.addAnim":"+ Add gesture", "btn.connect":"Connect",
+    "btn.clear":"Clear", "btn.addAnim":"+ Add gesture",
     "btn.speak":"🎙 Speak", "btn.listen":"▶ Play", "btn.apply":"Apply", "btn.del":"Delete",
     "lang.toggle":"한국어",
     "status.loading":"Loading…",
-    "status.loadNaia":"Naia default character (liquid cat) loaded",
+    "status.loadNaia":"Naia VRM-style slot NVA loaded",
     "status.loadDemo":"Box demo loaded",
+    "status.loadOsarang":"Osarang VRM-style slot NVA loaded",
     "status.opened":"{name} loaded",
     "status.exported":"Exported (.nva v0.2)",
     "sec.meta":"Meta", "sec.bg":"Background / Layer", "sec.anim":"Animations",
-    "sec.player":"Player (preview · cascade)", "sec.valid":"Validation",
+    "sec.player":"Player (webm preview)", "sec.valid":"Validation", "sec.vrm":"VRM-style slots",
     "meta.name":"Name", "meta.owner":"Author / Owner",
     "bg.type":"Background type",
     "bg.transparent":"transparent (alpha — composited downstream)", "bg.color":"solid color",
     "bg.preview":"Preview background color", "bg.previewNote":"(shown behind transparent clips too)",
     "bg.chroma":"Chroma-key (remove) color", "bg.chromaNote":"(legacy opaque clips only — leave empty for alpha webm)",
-    "anim.help":"Two base entries = idle · speak. Add gesture-n entries below as needed.",
-    "lockmsg":"🔒 Connected — editing locked (disconnect to edit)",
-    "cas.title":"cascade connect", "cas.titleNote":"(send · load nva)",
-    "cas.idle":"Not connected — [Connect] loads the current nva into cascade and locks editing (player mode).",
-    "cas.connecting":"Connecting (nva → cascade send · load)…",
-    "cas.connected":"🔒 Connected · {id} — pick an animation on the left (plays) / 'speak' triggers speech",
-    "cas.disconnected":"Disconnected — editing enabled",
-    "cas.fail":"❌ Connect/setup failed: {msg} (check cascade :8910)",
-    "cas.lockedNoTalk":"🔒 Connected — pick a label (tag) to play an animation / 'speak' tag enables speech",
-    "cas.speakFirst":"Press [Connect] to set up cascade first",
-    "cas.resetting":"Applying changes (cascade re-setup)…",
-    "cas.rendering":"🎙 Rendering speech (TTS→Ditto)…",
-    "cas.playing":"🔊 Playing speech (player above, with audio)",
-    "cas.speakFail":"Speech failed: {msg}",
-    "banner.edit":"✏ Edit mode — pick an animation on the left to edit (authoring works without cascade)",
-    "banner.player":"🔒 Player mode — editing locked · play animations by label (tag) / 'speak' triggers speech. (disconnect to edit)",
-    "connect.on":"🔒 Connected (disconnect)",
+    "anim.help":"Base entries = idle plus speech/expression webm slots. Add gesture-n entries as needed.",
     "form.empty":"Select an animation on the left to edit.",
     "form.clip":"Clip (file — alpha webm recommended)",
     "form.type":"Type",
-    "form.type.idle":"Idle", "form.type.talking":"Talking (head)", "form.type.gesture":"Gesture",
+    "form.type.idle":"Idle", "form.type.talking":"Speech loop", "form.type.gesture":"Gesture",
     "form.label":"Label (AI selects by this — must be unique)",
     "form.desc":"Description (AI decides when to play from this)",
-    "form.bbox":"Head region [x, y, w, h] (0–1) — top-left (x,y) + width w + height h. Ditto overlays the whole head (incl. head motion) here. Wrap head+hair down to the neckline (not just the face).",
-    "canvas.head":"Head region (Ditto)", "canvas.face":"Ditto face", "form.bboxColor":"Guide color",
+    "form.bbox":"Head region [x, y, w, h] (0-1) — legacy NVA compatibility field.",
+    "canvas.head":"Head region", "canvas.face":"Face region", "form.bboxColor":"Guide color",
     "head.title":"Head image (transparent PNG — auto frame0 if empty)",
     "head.fromVideo":"From video", "head.upload":"Upload PNG", "head.clear":"Clear",
     "head.none":"None (auto frame0 from clip)", "head.set":"Head image set", "head.genFail":"Generate failed (check clip/region)",
-    "head.chroma":"Head chroma color", "head.chromaNote":"(Ditto background-removal color · separate from Background/Layer)",
+    "head.chroma":"Head chroma color", "head.chromaNote":"(legacy compositing · separate from Background/Layer)",
     "head.chromaDefault":"Default magenta (ignore for transparent PNG)",
-    "speak.placeholder":"Text to speak…",
-    "ref.title":"🔊 Reference voice",
-    "gender.female":"Female", "gender.male":"Male", "vlang.ko":"Korean", "vlang.en":"English",
-    "ref.voiceLabel":"{g} {i} · {l}",
+    "tts.title":"Free TTS test",
+    "locale.current":"Speech locale",
+    "tts.text":"Test sentence",
+    "tts.placeholder":"Hello. I am Osarang, your Gangnam-gu office guide.",
+    "tts.voice":"Browser voice",
+    "tts.speak":"▶ Play TTS",
+    "tts.stop":"Stop",
+    "tts.note":"Uses the browser Web Speech API. It is not saved into the NVA.",
+    "tts.ready":"{n} browser voices available",
+    "tts.empty":"No browser voices are available yet.",
+    "tts.unsupported":"This browser does not support the Web Speech API.",
+    "tts.playing":"TTS playing",
+    "tts.done":"TTS finished",
+    "tts.stopped":"TTS stopped",
     "confirm.del":"Delete gesture '{key}'?",
-    "ref.optDefault":"(select / enter URL)",
-    "ref.optAfterConnect":"(list loads after [Connect])",
-    "ref.optAfterConnect2":"(list loads after [Connect] / enter URL)",
-    "ref.count":"{n} voices", "ref.empty":"Voice list empty (REF_DIR)", "ref.loadFail":"List load failed",
-    "ref.set":"Voice URL set (applied on connect/speak)", "ref.cleared":"Voice cleared (TTS default)",
-    "ref.noUrl":"No URL", "ref.playing":"▶ Playing", "ref.playFail":"Play failed (check URL)", "ref.playFailMsg":"Play failed: {msg}",
     "alert.loadFirst":"Load first", "alert.exportBlocked":"Export blocked — {msg}",
     "err.validation":"Validation errors:\n{errs}",
     "valid.valid":"✅ VALID", "valid.invalid":"❌ INVALID", "valid.err":"ERROR  ", "valid.warn":"WARN   ", "valid.noWarn":"(no warnings)",
     "seed.idle":"Idle", "seed.speak":"Speak", "seed.gesture":"Gesture {n}",
+    "vrm.empty":"No VRM-style slots — legacy NVA using animations only",
+    "vrm.summary":"{e} expressions · {v} visemes · {m} motions · {s} speech clips",
+    "vrm.llm":"Recommended LLM output: { expression, motion, speech or viseme }",
   },
 };
 const GUIDE = {
   ko:`<h3>nva 에디터 — 사용법 (v0.2)</h3>
   <p class="tag">naia video clip avatar — 비디오 클립 아바타 포맷 제작/편집</p>
   <h4>구조 (단일 상태)</h4>
-  <b>진입 = 대기(idle, loop)</b> → 말 안 할 땐 대기 루프, 말할 땐 그 위에 Ditto 얼굴.
-  <b>말하기(speak, loop + 발화)</b> = 헤드토킹 베이스. <b>동작(gesture, 비loop)</b> = AI가 트리거하는 표정/제스처.
+  <b>진입 = 대기(idle, loop)</b> → 말 안 할 땐 대기 루프, 말할 땐 미리 만든 발화 webm.
+  <b>발화/표정 슬롯</b> = 이미 생성한 webm 클립. <b>동작(gesture, 비loop)</b> = AI가 트리거하는 표정/제스처.
   <p class="muted">종류는 대기/말하기/동작 중 선택. 포즈/전환/상태(앉기·눕기 등)는 다음 버전.</p>
   <h4>사용</h4>
-  <b>Naia 불러오기</b>(기본) / <b>.nva 열기</b> → 왼쪽 애니메이션 편집(클립·종류·라벨·설명·머리 영역) → 가운데 플레이어에서 미리보기 → <b>cascade 연결</b>로 실시간 발화 확인 → <b>내보내기</b>.
+  <b>오사랑 슬롯 NVA</b> / <b>.nva 열기</b> → 왼쪽 애니메이션과 VRM식 슬롯 확인 → 가운데 플레이어에서 webm 미리보기 → 오른쪽 무료 TTS로 문장 톤 확인 → <b>내보내기</b>.
   <h4>배경 · 알파</h4>
-  알파(VP9 yuva420p webm) 클립은 배경 위에 그대로 합성. 미리보기 배경색으로 확인. cascade 알파가 켜지면 발화도 투명.
+  알파(VP9 yuva420p webm) 클립은 배경 위에 그대로 합성. 미리보기 배경색으로 확인.
   <h4>AI 트리거</h4>
   각 애니메이션의 <b>라벨</b>과 <b>설명</b>을 AI가 읽고 대화 상황에 맞는 동작을 골라 재생. 라벨은 유일해야 함.`,
   en:`<h3>nva editor — Guide (v0.2)</h3>
   <p class="tag">naia video clip avatar — authoring for the video-clip avatar format</p>
   <h4>Structure (single state)</h4>
-  <b>Entry = idle (loop)</b> → idle loop when silent; Ditto face overlaid when speaking.
-  <b>speak (loop + can_talk)</b> = head-talking base. <b>gesture (non-loop)</b> = AI-triggered expressions/gestures.
+  <b>Entry = idle (loop)</b> → idle loop when silent; prebuilt speech webm when speaking.
+  <b>Speech/expression slots</b> = already generated webm clips. <b>Gesture (non-loop)</b> = AI-triggered expressions/gestures.
   <p class="muted">Pick a type among idle/speak/gesture. Poses/transitions/states (sit, lie) are a later version.</p>
   <h4>Usage</h4>
-  <b>Load Naia</b> (default) / <b>Open .nva</b> → edit animations on the left (clip · type · label · description · head region) → preview in the center player → <b>cascade connect</b> for live speech → <b>Export</b>.
+  <b>Osarang slot NVA</b> / <b>Open .nva</b> → inspect animations and VRM-style slots on the left → preview webm in the center player → test copy with free TTS on the right → <b>Export</b>.
   <h4>Background · Alpha</h4>
-  Alpha (VP9 yuva420p webm) clips composite straight over the background. Check with the preview color. When cascade alpha is on, speech is transparent too.
+  Alpha (VP9 yuva420p webm) clips composite straight over the background. Check with the preview color.
   <h4>AI triggers</h4>
   The AI reads each animation's <b>label</b> and <b>description</b> and plays the one that fits the conversation. Labels must be unique.`,
 };
@@ -305,15 +273,12 @@ function applyI18n(){
   $("struct").dataset.lockmsg = t("lockmsg");
   $("guideBody").innerHTML = GUIDE[lang] || GUIDE.ko;
   // 동적 영역 재렌더(현재 언어 반영)
-  if(M){ renderStruct(); renderForm(); refresh(); setConnectedUI(document.body.classList.contains("cas-connected")); }
+  if(M){ renderStruct(); renderForm(); refresh(); initTtsVoices(); }
 }
 
-let M=null, baseUrl="", blobMap={}, selected=null, busy=false;
-let casLoaded=false, nvaDirty=false;   // cascade 연결·설정 여부 / nva 변경(재업로드 필요) 플래그
+let M=null, baseUrl="", blobMap={}, selected=null, busy=false, currentLocale="ko-KR";
 let speaking=false, current=null;
 let soundOn=false;
-let bboxColor=localStorage.getItem("nva_bbox_color")||"#ff3b30";   // face_bbox 가이드 박스 색(미리보기 전용, 출력 무관)
-const BBOX_COLORS=["#ffffff","#000000","#ff3b30","#2f6feb","#ffd60a","#34c759"];  // 흰·검·빨·파·노·초
 const $=id=>document.getElementById(id);
 const cv=$("cv"), ctx=cv.getContext("2d"), off=document.createElement("canvas"), octx=off.getContext("2d",{willReadFrequently:true});
 const video=document.createElement("video"); video.muted=true; video.playsInline=true;
@@ -334,29 +299,11 @@ function compose(ts){
       octx.putImageData(img,0,0); ctx.drawImage(off,0,0);
     } else { ctx.drawImage(video,0,0,cv.width,cv.height); }
   }
-  const curA = current && M?.animations?.[current.key];   // manifest 실시간 참조(폼 편집 즉시 반영)
-  if(curA?.can_talk&&curA.face_bbox){
-    const bb=curA.face_bbox, x=bb[0], y=bb[1];
-    const px=x*cv.width, py=y*cv.height, bw=(bb[2]||0)*cv.width, bh=(bb.length>=4?bb[3]:bb[2]||0)*cv.height;
-    if(curA.head_image){ ensureHeadImg(curA.head_image); if(_headImg) ctx.drawImage(_headImg, px,py,bw,bh); }  // 헤드 PNG를 face_bbox에 얹음(Live2D식)
-    ctx.save();
-    ctx.shadowColor="rgba(0,0,0,.65)"; ctx.shadowBlur=2;   // 어떤 배경색에도 보이게 대비 그림자
-    ctx.strokeStyle=bboxColor; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.strokeRect(px,py,bw,bh); ctx.setLineDash([]);
-    ctx.fillStyle=bboxColor; ctx.font="bold 10px system-ui"; ctx.fillText(t("canvas.head"), px, py-4);
-    // Ditto 가 실제 얼굴을 찾는 영역(파생 face_src) — 서버 composite 와 **동일 공식**(WFRAC .5·HFRAC .55·YOFF .33).
-    // 입이 안 움직이면 보통 이 상자가 얼굴(눈·입)에 안 맞는 것 → 머리 영역을 조정해 이 상자를 얼굴에 맞춘다.
-    const fw=bw*0.5, fh=bh*0.55, fx=px+(bw-fw)/2, fy=py+bh*0.33;
-    ctx.strokeStyle="#00e5ff"; ctx.lineWidth=1.5; ctx.strokeRect(fx,fy,fw,fh);
-    ctx.fillStyle="#00e5ff"; ctx.fillText(t("canvas.face"), fx, fy+fh+11);
-    ctx.restore();
-    if(speaking){ const o=Math.sin(ts/90)*0.5+0.5; ctx.fillStyle="#7a1f1f"; ctx.fillRect(px+bw*0.3,py+bh*0.62,bw*0.4,bh*0.1*(0.3+o)+2); }
-  }
   requestAnimationFrame(compose);
 }
 function playClip(clip,loop){ video.muted=!soundOn; video.src=clipUrl(clip); video.loop=loop; video.play().catch(()=>{}); }
 function goto(key){ const a=M?.animations?.[key]; if(!a||busy) return; busy=true;
   current={key,clip:a.clip,loop:!!a.loop,can_talk:!!a.can_talk,face_bbox:a.face_bbox||null};
-  updateSpeakUI();   // 말하기 애니면 말하기 활성(연결 상태)
   playClip(a.clip, !!a.loop); busy=false; }
 
 // ── 좌측 구조 + 플레이 버튼 ──
@@ -368,6 +315,33 @@ function renderStruct(){
   for(const[k,a]of Object.entries(M.animations||{})) al.appendChild(itemRow(k,animKind(a)));
   const pc=$("playCtrls"); pc.innerHTML="";
   for(const[k,a]of Object.entries(M.animations||{})){ const b=document.createElement("button"); b.className="sm"; b.textContent=a.label||k; b.onclick=()=>goto(k); pc.appendChild(b); }
+  renderVrmSlots();
+}
+function renderVrmSlots(){
+  const el=$("vrmSlots"); if(!el) return;
+  const s=M?.vrm_slots;
+  if(!s){ el.innerHTML=`<p>${t("vrm.empty")}</p>`; return; }
+  const entries = [
+    ["expression", s.expressions || {}],
+    ["viseme", s.visemes || {}],
+    ["motion", s.motions || {}],
+    ["speech", s.speech || {}],
+  ];
+  el.innerHTML =
+    `<p>${t("vrm.summary",{e:Object.keys(s.expressions||{}).length,v:Object.keys(s.visemes||{}).length,m:Object.keys(s.motions||{}).length,s:Object.keys(s.speech||{}).length})}</p>`+
+    `<p><code>${t("vrm.llm")}</code></p>`+
+    entries.map(([name,obj])=>`<div style="margin:8px 0"><b style="color:#cfe3ff">${name}</b><br>`+
+      Object.keys(obj).slice(0,10).map(k=>`<button class="sm" data-vrm="${name}:${k}" style="margin:3px 3px 0 0">${k}</button>`).join("")+
+      (Object.keys(obj).length>10?` <span>…</span>`:"")+
+      `</div>`).join("");
+  el.querySelectorAll("[data-vrm]").forEach(btn=>btn.onclick=()=>{
+    const [kind,key]=btn.dataset.vrm.split(":");
+    const slot = s[kind==="expression"?"expressions":kind==="viseme"?"visemes":kind==="motion"?"motions":"speech"]?.[key];
+    const anim = slot?.animation || (kind==="motion" ? key : null);
+    const clip = kind==="speech" ? localizedSpeech(slot).clip : slot?.clip;
+    if(anim && M.animations?.[anim]) goto(anim);
+    else if(clip) playClip(clip,false);
+  });
 }
 function itemRow(key,tag){ const d=document.createElement("div"); d.className="item"+(selected===key?" sel":"");
   const del = tag==="gesture" ? `<button class="sm" data-del title="${t("btn.del")}" style="padding:0 6px;margin-left:6px;background:#3a2530;border-color:#5a3542;color:#e6a">✕</button>` : "";
@@ -382,13 +356,12 @@ function select(key){ selected=key; renderStruct(); renderForm(); goto(key); }
 function renderForm(){
   const fb=$("formBody"); if(!selected||!M.animations[selected]){ fb.innerHTML=`<p class="muted">${t("form.empty")}</p>`; return; }
   const a=M.animations[selected];
-  // 순서: 삭제 · 클립 · 종류(idle/talking/gesture) · 라벨 · 설명 · (talking 만) 머리 영역
+  // 순서: 클립 · 종류(idle/talking/gesture) · 라벨 · 설명. 발화는 미리 만든 webm 클립을 그대로 재생한다.
   fb.innerHTML=`<h2>${selected} <span class="tag kind-${animKind(a)}">${animKind(a)}</span></h2>`+
     fClip(a.clip)+
     fType(a)+
     fInp("label",t("form.label"),a.label)+
-    fArea("description",t("form.desc"),a.description)+
-    (a.can_talk ? fBbox(a.face_bbox)+fHead(a) : "");
+    fArea("description",t("form.desc"),a.description);
   bindForm(v=>Object.assign(a,v));
   const ts=fb.querySelector("[data-type]");   // 종류 변경 → loop/can_talk 설정 + 재렌더(머리영역 노출 갱신)
   if(ts) ts.onchange=()=>{ const v=ts.value; a.loop=(v!=="gesture"); a.can_talk=(v==="talking"); renderForm(); refresh(); };
@@ -399,88 +372,15 @@ const fArea=(k,l,v)=>`<label class="f">${l}</label><textarea data-k="${k}" rows=
 const fClip=(v)=>`<label class="f">${t("form.clip")}</label><input data-k="clip" value="${esc(v)}"><input type="file" accept="video/*,.webm" data-clip="clip" style="font-size:11px;margin-top:3px">`;
 const fType=(a)=>{ const k=a.can_talk?"talking":(a.loop?"idle":"gesture");
   return `<label class="f">${t("form.type")}</label><select data-type>${[["idle","form.type.idle"],["talking","form.type.talking"],["gesture","form.type.gesture"]].map(([v,lk])=>`<option value="${v}" ${k===v?"selected":""}>${t(lk)}</option>`).join("")}</select>`; };
-const fBbox=(v)=>{ const a=(Array.isArray(v)&&v.length>=4)?v:(Array.isArray(v)&&v.length===3?[v[0],v[1],v[2],v[2]]:[0.11,0.10,0.78,0.46]);
-  return `<label class="f">${t("form.bbox")}</label><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${["x","y","w","h"].map((lb,i)=>`<div><div class="muted" style="text-align:center">${lb}</div><input data-bbox="${i}" value="${a[i]??0}" style="font-size:12px"></div>`).join("")}</div>`+
-    `<div style="display:flex;gap:5px;align-items:center;margin-top:5px"><span class="muted">${t("form.bboxColor")}</span>${BBOX_COLORS.map(c=>`<button class="sm" data-bboxcolor="${c}" title="${c}" style="width:18px;height:18px;padding:0;border-radius:4px;background:${c};border:1px solid #667;${bboxColor===c?"outline:2px solid #2f6feb;outline-offset:1px":""}"></button>`).join("")}</div>`; };
-// 헤드 이미지(투명 PNG) — Ditto 소스. 업로드 or 영상 frame0에서 생성. 없으면 cascade가 frame0 자동추출.
-const fHead=(a)=>{ const h=a.head_image;
-  const chk="background:conic-gradient(#2a3340 90deg,#171f2b 0 180deg,#2a3340 0 270deg,#171f2b 0) 0 0/14px 14px";
-  return `<label class="f">${t("head.title")}</label>`+
-    `<div class="muted" style="margin:2px 0 4px">${t("head.fromVideo")}</div>`+
-    `<div style="display:flex;gap:8px;margin-bottom:6px">`+
-      `<button data-headgen="first" style="flex:1">${t("head.first")}</button>`+
-      `<button data-headgen="middle" style="flex:1">${t("head.middle")}</button>`+
-      `<button data-headgen="last" style="flex:1">${t("head.last")}</button>`+
-    `</div>`+
-    `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">`+
-      `<input type="number" data-headtime value="${a.head_time??0}" step="0.01" min="0" style="width:80px" title="${t("head.time")}">`+
-      `<span class="muted">${t("head.sec")}</span>`+
-      `<button data-headgen="time" style="flex:1">${t("head.atTime")}</button>`+
-    `</div>`+
-    `<div style="display:flex;gap:8px;align-items:center;margin-bottom:2px">`+
-      `<label style="cursor:pointer;background:#222c3a;border:1px solid #33415a;border-radius:7px;padding:6px 11px;font-size:13px">`+
-        `<input type="file" accept="image/png,image/*" data-headupload style="display:none">${t("head.upload")}</label>`+
-      (h?`<button data-headclear>${t("head.clear")}</button>`:"")+
-    `</div>`+
-    `<div style="margin-top:6px;display:flex;gap:8px;align-items:center">`+
-      `<div style="width:104px;height:104px;border:1px solid #33415a;border-radius:8px;${chk};display:flex;align-items:center;justify-content:center;overflow:hidden">`+
-        (h?`<img src="${clipUrl(h)}" alt="head" data-headpreview title="${t("head.clickPreview")}" style="max-width:100%;max-height:100%;display:block;cursor:zoom-in">`
-           :`<span class="muted" style="text-align:center;padding:4px">${t("head.none")}</span>`)+
-      `</div>`+
-      `<span class="muted" id="headStatus">${h?t("head.clickPreview"):""}</span>`+
-    `</div>`+
-    `<label class="f">${t("head.chroma")} <span class="muted">${t("head.chromaNote")}</span></label>`+
-    `<div style="display:flex;gap:6px;align-items:center">`+
-      `<input type="color" data-headchroma value="${a.head_chroma||"#00ff00"}" style="width:48px;height:26px;padding:0">`+
-      (a.head_chroma?`<button class="sm" data-headchroma-clr>${t("head.clear")}</button>`:`<span class="muted">${t("head.chromaDefault")}</span>`)+
-    `</div>`; };
-let _headImg=null, _headKey=null;
-// 캐시 key = 실제 URL(같은 파일명으로 교체해도 blob URL 이 바뀌므로 재로딩됨). 해제 시 즉시 사라짐.
-function ensureHeadImg(key){ const url=key?clipUrl(key):null; if(url===_headKey) return; _headKey=url; _headImg=null;
-  if(url){ const im=new Image(); im.onload=()=>{ if(_headKey===url) _headImg=im; }; im.src=url; } }
-function setHeadStatus(msg){ const el=$("headStatus"); if(el) el.textContent=msg; }
-// 영상(body 클립)의 지정 위치(처음/중간/끝/직접시간) face_bbox 영역을 잘라 투명 PNG 헤드로 생성(알파 보존).
-async function genHeadFromVideo(pos){ const a=M.animations[selected]; const bb=a&&a.face_bbox;
-  if(!a||!a.clip||!Array.isArray(bb)||bb.length<4){ setHeadStatus(t("head.genFail")); return; }
-  try{
-    const v=document.createElement("video"); v.muted=true; v.playsInline=true; v.crossOrigin="anonymous"; v.src=clipUrl(a.clip);
-    await new Promise((res,rej)=>{ v.onloadeddata=res; v.onerror=()=>rej(new Error("load")); });
-    const dur=isFinite(v.duration)?v.duration:0;
-    const tin=Number(($("formBody").querySelector("[data-headtime]")||{}).value)||0;
-    let time = pos==="last" ? Math.max(0,dur-0.05) : pos==="middle" ? dur/2 : pos==="time" ? tin : 0.01;
-    if(!isFinite(time)||time<0) time=0.01;
-    a.head_time=time;
-    await new Promise(res=>{ v.onseeked=res; v.currentTime=time; setTimeout(res,500); });
-    const vw=v.videoWidth||360, vh=v.videoHeight||640;
-    const sx=Math.max(0,bb[0]*vw), sy=Math.max(0,bb[1]*vh), sw=bb[2]*vw, sh=bb[3]*vh;
-    const c=document.createElement("canvas"); c.width=Math.max(2,Math.round(sw)); c.height=Math.max(2,Math.round(sh));
-    c.getContext("2d").drawImage(v, sx,sy,sw,sh, 0,0,c.width,c.height);   // 알파 webm frame → 알파 보존
-    const blob=await new Promise(res=>c.toBlob(res,"image/png"));
-    const name="clips/"+selected+"_head.png"; blobMap[name]={url:URL.createObjectURL(blob),blob};
-    a.head_image=name; _headKey=null; renderForm(); refresh();
-  }catch(e){ setHeadStatus(t("head.genFail")); } }
 function bindForm(apply){
   $("formBody").querySelectorAll("[data-k]").forEach(el=>el.onchange=()=>{ const k=el.dataset.k, v=el.type==="checkbox"?el.checked:el.value; apply({[k]:v}); refresh(); });
-  const bb=$("formBody").querySelectorAll("[data-bbox]");
-  if(bb.length) bb.forEach(el=>el.onchange=()=>{ apply({face_bbox:[...bb].map(e=>parseFloat(e.value)||0)}); refresh(); });
   $("formBody").querySelectorAll("[data-clip]").forEach(el=>el.onchange=()=>{
     const f=el.files[0]; if(!f)return; const name="clips/"+f.name; blobMap[name]={url:URL.createObjectURL(f),blob:f}; apply({[el.dataset.clip]:name}); refresh();
     if(current&&current.key===selected){ busy=false; current=null; goto(selected); } });   // 새 클립 즉시 플레이어 재생
-  $("formBody").querySelectorAll("[data-bboxcolor]").forEach(el=>el.onclick=()=>{   // 가이드 색(미리보기 전용)
-    bboxColor=el.dataset.bboxcolor; localStorage.setItem("nva_bbox_color",bboxColor); renderForm(); });
-  $("formBody").querySelectorAll("[data-headgen]").forEach(el=>el.onclick=()=>genHeadFromVideo(el.dataset.headgen));  // 처음/중간/끝/시간
-  const hu=$("formBody").querySelector("[data-headupload]"); if(hu) hu.onchange=()=>{ const f=hu.files[0]; if(!f)return;
-    const name="clips/"+selected+"_head.png"; blobMap[name]={url:URL.createObjectURL(f),blob:f}; _headKey=null;
-    M.animations[selected].head_image=name; renderForm(); refresh(); };   // renderForm=폼 썸네일 갱신
-  const hc=$("formBody").querySelector("[data-headclear]"); if(hc) hc.onclick=()=>{ delete M.animations[selected].head_image; _headKey=null; renderForm(); refresh(); };
-  const hcc=$("formBody").querySelector("[data-headchroma]"); if(hcc) hcc.onchange=()=>{ M.animations[selected].head_chroma=hcc.value; renderForm(); refresh(); };
-  const hccc=$("formBody").querySelector("[data-headchroma-clr]"); if(hccc) hccc.onclick=()=>{ delete M.animations[selected].head_chroma; renderForm(); refresh(); };
-  const hp=$("formBody").querySelector("[data-headpreview]"); if(hp) hp.onclick=()=>{ if(selected){ busy=false; current=null; goto(selected); } };  // 썸네일 클릭 → 플레이어에 헤드 오버레이
 }
 
 // ── 갱신 ──
 function refresh(){
-  nvaDirty=true;   // 편집됨 → 다음 발화 전 cascade 재업로드 필요
   const r=validateManifest(M);
   $("valid").textContent=(r.ok?t("valid.valid")+"\n":t("valid.invalid")+"\n")+r.errors.map(e=>t("valid.err")+e).join("\n")+(r.errors.length?"\n":"")+r.warnings.map(w=>t("valid.warn")+w).join("\n")+(r.warnings.length?"":t("valid.noWarn"));
   $("vdot").className="dot "+(r.ok?"ok":"bad");
@@ -507,22 +407,28 @@ $("addAnim").onclick=()=>{ let n=1; while(M.animations["gesture-"+n]) n++; const
   M.animations[k]={clip:"",loop:false,can_talk:false,label:t("seed.gesture",{n}),description:""}; select(k); refresh(); };
 
 // 로드 / 내보내기
-async function loadManifest(m,base){ M=migrateToV02(m); ensureBase(); baseUrl=base||""; selected=null; renderForm(); refresh(); syncRefVoice();
+async function loadManifest(m,base){ M=migrateToV02(m); ensureBase(); baseUrl=base||""; selected=null; syncLocaleOptions(); renderForm(); refresh(); syncTtsText();
   const idle=Object.keys(M.animations||{}).find(k=>M.animations[k].loop&&!M.animations[k].can_talk)||Object.keys(M.animations||{})[0]; if(idle) goto(idle); }
-async function loadNaiaBundle(){ const base="../../examples/naia.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent=t("status.loadNaia"); }
+async function loadNaiaBundle(){ const base="../../examples/naia-prebaked.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent=t("status.loadNaia"); }
 $("loadNaia").onclick=loadNaiaBundle;
+$("loadOsarang").onclick=async()=>{ const base="../../examples/osarang-prebaked.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent=t("status.loadOsarang"); };
 $("loadDemo").onclick=async()=>{ const base="../../examples/demo.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent=t("status.loadDemo"); };
 $("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const zip=await JSZip.loadAsync(f);
   const mf=await zip.file("manifest.json").async("string"); blobMap={}; baseUrl="";
   for(const [path,zf] of Object.entries(zip.files)){ if(/\.(webm|mp4|jpg|png|wav)$/.test(path)){ const blob=await zf.async("blob"); blobMap[path]={url:URL.createObjectURL(blob),blob}; } }
   loadManifest(JSON.parse(mf),""); $("status").textContent=t("status.opened",{name:f.name}); };
-// nva(manifest + clips)를 zip blob 으로 — 내보내기·cascade 업로드 공용.
+// nva(manifest + clips)를 zip blob 으로 내보내기.
 async function buildNvaZip(){
   const r=validateManifest(M); if(!r.ok) throw new Error(t("err.validation",{errs:r.errors.join("\n")}));
   const zip=new JSZip(); zip.file("manifest.json", JSON.stringify(M,null,2));
   const clips=new Set(Object.values(M.animations||{}).map(a=>a.clip).filter(Boolean));
-  for(const a of Object.values(M.animations||{})){ if(a.head_image) clips.add(a.head_image); }  // 헤드 PNG도 번들에
-  const vr=M.meta?.voice_ref?.audio_path; if(vr) clips.add(vr);
+  for(const a of Object.values(M.animations||{})){
+    if(a.head_image) clips.add(a.head_image);
+    if(a.expression_image) clips.add(a.expression_image);
+  }
+  const addSlotAsset=o=>{ if(!o||typeof o!=="object") return; for(const v of Object.values(o)){ if(v?.clip) clips.add(v.clip); if(v?.audio) clips.add(v.audio); if(v?.image) clips.add(v.image); if(v?.preview_image) clips.add(v.preview_image); if(v?.expression_image) clips.add(v.expression_image); if(v?.by_locale) addSlotAsset(v.by_locale); } };
+  addSlotAsset(M.vrm_slots?.expressions); addSlotAsset(M.vrm_slots?.visemes); addSlotAsset(M.vrm_slots?.motions); addSlotAsset(M.vrm_slots?.speech);
+  addSlotAsset(M.expression_states); addSlotAsset(M.viseme_clips); addSlotAsset(M.prebaked_speech?.utterances);
   for(const c of clips){ try{ if(blobMap[c]) zip.file(c,blobMap[c].blob); else if(baseUrl){ const b=await (await fetch(`${baseUrl}/${c}`)).blob(); zip.file(c,b); } }catch(e){} }
   return await zip.generateAsync({type:"blob"});
 }
@@ -532,92 +438,75 @@ $("exportBtn").onclick=async()=>{
   catch(e){ alert(t("alert.exportBlocked",{msg:e.message})); }
 };
 
-// cascade 연결 (실시간 발화 → 위 플레이어 통합)
-const casUrl=()=>$("casUrl").value.trim().replace(/\/+$/,"");
-function casPlay(blob, loop, muted, status){ busy=true; current=null; speaking=false;
-  video.loop=loop; video.muted=muted; video.src=URL.createObjectURL(blob); video.play().catch(()=>{}); busy=false; $("casStatus").textContent=status; }
-// 현재 nva 를 zip 으로 만들어 cascade 에 업로드(생성→cascade 안에 넣어 설정). 연결/변경-후-발화 공용.
-async function casUpload(){
-  const out=await buildNvaZip();
-  const r=await fetch(casUrl()+"/upload_nva",{method:"POST",headers:{"Content-Type":"application/zip"},body:out});
-  let j={}; try{ j=await r.json(); }catch(e){}
-  if(!r.ok||!j.ok) throw new Error(j.detail||j.error||("HTTP "+r.status));
-  casLoaded=true; nvaDirty=false; return j.bundle_id;
+// 무료 TTS 테스트. 브라우저 내장 음성만 사용하며 NVA 번들에는 저장하지 않는다.
+function availableLocales(){
+  const p=M?.vrm_slots?.profile || {};
+  return p.available_locales || p.locales || Object.keys(Object.values(M?.vrm_slots?.speech || {})[0]?.by_locale || {}) || [p.default_locale || "ko-KR"];
 }
-// 연결 = 현재 nva 를 cascade 에 전송·로딩(/upload_nva) + 모든 편집 lock. 다시 누르면 해제(편집 가능).
-$("casConnect").onclick=async()=>{
-  if(document.body.classList.contains("cas-connected")){   // 이미 연결됨 → 해제(편집 복귀)
-    casLoaded=false; setConnectedUI(false); $("casStatus").textContent=t("cas.disconnected"); return;
+function syncLocaleOptions(){
+  const sel=$("localeSelect");
+  if(!sel) return;
+  const locales=availableLocales();
+  const preferred = M?.vrm_slots?.profile?.default_locale || currentLocale || locales[0] || "ko-KR";
+  currentLocale = locales.includes(preferred) ? preferred : (locales[0] || preferred);
+  sel.innerHTML=locales.map(locale=>`<option value="${esc(locale)}">${esc(locale)}</option>`).join("");
+  sel.value=currentLocale;
+}
+function localizedSpeech(slot){
+  if(!slot) return {};
+  return slot.by_locale?.[currentLocale] || slot.by_locale?.[M?.vrm_slots?.profile?.default_locale] || slot;
+}
+function preferredSpeechText(){
+  const first = localizedSpeech(Object.values(M?.vrm_slots?.speech || {})[0])?.text;
+  return first || $("ttsText")?.value || t("tts.placeholder");
+}
+function syncTtsText(){
+  const tx=$("ttsText");
+  if(tx && !tx.dataset.userEdited) tx.value=preferredSpeechText();
+}
+function initTtsVoices(){
+  const sel=$("ttsVoice"), st=$("ttsStatus");
+  if(!sel || !st) return;
+  if(!("speechSynthesis" in window)){
+    sel.innerHTML="";
+    st.textContent=t("tts.unsupported");
+    $("ttsSpeak").disabled=true;
+    $("ttsStop").disabled=true;
+    return;
   }
-  if(!M){ alert(t("alert.loadFirst")); return; }
-  $("casStatus").textContent=t("cas.connecting");
-  try{ await (await fetch(casUrl()+"/health")).json();
-    await loadRefVoices();   // ref 음색 URL 목록 로드
-    const id=await casUpload(); setConnectedUI(true);       // 편집 lock
-    const spk=Object.keys(M.animations||{}).find(k=>M.animations[k].loop&&M.animations[k].can_talk);  // 연결 즉시 speak 로
-    if(spk){ selected=spk; goto(spk); renderStruct(); }
-    $("casStatus").textContent=t("cas.connected",{id}); }
-  catch(e){ casLoaded=false; setConnectedUI(false); $("casStatus").textContent=t("cas.fail",{msg:e.message}); } };
-// 연결 상태에 따라 편집 잠금 + 말하기 영역 게이팅.
-function setConnectedUI(on){
-  document.body.classList.toggle("cas-connected", on);   // CSS 로 편집영역 잠금(.cas-connected #formBody 등)
-  const cbtn=$("casConnect"); if(cbtn) cbtn.textContent = on ? t("connect.on") : t("btn.connect");
-  const mb=$("modeBanner");
-  if(mb){ mb.textContent = on ? t("banner.player") : t("banner.edit");
-    mb.style.background = on ? "#1e2b1e" : "#1b2733"; mb.style.color = on ? "#27c08a" : "#8a99a8"; }
-  updateSpeakUI();
+  const voices=window.speechSynthesis.getVoices();
+  sel.innerHTML=voices.map((v,i)=>`<option value="${esc(v.voiceURI)}">${esc(v.name)} · ${esc(v.lang)}${v.default?" · default":""}</option>`).join("");
+  const exact=voices.find(v=>v.lang===currentLocale);
+  const sameLang=voices.find(v=>v.lang?.slice(0,2)===currentLocale.slice(0,2));
+  if(exact || sameLang) sel.value=(exact || sameLang).voiceURI;
+  st.textContent=voices.length?t("tts.ready",{n:voices.length}):t("tts.empty");
 }
-// 말하기 영역(텍스트+발화+ref음색) = 연결됨 + 현재 애니가 말하기(can_talk) 일 때만 표시·활성.
-function updateSpeakUI(){
-  const on = document.body.classList.contains("cas-connected");
-  const talking = on && !!(current && current.can_talk);
-  const area=$("speakArea"), refb=$("refBlock");
-  if(area) area.style.display = talking ? "" : "none";
-  if(refb) refb.style.display = talking ? "" : "none";      // ref 음색도 말하기 영역에 포함
-  const tx=$("casText"), s=$("casSpeak");
-  if(tx) tx.disabled=!talking; if(s) s.disabled=!talking;
-  const st=$("casStatus");
-  if(on && !talking && st) st.textContent=t("cas.lockedNoTalk");
+function speakTts(){
+  if(!("speechSynthesis" in window)){ $("ttsStatus").textContent=t("tts.unsupported"); return; }
+  const text=($("ttsText").value||"").trim();
+  if(!text) return;
+  const u=new SpeechSynthesisUtterance(text);
+  const voices=window.speechSynthesis.getVoices();
+  const picked=voices.find(v=>v.voiceURI===$("ttsVoice").value);
+  if(picked){ u.voice=picked; u.lang=picked.lang; }
+  else u.lang=currentLocale || (lang==="ko" ? "ko-KR" : "en-US");
+  u.onstart=()=>{ speaking=true; $("ttsStatus").textContent=t("tts.playing"); };
+  u.onend=()=>{ speaking=false; $("ttsStatus").textContent=t("tts.done"); };
+  u.onerror=()=>{ speaking=false; $("ttsStatus").textContent=t("tts.done"); };
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
 }
-
-// 레퍼런스 음색 = URL 지정. cascade 가 /ref/voices 로 음색 URL 목록(오사랑 제외) 제공, /ref/audio/{name} 서빙.
-// 선택 URL → nva meta.voice_ref.audio_path 저장 → cascade 가 URL→로컬경로 해석 → TTS 발화. 커스텀 URL 도 가능.
-const voiceLabel=v=>t("ref.voiceLabel",{g:t("gender."+(v.gender||"female")),i:v.idx||1,l:t("vlang."+(v.lang||"ko"))});
-async function loadRefVoices(){ const sel=$("refVoice"); if(!sel) return;
-  try{ const j=await (await fetch(casUrl()+"/ref/voices")).json(); const vs=j.voices||[];
-    sel.innerHTML=`<option value="">${t("ref.optDefault")}</option>`+vs.map(v=>`<option value="${v.url}">${voiceLabel(v)}</option>`).join("");
-    $("refStatus").textContent=vs.length?t("ref.count",{n:vs.length}):t("ref.empty");
-    if(!M?.meta?.voice_ref?.audio_path){ const def=vs.find(v=>v.default)||vs[0]; if(def) setRefVoice(def.url); }  // 기본 음색(ref_ko_485)
-    syncRefVoice(); }
-  catch(e){ sel.innerHTML=`<option value="">${t("ref.optAfterConnect")}</option>`; $("refStatus").textContent=t("ref.loadFail"); } }
-function setRefVoice(url){ if(!M) return; M.meta=M.meta||{};
-  if(url){ M.meta.voice_ref={audio_path:url, sample_rate:48000}; $("refStatus").textContent=t("ref.set"); }
-  else { delete M.meta.voice_ref; $("refStatus").textContent=t("ref.cleared"); }
-  refresh(); }
-let _refAudio=null;
-function previewRef(url){ if(!url){ $("refStatus").textContent=t("ref.noUrl"); return; }
-  try{ if(_refAudio){ _refAudio.pause(); } _refAudio=new Audio(url);
-    _refAudio.onplaying=()=>{ $("refStatus").textContent=t("ref.playing"); };
-    _refAudio.onended=()=>{ $("refStatus").textContent=""; };
-    _refAudio.onerror=()=>{ $("refStatus").textContent=t("ref.playFail"); };
-    _refAudio.play().catch(e=>{ $("refStatus").textContent=t("ref.playFailMsg",{msg:e.message}); }); }
-  catch(e){ $("refStatus").textContent=t("ref.playFailMsg",{msg:e.message}); } }
-(function initRef(){ const sel=$("refVoice");
-  if(sel){ sel.innerHTML=`<option value="">${t("ref.optAfterConnect2")}</option>`; sel.onchange=()=>{ if($("refUrl")) $("refUrl").value=sel.value; setRefVoice(sel.value); }; }
-  const url=$("refUrl"); if(url) url.onchange=()=>{ const v=(url.value||"").trim(); if(sel){ sel.value=[...sel.options].some(o=>o.value===v)?v:""; } setRefVoice(v); };  // URL 변경 즉시 적용
-  const pv=$("refPreview"); if(pv) pv.onclick=()=>previewRef($("refVoice").value);
-  const pvu=$("refPreviewUrl"); if(pvu) pvu.onclick=()=>previewRef(($("refUrl").value||"").trim());
-})();
-function syncRefVoice(){ const u=M?.meta?.voice_ref?.audio_path||""; if($("refUrl")) $("refUrl").value=u;
-  const sel=$("refVoice"); if(sel) sel.value=[...sel.options].some(o=>o.value===u)?u:""; }
-$("casSpeak").onclick=async()=>{ const text=$("casText").value.trim(); if(!text) return;
-  try{
-    if(!casLoaded){ $("casStatus").textContent=t("cas.speakFirst"); return; }
-    if(nvaDirty){ $("casStatus").textContent=t("cas.resetting"); await casUpload(); }  // 파일 변경 있으면 재업로드
-    $("casStatus").textContent=t("cas.rendering");
-    const r=await fetch(casUrl()+"/stream_text",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
-    if(!r.ok) throw new Error("HTTP "+r.status); const b=await r.blob(); casPlay(b,false,false,t("cas.playing"));
-  }catch(e){ $("casStatus").textContent=t("cas.speakFail",{msg:e.message}); } };
+function stopTts(){
+  if("speechSynthesis" in window) window.speechSynthesis.cancel();
+  speaking=false;
+  $("ttsStatus").textContent=t("tts.stopped");
+}
+$("ttsText").oninput=()=>{ $("ttsText").dataset.userEdited="1"; };
+$("localeSelect").onchange=()=>{ currentLocale=$("localeSelect").value; delete $("ttsText").dataset.userEdited; syncTtsText(); initTtsVoices(); };
+$("ttsSpeak").onclick=speakTts;
+$("ttsStop").onclick=stopTts;
+if("speechSynthesis" in window) window.speechSynthesis.onvoiceschanged=initTtsVoices;
+initTtsVoices();
 
 $("helpBtn").onclick=()=>$("guide").classList.add("on");
 $("guideClose").onclick=()=>$("guide").classList.remove("on");
@@ -628,7 +517,6 @@ const _bt=$("buildTag"); if(_bt) _bt.textContent="build "+BUILD;   // 캐시 확
 applyI18n();
 requestAnimationFrame(compose);
 loadNaiaBundle();
-updateSpeakUI();   // 초기: 미연결 → 말하기 영역 숨김
 </script>
 </body>
 </html>

@@ -37,7 +37,7 @@
     },
     "background": {
       "type": "object",
-      "description": "배경 레이어. transparent = cascade 가 알파(VP9) 스트림 → 소비자(TalkingKiosk web/naia-os)가 배경색 합성. color = 단색.",
+      "description": "배경 레이어. transparent = 알파(VP9) 스트림을 소비자(TalkingKiosk web/naia-os)가 배경색 합성. color = 단색.",
       "properties": {
         "type": { "enum": ["color", "image", "video", "transparent"] },
         "color": { "type": "string" },
@@ -69,7 +69,7 @@
           "can_talk": { "type": "boolean", "default": false },
           "face_bbox": {
             "type": "array",
-            "description": "[x, y, l] 정규화 0~1. 좌상단(x,y) + 정사각 한 변 l(폭 기준). can_talk:true면 필수 — Ditto 256² 헤드토킹 크롭/오버레이(정사각).",
+            "description": "[x, y, l] 정규화 0~1. 구형 실시간 합성 호환용 머리 영역. 슬롯형 NVA 에디터는 미리 생성한 webm 클립을 재생한다.",
             "items": { "type": "number" },
             "minItems": 3,
             "maxItems": 3
@@ -92,9 +92,114 @@
       "description": "VRM 프리셋 유사 — 표준 감정/의도 키 → animation 키 매핑. 소비 앱(naia-shell) LLM이 감정을 이 키로 내면 해당 animation 재생. 값은 animations 의 키(또는 _note).",
       "additionalProperties": { "type": "string" }
     },
+    "vrm_slots": {
+      "type": "object",
+      "description": "VRM식 슬롯 계약. NVA 런타임/LLM/서비스가 raw clip 대신 expression·viseme·motion·speech 키를 주고받는 정본 확장.",
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "model": { "type": "string" },
+            "compatibility": { "type": "string" },
+            "default_expression": { "type": "string" },
+            "default_motion": { "type": "string" },
+            "generation_mode": { "type": "string" },
+            "default_locale": { "type": "string" },
+            "available_locales": {
+              "type": "array",
+              "description": "이 번들에 실제 webm 클립이 포함된 BCP-47 locale 목록.",
+              "items": { "type": "string" }
+            },
+            "target_locale_sets": {
+              "type": "object",
+              "description": "생성 서비스가 목표로 삼는 locale 세트. 예: naia_shell_14.",
+              "additionalProperties": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "tts_capabilities": {
+              "type": "object",
+              "description": "생성 백엔드별 다국어 생성 능력 메타. 예: VoxCPM 30개 언어."
+            }
+          }
+        },
+        "expressions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "label": { "type": "string" },
+              "mood": { "type": "string" },
+              "type": { "const": "expression" },
+              "preview_image": { "type": "string" },
+              "animation": { "type": "string" }
+            }
+          }
+        },
+        "visemes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "label": { "type": "string" },
+              "type": { "const": "viseme" },
+              "clip": { "type": "string" }
+            }
+          }
+        },
+        "motions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "label": { "type": "string" },
+              "type": { "type": "string" },
+              "clip": { "type": "string" },
+              "loop": { "type": "boolean" },
+              "expression": { "type": "string" }
+            }
+          }
+        },
+        "speech": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["text", "clip"],
+            "additionalProperties": true,
+            "properties": {
+              "text": { "type": "string" },
+              "intent": { "type": "string" },
+              "expression": { "type": "string" },
+              "viseme": { "type": "string" },
+              "clip": { "type": "string" },
+              "by_locale": {
+                "type": "object",
+                "description": "locale별 문장과 사전 생성 webm. 런타임은 현재 locale을 우선하고 없으면 default_locale clip으로 폴백.",
+                "additionalProperties": {
+                  "type": "object",
+                  "required": ["text", "clip"],
+                  "additionalProperties": true,
+                  "properties": {
+                    "text": { "type": "string" },
+                    "clip": { "type": "string" },
+                    "viseme": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "scenario": {
       "type": "object",
-      "description": "노드 그래프. start 노드가 가리키는 첫 scene = idle 진입점. cascade 가 idle/흐름 유도에 사용.",
+      "description": "노드 그래프. start 노드가 가리키는 첫 scene = idle 진입점. 런타임이 idle/흐름 유도에 사용.",
       "properties": {
         "nodes": {
           "type": "object",
