@@ -1,34 +1,33 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://nextain.io/nva/0.2/schema.json",
-  "title": "nva — naia video clip avatar manifest (v0.2)",
-  "description": "비디오 클립 아바타 포맷 v0.2. animations 재료풀 + scenario 노드 그래프. states/transitions(v0.1) 폐기 — 종류는 loop/can_talk 조합, 전환은 entry_pose!=exit_pose 로 유도.",
+  "title": "Naia Video Avatar manifest v0.2",
   "type": "object",
-  "required": ["nva_version", "canvas", "animations"],
+  "required": ["nva_version", "canvas", "animations", "state_engine"],
   "additionalProperties": true,
+  "not": {
+    "anyOf": [
+      { "required": ["viseme_clips"] },
+      { "required": ["audio_path"] },
+      { "required": ["prebaked_speech"] }
+    ]
+  },
   "properties": {
     "nva_version": { "type": "string", "const": "0.2" },
     "meta": {
       "type": "object",
-      "description": "이름/저작권/음색 참조 등 자유 메타.",
+      "additionalProperties": true,
       "properties": {
         "name": { "type": "string" },
         "author": { "type": "string" },
         "owner": { "type": "string" },
-        "license": { "type": "string" },
-        "voice_ref": {
-          "type": "object",
-          "description": "음성 클로닝 참조(TTS). audio_path(번들 내 상대경로) + sample_rate.",
-          "properties": {
-            "audio_path": { "type": "string" },
-            "sample_rate": { "type": "integer", "minimum": 1 }
-          }
-        }
+        "license": { "type": "string" }
       }
     },
     "canvas": {
       "type": "object",
       "required": ["width", "height"],
+      "additionalProperties": true,
       "properties": {
         "width": { "type": "integer", "minimum": 1 },
         "height": { "type": "integer", "minimum": 1 },
@@ -37,158 +36,104 @@
     },
     "background": {
       "type": "object",
-      "description": "배경 레이어. transparent = 알파(VP9) 스트림을 소비자(TalkingKiosk web/naia-os)가 배경색 합성. color = 단색.",
+      "additionalProperties": true,
       "properties": {
         "type": { "enum": ["color", "image", "video", "transparent"] },
         "color": { "type": "string" },
         "src": { "type": "string" }
       }
     },
-    "chroma_key": {
-      "type": "string",
-      "description": "구형 불투명 클립의 크로마키 색(#RRGGBB) — 하위호환. 알파(VP9 yuva420p) 클립이면 불요."
-    },
-    "poses": {
-      "type": "array",
-      "description": "포즈 어휘. animation.entry_pose/exit_pose 는 이 목록의 값이어야 한다.",
-      "items": { "type": "string" }
-    },
+    "chroma_key": { "type": "string" },
+    "poses": { "type": "array", "items": { "type": "string" } },
     "animations": {
       "type": "object",
-      "description": "재료 풀. 종류(kind) 필드 없음 — 조합으로 유도: 말하기=loop&can_talk / 대기·듣기=loop&!can_talk / 제스처=둘 다 off / 전환=entry_pose!=exit_pose.",
       "minProperties": 1,
       "additionalProperties": {
         "type": "object",
         "required": ["clip"],
-        "additionalProperties": false,
+        "additionalProperties": true,
         "properties": {
-          "clip": { "type": "string", "description": "번들 내 상대경로 (clips/*.webm 권장 — 알파)" },
-          "entry_pose": { "type": "string", "description": "선택 — 자세 변화(앉기/눕기)가 있는 멀티 상태에서만. 단일 상태(서있기) 아바타는 불요. (다음 버전)" },
-          "exit_pose": { "type": "string", "description": "선택 — entry_pose 참조." },
+          "clip": { "type": "string" },
+          "entry_pose": { "type": "string" },
+          "exit_pose": { "type": "string" },
           "loop": { "type": "boolean", "default": false },
           "can_talk": { "type": "boolean", "default": false },
+          "kind": { "type": "string" },
           "face_bbox": {
             "type": "array",
-            "description": "[x, y, l] 정규화 0~1. 구형 실시간 합성 호환용 머리 영역. 슬롯형 NVA 에디터는 미리 생성한 webm 클립을 재생한다.",
-            "items": { "type": "number" },
-            "minItems": 3,
-            "maxItems": 3
+            "items": { "type": "number", "minimum": 0, "maximum": 1 },
+            "minItems": 4,
+            "maxItems": 4
           },
           "label": { "type": "string" },
-          "intent": {
-            "type": "string",
-            "description": "이 애니를 언제 재생하면 좋은지(LLM/런타임 힌트). VRM expression 유사 — event 애니 트리거 판단용."
-          },
-          "triggers": {
-            "type": "array",
-            "description": "감정·의도 키워드. 소비 앱 LLM이 대화 맥락이 이에 맞으면 재생.",
-            "items": { "type": "string" }
-          }
+          "intent": { "type": "string" },
+          "triggers": { "type": "array", "items": { "type": "string" } }
         }
       }
     },
-    "expressions": {
+    "state_engine": {
       "type": "object",
-      "description": "VRM 프리셋 유사 — 표준 감정/의도 키 → animation 키 매핑. 소비 앱(naia-shell) LLM이 감정을 이 키로 내면 해당 animation 재생. 값은 animations 의 키(또는 _note).",
-      "additionalProperties": { "type": "string" }
-    },
-    "vrm_slots": {
-      "type": "object",
-      "description": "VRM식 슬롯 계약. NVA 런타임/LLM/서비스가 raw clip 대신 expression·viseme·motion·speech 키를 주고받는 정본 확장.",
-      "additionalProperties": false,
+      "required": ["default_state", "visemes", "states"],
+      "additionalProperties": true,
       "properties": {
-        "profile": {
-          "type": "object",
-          "additionalProperties": true,
-          "properties": {
-            "model": { "type": "string" },
-            "compatibility": { "type": "string" },
-            "default_expression": { "type": "string" },
-            "default_motion": { "type": "string" },
-            "generation_mode": { "type": "string" },
-            "default_locale": { "type": "string" },
-            "available_locales": {
-              "type": "array",
-              "description": "이 번들에 실제 webm 클립이 포함된 BCP-47 locale 목록.",
-              "items": { "type": "string" }
-            },
-            "target_locale_sets": {
-              "type": "object",
-              "description": "생성 서비스가 목표로 삼는 locale 세트. 예: naia_shell_14.",
-              "additionalProperties": {
-                "type": "array",
-                "items": { "type": "string" }
-              }
-            },
-            "tts_capabilities": {
-              "type": "object",
-              "description": "생성 백엔드별 다국어 생성 능력 메타. 예: VoxCPM 30개 언어."
-            }
-          }
-        },
-        "expressions": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "additionalProperties": true,
-            "properties": {
-              "label": { "type": "string" },
-              "mood": { "type": "string" },
-              "type": { "const": "expression" },
-              "preview_image": { "type": "string" },
-              "animation": { "type": "string" }
-            }
-          }
-        },
+        "default_state": { "type": "string" },
         "visemes": {
+          "description": "Held six-head prototype keys. This does not define the final talking-head transition contract.",
+          "type": "array",
+          "minItems": 6,
+          "contains": { "const": "sil" },
+          "allOf": [
+            { "contains": { "const": "a" } },
+            { "contains": { "const": "i" } },
+            { "contains": { "const": "u" } },
+            { "contains": { "const": "e" } },
+            { "contains": { "const": "o" } }
+          ],
+          "items": { "enum": ["sil", "a", "i", "u", "e", "o"] }
+        },
+        "states": {
           "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "enum": ["neutral", "happy", "sad", "angry", "surprised", "thinking"] },
           "additionalProperties": {
             "type": "object",
+            "required": ["idle", "talking_body", "talking_heads", "face_preview", "face_bbox", "sync"],
             "additionalProperties": true,
             "properties": {
               "label": { "type": "string" },
-              "type": { "const": "viseme" },
-              "clip": { "type": "string" }
-            }
-          }
-        },
-        "motions": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "additionalProperties": true,
-            "properties": {
-              "label": { "type": "string" },
-              "type": { "type": "string" },
-              "clip": { "type": "string" },
-              "loop": { "type": "boolean" },
-              "expression": { "type": "string" }
-            }
-          }
-        },
-        "speech": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "required": ["text", "clip"],
-            "additionalProperties": true,
-            "properties": {
-              "text": { "type": "string" },
-              "intent": { "type": "string" },
-              "expression": { "type": "string" },
-              "viseme": { "type": "string" },
-              "clip": { "type": "string" },
-              "by_locale": {
+              "idle": { "type": "string" },
+              "talking_body": { "type": "string" },
+              "face_preview": { "type": "string" },
+              "talking_head_crop": { "type": "boolean" },
+              "face_bbox": {
+                "type": "array",
+                "items": { "type": "number", "minimum": 0, "maximum": 1 },
+                "minItems": 4,
+                "maxItems": 4
+              },
+              "talking_heads": {
                 "type": "object",
-                "description": "locale별 문장과 사전 생성 webm. 런타임은 현재 locale을 우선하고 없으면 default_locale clip으로 폴백.",
-                "additionalProperties": {
-                  "type": "object",
-                  "required": ["text", "clip"],
-                  "additionalProperties": true,
-                  "properties": {
-                    "text": { "type": "string" },
-                    "clip": { "type": "string" },
-                    "viseme": { "type": "string" }
+                "additionalProperties": { "type": "string" }
+              },
+              "sync": {
+                "type": "object",
+                "required": ["default_hold_ms", "heads"],
+                "additionalProperties": true,
+                "properties": {
+                  "default_hold_ms": { "type": "integer", "minimum": 1 },
+                  "heads": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "required": ["duration_ms", "fps", "loopable"],
+                      "additionalProperties": true,
+                      "properties": {
+                        "duration_ms": { "type": "integer", "minimum": 1 },
+                        "fps": { "type": "number", "exclusiveMinimum": 0 },
+                        "loopable": { "type": "boolean" },
+                        "offset_ms": { "type": "number" }
+                      }
+                    }
                   }
                 }
               }
@@ -199,16 +144,17 @@
     },
     "scenario": {
       "type": "object",
-      "description": "노드 그래프. start 노드가 가리키는 첫 scene = idle 진입점. 런타임이 idle/흐름 유도에 사용.",
+      "additionalProperties": true,
       "properties": {
         "nodes": {
           "type": "object",
           "additionalProperties": {
             "type": "object",
             "required": ["type"],
+            "additionalProperties": true,
             "properties": {
               "type": { "enum": ["start", "scene"] },
-              "animation": { "type": "string", "description": "type=scene 이면 animations 의 키" },
+              "animation": { "type": "string" },
               "label": { "type": "string" },
               "dwell_ms": { "type": "integer", "minimum": 0 }
             }
@@ -219,12 +165,26 @@
           "items": {
             "type": "object",
             "required": ["from", "to"],
+            "additionalProperties": true,
             "properties": {
               "from": { "type": "string" },
               "to": { "type": "string" }
             }
           }
         }
+      }
+    },
+    "vrm_slots": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "idle": { "type": "string" },
+        "talk": { "type": "string" },
+        "listening": { "type": "string" },
+        "events": { "type": "object", "additionalProperties": { "type": "string" } },
+        "profile": { "type": "object", "additionalProperties": true },
+        "expressions": { "type": "object", "additionalProperties": true },
+        "motions": { "type": "object", "additionalProperties": true }
       }
     }
   }

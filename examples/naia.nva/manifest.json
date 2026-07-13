@@ -83,5 +83,80 @@
     "thinking": "gesture-1",
     "joy": "gesture-2",
     "affection": "gesture-2"
+  },
+  "state_engine": {
+    "default_state": "neutral",
+    "visemes": [
+      "sil",
+      "a",
+      "i",
+      "u",
+      "e",
+      "o"
+    ],
+    "states": {
+      "neutral": {
+        "label": "neutral",
+        "idle": "clips/sijak.webm",
+        "talking_body": "clips/speak_body.webm",
+        "face_preview": "clips/speak_head.png",
+        "face_bbox": [
+          0.1,
+          0.1,
+          0.8,
+          0.4
+        ],
+        "talking_head_crop": true,
+        "talking_heads": {
+          "sil": "clips/speak_body.webm",
+          "a": "clips/speak_body.webm",
+          "i": "clips/speak_body.webm",
+          "u": "clips/speak_body.webm",
+          "e": "clips/speak_body.webm",
+          "o": "clips/speak_body.webm"
+        },
+        "sync": {
+          "default_hold_ms": 160,
+          "heads": {
+            "sil": {
+              "duration_ms": 160,
+              "fps": 25,
+              "loopable": true,
+              "offset_ms": 0
+            },
+            "a": {
+              "duration_ms": 160,
+              "fps": 25,
+              "loopable": true,
+              "offset_ms": 0
+            },
+            "i": {
+              "duration_ms": 160,
+              "fps": 25,
+              "loopable": true,
+              "offset_ms": 0
+            },
+            "u": {
+              "duration_ms": 160,
+              "fps": 25,
+              "loopable": true,
+              "offset_ms": 0
+            },
+            "e": {
+              "duration_ms": 160,
+              "fps": 25,
+              "loopable": true,
+              "offset_ms": 0
+            },
+            "o": {
+              "duration_ms": 160,
+              "fps": 25,
+              "loopable": true,
+              "offset_ms": 0
+            }
+          }
+        }
+      }
+    }
   }
 }

@@ -1,11 +1,12 @@
-# Osarang VRM-Style Slot NVA
+﻿# Osarang NVA State Engine Bundle
 
 Generated from `osarang.nva.zip`.
 
-- Preview: `/src/main/prebaked-player.html?nva=../../examples/osarang-prebaked.nva`
-- Canonical contract: `manifest.vrm_slots`
-- Speech clips: `clips/say-*.webm`
-- Viseme clips: `clips/viseme-*.webm`
-- Expression images: `expressions/*.png`
+- Preview/editor: `/src/main/editor.html`
+- State resource hierarchy: `manifest.state_engine`
+- State clips: `clips/{state}/idle.webm` and `clips/{state}/talking-body.webm`
+- Talking-head prototype clips: `clips/{state}/head-{sil|a|i|u|e|o}.webm` (held; not the final continuity contract)
+- Expression previews: `expressions/{state}.png`
+- Gestures: preserved as single motion clips when present in the source manifest.
 
-These sample webm files are service slots. The editor/runtime only play generated webm files; generation tools can replace files at the same paths.
+This held sample preserves the six standalone mouth-shape videos used by the prototype. Runtime TTS audio is not cached in NVA. The final talking-head transition contract will be selected after RTX 3090 cascade benchmarking.

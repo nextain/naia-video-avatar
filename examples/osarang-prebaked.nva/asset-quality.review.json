@@ -1,0 +1,114 @@
+{
+  "reviewed_at": "2026-07-12",
+  "reviewer": "codex+playwright+manual-visual-review",
+  "method": "manual visual review of generated expression previews, SHA-256 binding, image-derived per-state video fixture, and Playwright runtime evidence",
+  "evidence": [
+    ".agents/work/test-results/nva-state-engine/editor-state-gallery.png",
+    ".agents/work/test-results/nva-state-engine/editor-prosody-sad-talking.png",
+    ".agents/work/test-results/nva-state-engine/editor-tts-overlay.png"
+  ],
+  "expression_previews": {
+    "states": [
+      "neutral",
+      "happy",
+      "sad",
+      "angry",
+      "surprised",
+      "thinking"
+    ],
+    "checklist": {
+      "full_head_visible": true,
+      "eyes_open": true,
+      "front_facing": true,
+      "identity_preserved": true,
+      "not_color_border_placeholder": true,
+      "no_text_label": true
+    },
+    "sha256": {
+      "expressions/neutral.png": "ad7fa626cb6c74d647234c200d8912e47b6d896111e73f4a83ae4981f3d49100",
+      "expressions/happy.png": "72f122669eaf722323fb72437cfddd096b2a1b0cfc9478d22e763006853a85dd",
+      "expressions/sad.png": "5949d8a81df2419aaf8276f1d02634935922876eae27159ce21d4f90c75982cd",
+      "expressions/angry.png": "4eb208f7a458590b5ca4d0a2e87202d9fe7153321342a3bf8a79528d88d442a3",
+      "expressions/surprised.png": "5d532ec29703aef1a9ebaa7d7227276d4659a698ef296d0f6e3e38533630ec4a",
+      "expressions/thinking.png": "499c447e9f1ca8761fa0d646b41232bc8fe93e67b4fcede2362a8a23d08d3d64"
+    },
+    "status": "reviewed-pass"
+  },
+  "state_videos": {
+    "states": [
+      "neutral",
+      "happy",
+      "sad",
+      "angry",
+      "surprised",
+      "thinking"
+    ],
+    "visemes": [
+      "sil",
+      "a",
+      "i",
+      "u",
+      "e",
+      "o"
+    ],
+    "checklist": {
+      "assets_hash_bound": true,
+      "media_ready_verified": true,
+      "phoneme_heads_present": true,
+      "not_sentence_clip_path": true,
+      "state_idle_distinct": true,
+      "state_talking_body_distinct": true
+    },
+    "sha256": {
+      "clips/neutral/idle.webm": "74f56b40a86da962e4c7128507add6bb37e6e7a77fb964b7e98aff52acaad912",
+      "clips/neutral/talking-body.webm": "2d0a3aa91e0bd4b3ed7a877258bd092e0dd9d7a536a6e4eeaca0c8669123c97d",
+      "clips/neutral/head-sil.webm": "e905b4c208b27705d86045f2981e948750274d6946101c2859e9d337a0c8eb28",
+      "clips/neutral/head-a.webm": "2d6e5bb409ffd7e6febfa85d3e8a79011307e65832b8ee00627393ff6a6ba555",
+      "clips/neutral/head-i.webm": "0195c86a3752305d69ef70b0c11b9ece5502649aa684c5a13fef309c6c63d738",
+      "clips/neutral/head-u.webm": "2e13b00cbc5693b917e7c9edd95450242a27c7e04d99d04a855dc2ae36d9fb88",
+      "clips/neutral/head-e.webm": "a6d191aa95f687130cc017244cb3766e02b20a1ce2e9f369de8d40739e788dd8",
+      "clips/neutral/head-o.webm": "70f7cc422b486e889a08f622570a8aaaf4b2a90f828a4baae567ef2623bd1764",
+      "clips/happy/idle.webm": "8338dd70c745f3eed1e71e5c8e9b5c89bee8afd67253fd5281d4eaff7463ae67",
+      "clips/happy/talking-body.webm": "3252e887cb3d61b4e1657b61cb0873abfe7d175ded9a206de2b3ba35a009bec0",
+      "clips/happy/head-sil.webm": "0e90e1e6df617c37f896da7631847c3fdad29390df5c563f56bd358f7c805c64",
+      "clips/happy/head-a.webm": "10aa6558f383dd1d7b811025d878dfe44e0e6de0fa7c64954c3675690d849fd9",
+      "clips/happy/head-i.webm": "00fa7ac9d004d974443ad1c130a78eb7f0254f859e58185a16b55742e2aebb44",
+      "clips/happy/head-u.webm": "ba382c4544ded475334df14b72ed077fabda9deaa1a59dbcd7f0201cc071d45f",
+      "clips/happy/head-e.webm": "5f77d540506db167f2321c839dfc7ee9e5d612c65606cba05c57e953ca721c1e",
+      "clips/happy/head-o.webm": "34ef9869d24fe6f9a9cd0943f83016eecf4f4c95bec1c3c2b1112f28d3544704",
+      "clips/sad/idle.webm": "4a8177a6cd6bd648a7dab1bab48ed0d8a104b4469ee525a531d0cdeb4d21cda0",
+      "clips/sad/talking-body.webm": "b31928616afc086fe015f1c55ffdc71cd770e77ad71632314e82c15e88d24bb7",
+      "clips/sad/head-sil.webm": "10238b39d4dc1ea73f561290a71d3749d2dfc08f0ee446df9a817ffed7c18cc8",
+      "clips/sad/head-a.webm": "85ed9f6a7cf638cd4ebc6f3e87cb4554eac32421e897dac43039ea3d5a50a47a",
+      "clips/sad/head-i.webm": "b969855e0d36f9c0fb6f0fe2c113fcc6bd87d279b65e505c95b708a5a389e538",
+      "clips/sad/head-u.webm": "2eebdf7373448dccff3ad55291d2cb53b509097ffa2d17621f8814fdffb98c81",
+      "clips/sad/head-e.webm": "b27ce7ab5a8fde94c076e603281c2ee90ff98671142daebc81ca56d48c8d009e",
+      "clips/sad/head-o.webm": "58379dfea79a7a34df066f72ad783852c6db3e235f6c240cc47789d60b33032c",
+      "clips/angry/idle.webm": "2ae875ac22b3ed4b18a0647161c9306e75cce7a3eef935e99106bdad76a2efa8",
+      "clips/angry/talking-body.webm": "667006f5f69062a795ba7ba7f3223b6638eef72ecb70da4a0a35c6a04a918392",
+      "clips/angry/head-sil.webm": "267b76bde61238f80763f294d98cbaac4bb89b7b7f429ff3f76b04ff561ebdd2",
+      "clips/angry/head-a.webm": "742b51fb5776e09fd1c6e666cf5a5b8013b802a62580bea6f3c473fefe64293b",
+      "clips/angry/head-i.webm": "5754760c0c54882f992a59de6a1b03ca191b175ce9eb727a127623a0d1e6cbd6",
+      "clips/angry/head-u.webm": "a58c3b7e8d0495f935a23c1581711481c235f996cd01d9ad3da4b2d2901d7734",
+      "clips/angry/head-e.webm": "40cf23f7c0fee6a4d63fd28b4307d4d3cc7a955a78bb85d47b5f092af08aa74c",
+      "clips/angry/head-o.webm": "b20aae17b6cacd62ef0139fef617830004fee72d76b43e66577e6dd2f669220c",
+      "clips/surprised/idle.webm": "dd4479939ce6dc363bf6de6373361083bd957b19fdbea1148b72714d259ca568",
+      "clips/surprised/talking-body.webm": "155d69d0a285cafbb7a8f29560f11a94af5fbeb3001fb81546b7783661c44b6f",
+      "clips/surprised/head-sil.webm": "5ab0401d1a232bcada4772c8ef4b30d410d7ed42a7e35d7d6ca044648ca0cf70",
+      "clips/surprised/head-a.webm": "6ffc6305da8a9305b6cf1d127110d04b9c255f9ffdd6efe69b33cd49ede2a553",
+      "clips/surprised/head-i.webm": "c55edf9ca1032f7db9f42bcbc0a15dfee43036a437df72e545c304ee67a3d9ff",
+      "clips/surprised/head-u.webm": "97c35949cd4c9bad887695eb7108ff40b8862ae626a093ad19a0a563db71b21b",
+      "clips/surprised/head-e.webm": "52542ec26d0c9779602d314e459e0478a6f2f47ea0e09a30fe3050f735b4c67c",
+      "clips/surprised/head-o.webm": "95f4afa1ec7a4053f8e10ffa39276db9a2b8c7034850134831a149d5ec71e2fd",
+      "clips/thinking/idle.webm": "723fc9dc268c861037a0dc1cef8ff609b4f48b9fb9ec5858997decce922b707b",
+      "clips/thinking/talking-body.webm": "7ea1202fb5561c2a711f3e2d166e73766e04a75aff1afc4a96c3a3a5326a25fe",
+      "clips/thinking/head-sil.webm": "4cf9991795b36a52dab36b310b3e0dc1fa02284282e184a66cfa8ad69291c570",
+      "clips/thinking/head-a.webm": "158037e0ccd1a03f23558859b5a3c5041f8e6d25816437d3c899cee89efbb61d",
+      "clips/thinking/head-i.webm": "7b59ac1be9a7bec4faf9e2609e784a0232b99dbcb1fd8574af31ca66623cb013",
+      "clips/thinking/head-u.webm": "772d316392e9cf58870bd2a0b222eabb88ed536c84b6e03fe9f11ee0b2bf8f8d",
+      "clips/thinking/head-e.webm": "779412c07fa0cda30c48de635f847f9b8438fed5fc55d5daa3db079dc9997b5c",
+      "clips/thinking/head-o.webm": "cb298aee11a4b5b36dbcb82f223df158f3912b709b9e90d426e5d49e6d951f5e"
+    },
+    "status": "reviewed-pass"
+  }
+}

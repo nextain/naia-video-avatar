@@ -1,7 +1,7 @@
 {
   "nva_version": "0.2",
   "meta": {
-    "name": "오사랑 (VRM식 슬롯 NVA)",
+    "name": "Naia (VRM식 슬롯 NVA)",
     "owner": "pulse9",
     "author": "pulse9",
     "tagline": "강남구청 AI 안내원 오사랑",
@@ -42,7 +42,7 @@
         0.26
       ],
       "label": "말하기",
-      "description": "구형 런타임 호환용 발화 루프. 실제 발화는 vrm_slots.speech의 webm 클립을 재생.",
+      "description": "Legacy compatibility entry. The held speech prototype uses state_engine talking-head assets.",
       "state": "neutral",
       "expression_image": "expressions/neutral.png"
     },
@@ -120,171 +120,12 @@
       "description": "단호함 상태 프리셋. 사전 생성 발화 선택 전후에 상태값으로 사용.",
       "state": "angry",
       "expression_image": "expressions/angry.png"
-    },
-    "state-relaxed": {
-      "clip": "clips/body.webm",
-      "loop": true,
-      "can_talk": false,
-      "face_bbox": [
-        0.3,
-        0.03,
-        0.36,
-        0.26
-      ],
-      "label": "안정",
-      "description": "안정 상태 프리셋. 사전 생성 발화 선택 전후에 상태값으로 사용.",
-      "state": "relaxed",
-      "expression_image": "expressions/relaxed.png"
-    },
-    "state-empathy": {
-      "clip": "clips/body.webm",
-      "loop": true,
-      "can_talk": false,
-      "face_bbox": [
-        0.3,
-        0.03,
-        0.36,
-        0.26
-      ],
-      "label": "공감",
-      "description": "공감 상태 프리셋. 사전 생성 발화 선택 전후에 상태값으로 사용.",
-      "state": "empathy",
-      "expression_image": "expressions/empathy.png"
-    },
-    "state-guiding": {
-      "clip": "clips/body.webm",
-      "loop": true,
-      "can_talk": false,
-      "face_bbox": [
-        0.3,
-        0.03,
-        0.36,
-        0.26
-      ],
-      "label": "안내",
-      "description": "안내 상태 프리셋. 사전 생성 발화 선택 전후에 상태값으로 사용.",
-      "state": "guiding",
-      "expression_image": "expressions/guiding.png"
-    },
-    "say-greeting": {
-      "clip": "clips/ko-KR/say-greeting.webm",
-      "loop": false,
-      "can_talk": false,
-      "face_bbox": [
-        0.3,
-        0.03,
-        0.36,
-        0.26
-      ],
-      "label": "안녕하세요. 강남구청 안내원 오사랑입니다.",
-      "description": "사전 생성 발화: 안녕하세요. 강남구청 안내원 오사랑입니다.",
-      "state": "neutral",
-      "intent": "greeting",
-      "expression_image": "expressions/neutral.png",
-      "prebaked": true,
-      "utterance_id": "greeting",
-      "viseme": "aiueo"
-    },
-    "say-ask_need": {
-      "clip": "clips/ko-KR/say-ask_need.webm",
-      "loop": false,
-      "can_talk": false,
-      "face_bbox": [
-        0.3,
-        0.03,
-        0.36,
-        0.26
-      ],
-      "label": "무엇을 도와드릴까요?",
-      "description": "사전 생성 발화: 무엇을 도와드릴까요?",
-      "state": "guiding",
-      "intent": "question",
-      "expression_image": "expressions/guiding.png",
-      "prebaked": true,
-      "utterance_id": "ask_need",
-      "viseme": "aiueo"
-    },
-    "say-office_location": {
-      "clip": "clips/ko-KR/say-office_location.webm",
-      "loop": false,
-      "can_talk": false,
-      "face_bbox": [
-        0.3,
-        0.03,
-        0.36,
-        0.26
-      ],
-      "label": "민원실은 본관 2층에 있습니다.",
-      "description": "사전 생성 발화: 민원실은 본관 2층에 있습니다.",
-      "state": "guiding",
-      "intent": "guide",
-      "expression_image": "expressions/guiding.png",
-      "prebaked": true,
-      "utterance_id": "office_location",
-      "viseme": "a"
-    },
-    "say-thinking_wait": {
-      "clip": "clips/ko-KR/say-thinking_wait.webm",
-      "loop": false,
-      "can_talk": false,
-      "face_bbox": [
-        0.3,
-        0.03,
-        0.36,
-        0.26
-      ],
-      "label": "잠시만 기다려 주세요. 확인해 보겠습니다.",
-      "description": "사전 생성 발화: 잠시만 기다려 주세요. 확인해 보겠습니다.",
-      "state": "thinking",
-      "intent": "thinking",
-      "expression_image": "expressions/thinking.png",
-      "prebaked": true,
-      "utterance_id": "thinking_wait",
-      "viseme": "eu"
-    },
-    "say-empathy_help": {
-      "clip": "clips/ko-KR/say-empathy_help.webm",
-      "loop": false,
-      "can_talk": false,
-      "face_bbox": [
-        0.3,
-        0.03,
-        0.36,
-        0.26
-      ],
-      "label": "불편하셨겠어요. 제가 차근차근 안내해 드릴게요.",
-      "description": "사전 생성 발화: 불편하셨겠어요. 제가 차근차근 안내해 드릴게요.",
-      "state": "empathy",
-      "intent": "empathy",
-      "expression_image": "expressions/empathy.png",
-      "prebaked": true,
-      "utterance_id": "empathy_help",
-      "viseme": "eo"
-    },
-    "say-thanks_close": {
-      "clip": "clips/ko-KR/say-thanks_close.webm",
-      "loop": false,
-      "can_talk": false,
-      "face_bbox": [
-        0.3,
-        0.03,
-        0.36,
-        0.26
-      ],
-      "label": "감사합니다. 좋은 하루 보내세요.",
-      "description": "사전 생성 발화: 감사합니다. 좋은 하루 보내세요.",
-      "state": "happy",
-      "intent": "closing",
-      "expression_image": "expressions/happy.png",
-      "prebaked": true,
-      "utterance_id": "thanks_close",
-      "viseme": "o"
     }
   },
   "vrm_slots": {
     "profile": {
       "model": "nva-vrm-slots-0.1",
-      "compatibility": "VRM-style expressions, visemes, motions, and speech slots backed by webm clips",
+      "compatibility": "State-engine expressions, motions, and viseme pronunciation units backed by webm clips",
       "generation_mode": "prebaked_webm_only",
       "default_locale": "ko-KR",
       "available_locales": [
@@ -308,12 +149,6 @@
           "id-ID",
           "vi-VN"
         ]
-      },
-      "tts_capabilities": {
-        "voxcpm": {
-          "supported_language_count": 30,
-          "note": "Generation service can fill additional by_locale clips when VoxCPM locale support is enabled."
-        }
       },
       "default_expression": "neutral",
       "default_motion": "idle"
@@ -360,74 +195,6 @@
         "type": "expression",
         "preview_image": "expressions/angry.png",
         "animation": "state-angry"
-      },
-      "relaxed": {
-        "label": "안정",
-        "mood": "relaxed",
-        "type": "expression",
-        "preview_image": "expressions/relaxed.png",
-        "animation": "state-relaxed"
-      },
-      "empathy": {
-        "label": "공감",
-        "mood": "empathy",
-        "type": "expression",
-        "preview_image": "expressions/empathy.png",
-        "animation": "state-empathy"
-      },
-      "guiding": {
-        "label": "안내",
-        "mood": "guide",
-        "type": "expression",
-        "preview_image": "expressions/guiding.png",
-        "animation": "state-guiding"
-      }
-    },
-    "visemes": {
-      "sil": {
-        "label": "무음",
-        "type": "viseme",
-        "clip": "clips/viseme-sil.webm"
-      },
-      "a": {
-        "label": "아",
-        "type": "viseme",
-        "clip": "clips/viseme-a.webm"
-      },
-      "i": {
-        "label": "이",
-        "type": "viseme",
-        "clip": "clips/viseme-i.webm"
-      },
-      "u": {
-        "label": "우",
-        "type": "viseme",
-        "clip": "clips/viseme-u.webm"
-      },
-      "e": {
-        "label": "에",
-        "type": "viseme",
-        "clip": "clips/viseme-e.webm"
-      },
-      "o": {
-        "label": "오",
-        "type": "viseme",
-        "clip": "clips/viseme-o.webm"
-      },
-      "eu": {
-        "label": "으",
-        "type": "viseme",
-        "clip": "clips/viseme-eu.webm"
-      },
-      "eo": {
-        "label": "어",
-        "type": "viseme",
-        "clip": "clips/viseme-eo.webm"
-      },
-      "aiueo": {
-        "label": "아이우에오",
-        "type": "viseme",
-        "clip": "clips/viseme-aiueo.webm"
       }
     },
     "motions": {
@@ -444,122 +211,6 @@
         "clip": "clips/body.webm",
         "loop": true,
         "expression": "neutral"
-      }
-    },
-    "speech": {
-      "greeting": {
-        "text": "안녕하세요. 강남구청 안내원 오사랑입니다.",
-        "intent": "greeting",
-        "expression": "neutral",
-        "viseme": "aiueo",
-        "clip": "clips/ko-KR/say-greeting.webm",
-        "by_locale": {
-          "ko-KR": {
-            "text": "안녕하세요. 강남구청 안내원 오사랑입니다.",
-            "clip": "clips/ko-KR/say-greeting.webm",
-            "viseme": "aiueo"
-          },
-          "en-US": {
-            "text": "Hello. I am Osarang, your Gangnam-gu office guide.",
-            "clip": "clips/en-US/say-greeting.webm",
-            "viseme": "aiueo"
-          }
-        }
-      },
-      "ask_need": {
-        "text": "무엇을 도와드릴까요?",
-        "intent": "question",
-        "expression": "guiding",
-        "viseme": "aiueo",
-        "clip": "clips/ko-KR/say-ask_need.webm",
-        "by_locale": {
-          "ko-KR": {
-            "text": "무엇을 도와드릴까요?",
-            "clip": "clips/ko-KR/say-ask_need.webm",
-            "viseme": "aiueo"
-          },
-          "en-US": {
-            "text": "How may I help you?",
-            "clip": "clips/en-US/say-ask_need.webm",
-            "viseme": "aiueo"
-          }
-        }
-      },
-      "office_location": {
-        "text": "민원실은 본관 2층에 있습니다.",
-        "intent": "guide",
-        "expression": "guiding",
-        "viseme": "a",
-        "clip": "clips/ko-KR/say-office_location.webm",
-        "by_locale": {
-          "ko-KR": {
-            "text": "민원실은 본관 2층에 있습니다.",
-            "clip": "clips/ko-KR/say-office_location.webm",
-            "viseme": "a"
-          },
-          "en-US": {
-            "text": "The civil affairs office is on the second floor of the main building.",
-            "clip": "clips/en-US/say-office_location.webm",
-            "viseme": "a"
-          }
-        }
-      },
-      "thinking_wait": {
-        "text": "잠시만 기다려 주세요. 확인해 보겠습니다.",
-        "intent": "thinking",
-        "expression": "thinking",
-        "viseme": "eu",
-        "clip": "clips/ko-KR/say-thinking_wait.webm",
-        "by_locale": {
-          "ko-KR": {
-            "text": "잠시만 기다려 주세요. 확인해 보겠습니다.",
-            "clip": "clips/ko-KR/say-thinking_wait.webm",
-            "viseme": "eu"
-          },
-          "en-US": {
-            "text": "Please wait a moment. I will check that for you.",
-            "clip": "clips/en-US/say-thinking_wait.webm",
-            "viseme": "eu"
-          }
-        }
-      },
-      "empathy_help": {
-        "text": "불편하셨겠어요. 제가 차근차근 안내해 드릴게요.",
-        "intent": "empathy",
-        "expression": "empathy",
-        "viseme": "eo",
-        "clip": "clips/ko-KR/say-empathy_help.webm",
-        "by_locale": {
-          "ko-KR": {
-            "text": "불편하셨겠어요. 제가 차근차근 안내해 드릴게요.",
-            "clip": "clips/ko-KR/say-empathy_help.webm",
-            "viseme": "eo"
-          },
-          "en-US": {
-            "text": "I am sorry for the inconvenience. I will guide you step by step.",
-            "clip": "clips/en-US/say-empathy_help.webm",
-            "viseme": "eo"
-          }
-        }
-      },
-      "thanks_close": {
-        "text": "감사합니다. 좋은 하루 보내세요.",
-        "intent": "closing",
-        "expression": "happy",
-        "viseme": "o",
-        "clip": "clips/ko-KR/say-thanks_close.webm",
-        "by_locale": {
-          "ko-KR": {
-            "text": "감사합니다. 좋은 하루 보내세요.",
-            "clip": "clips/ko-KR/say-thanks_close.webm",
-            "viseme": "o"
-          },
-          "en-US": {
-            "text": "Thank you. Have a good day.",
-            "clip": "clips/en-US/say-thanks_close.webm",
-            "viseme": "o"
-          }
-        }
       }
     }
   },
@@ -599,189 +250,6 @@
       "mood": "angry",
       "image": "expressions/angry.png",
       "animation": "state-angry"
-    },
-    "relaxed": {
-      "label": "안정",
-      "mood": "relaxed",
-      "image": "expressions/relaxed.png",
-      "animation": "state-relaxed"
-    },
-    "empathy": {
-      "label": "공감",
-      "mood": "empathy",
-      "image": "expressions/empathy.png",
-      "animation": "state-empathy"
-    },
-    "guiding": {
-      "label": "안내",
-      "mood": "guide",
-      "image": "expressions/guiding.png",
-      "animation": "state-guiding"
-    }
-  },
-  "viseme_clips": {
-    "sil": {
-      "label": "무음",
-      "clip": "clips/viseme-sil.webm"
-    },
-    "a": {
-      "label": "아",
-      "clip": "clips/viseme-a.webm"
-    },
-    "i": {
-      "label": "이",
-      "clip": "clips/viseme-i.webm"
-    },
-    "u": {
-      "label": "우",
-      "clip": "clips/viseme-u.webm"
-    },
-    "e": {
-      "label": "에",
-      "clip": "clips/viseme-e.webm"
-    },
-    "o": {
-      "label": "오",
-      "clip": "clips/viseme-o.webm"
-    },
-    "eu": {
-      "label": "으",
-      "clip": "clips/viseme-eu.webm"
-    },
-    "eo": {
-      "label": "어",
-      "clip": "clips/viseme-eo.webm"
-    },
-    "aiueo": {
-      "label": "아이우에오",
-      "clip": "clips/viseme-aiueo.webm"
-    }
-  },
-  "prebaked_speech": {
-    "mode": "clip_pool",
-    "selection": "utterance_id_or_state",
-    "fallback_animation": null,
-    "utterances": {
-      "greeting": {
-        "text": "안녕하세요. 강남구청 안내원 오사랑입니다.",
-        "intent": "greeting",
-        "state": "neutral",
-        "viseme": "aiueo",
-        "clip": "clips/ko-KR/say-greeting.webm",
-        "by_locale": {
-          "ko-KR": {
-            "text": "안녕하세요. 강남구청 안내원 오사랑입니다.",
-            "clip": "clips/ko-KR/say-greeting.webm",
-            "viseme": "aiueo"
-          },
-          "en-US": {
-            "text": "Hello. I am Osarang, your Gangnam-gu office guide.",
-            "clip": "clips/en-US/say-greeting.webm",
-            "viseme": "aiueo"
-          }
-        },
-        "expression_image": "expressions/neutral.png"
-      },
-      "ask_need": {
-        "text": "무엇을 도와드릴까요?",
-        "intent": "question",
-        "state": "guiding",
-        "viseme": "aiueo",
-        "clip": "clips/ko-KR/say-ask_need.webm",
-        "by_locale": {
-          "ko-KR": {
-            "text": "무엇을 도와드릴까요?",
-            "clip": "clips/ko-KR/say-ask_need.webm",
-            "viseme": "aiueo"
-          },
-          "en-US": {
-            "text": "How may I help you?",
-            "clip": "clips/en-US/say-ask_need.webm",
-            "viseme": "aiueo"
-          }
-        },
-        "expression_image": "expressions/guiding.png"
-      },
-      "office_location": {
-        "text": "민원실은 본관 2층에 있습니다.",
-        "intent": "guide",
-        "state": "guiding",
-        "viseme": "a",
-        "clip": "clips/ko-KR/say-office_location.webm",
-        "by_locale": {
-          "ko-KR": {
-            "text": "민원실은 본관 2층에 있습니다.",
-            "clip": "clips/ko-KR/say-office_location.webm",
-            "viseme": "a"
-          },
-          "en-US": {
-            "text": "The civil affairs office is on the second floor of the main building.",
-            "clip": "clips/en-US/say-office_location.webm",
-            "viseme": "a"
-          }
-        },
-        "expression_image": "expressions/guiding.png"
-      },
-      "thinking_wait": {
-        "text": "잠시만 기다려 주세요. 확인해 보겠습니다.",
-        "intent": "thinking",
-        "state": "thinking",
-        "viseme": "eu",
-        "clip": "clips/ko-KR/say-thinking_wait.webm",
-        "by_locale": {
-          "ko-KR": {
-            "text": "잠시만 기다려 주세요. 확인해 보겠습니다.",
-            "clip": "clips/ko-KR/say-thinking_wait.webm",
-            "viseme": "eu"
-          },
-          "en-US": {
-            "text": "Please wait a moment. I will check that for you.",
-            "clip": "clips/en-US/say-thinking_wait.webm",
-            "viseme": "eu"
-          }
-        },
-        "expression_image": "expressions/thinking.png"
-      },
-      "empathy_help": {
-        "text": "불편하셨겠어요. 제가 차근차근 안내해 드릴게요.",
-        "intent": "empathy",
-        "state": "empathy",
-        "viseme": "eo",
-        "clip": "clips/ko-KR/say-empathy_help.webm",
-        "by_locale": {
-          "ko-KR": {
-            "text": "불편하셨겠어요. 제가 차근차근 안내해 드릴게요.",
-            "clip": "clips/ko-KR/say-empathy_help.webm",
-            "viseme": "eo"
-          },
-          "en-US": {
-            "text": "I am sorry for the inconvenience. I will guide you step by step.",
-            "clip": "clips/en-US/say-empathy_help.webm",
-            "viseme": "eo"
-          }
-        },
-        "expression_image": "expressions/empathy.png"
-      },
-      "thanks_close": {
-        "text": "감사합니다. 좋은 하루 보내세요.",
-        "intent": "closing",
-        "state": "happy",
-        "viseme": "o",
-        "clip": "clips/ko-KR/say-thanks_close.webm",
-        "by_locale": {
-          "ko-KR": {
-            "text": "감사합니다. 좋은 하루 보내세요.",
-            "clip": "clips/ko-KR/say-thanks_close.webm",
-            "viseme": "o"
-          },
-          "en-US": {
-            "text": "Thank you. Have a good day.",
-            "clip": "clips/en-US/say-thanks_close.webm",
-            "viseme": "o"
-          }
-        },
-        "expression_image": "expressions/happy.png"
-      }
     }
   },
   "scenario": {
@@ -802,5 +270,585 @@
         "to": "n0"
       }
     ]
+  },
+  "state_engine": {
+    "version": "0.1",
+    "default_state": "neutral",
+    "visemes": [
+      "sil",
+      "a",
+      "i",
+      "u",
+      "e",
+      "o"
+    ],
+    "states": {
+      "neutral": {
+        "label": "중립",
+        "idle": "clips/neutral/idle.webm",
+        "talking_body": "clips/neutral/talking-body.webm",
+        "face_preview": "expressions/neutral.png",
+        "face_bbox": [
+          0.32,
+          0.07,
+          0.36,
+          0.2
+        ],
+        "talking_heads": {
+          "sil": "clips/neutral/head-sil.webm",
+          "a": "clips/neutral/head-a.webm",
+          "i": "clips/neutral/head-i.webm",
+          "u": "clips/neutral/head-u.webm",
+          "e": "clips/neutral/head-e.webm",
+          "o": "clips/neutral/head-o.webm"
+        },
+        "talking_head_crop": true,
+        "sync": {
+          "default_hold_ms": 160,
+          "heads": {
+            "sil": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 0
+            },
+            "a": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "i": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "u": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "e": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "o": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            }
+          }
+        }
+      },
+      "happy": {
+        "label": "기쁨",
+        "idle": "clips/happy/idle.webm",
+        "talking_body": "clips/happy/talking-body.webm",
+        "face_preview": "expressions/happy.png",
+        "face_bbox": [
+          0.32,
+          0.07,
+          0.36,
+          0.2
+        ],
+        "talking_heads": {
+          "sil": "clips/happy/head-sil.webm",
+          "a": "clips/happy/head-a.webm",
+          "i": "clips/happy/head-i.webm",
+          "u": "clips/happy/head-u.webm",
+          "e": "clips/happy/head-e.webm",
+          "o": "clips/happy/head-o.webm"
+        },
+        "talking_head_crop": true,
+        "sync": {
+          "default_hold_ms": 160,
+          "heads": {
+            "sil": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 0
+            },
+            "a": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "i": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "u": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "e": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "o": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            }
+          }
+        }
+      },
+      "thinking": {
+        "label": "생각",
+        "idle": "clips/thinking/idle.webm",
+        "talking_body": "clips/thinking/talking-body.webm",
+        "face_preview": "expressions/thinking.png",
+        "face_bbox": [
+          0.32,
+          0.07,
+          0.36,
+          0.2
+        ],
+        "talking_heads": {
+          "sil": "clips/thinking/head-sil.webm",
+          "a": "clips/thinking/head-a.webm",
+          "i": "clips/thinking/head-i.webm",
+          "u": "clips/thinking/head-u.webm",
+          "e": "clips/thinking/head-e.webm",
+          "o": "clips/thinking/head-o.webm"
+        },
+        "talking_head_crop": true,
+        "sync": {
+          "default_hold_ms": 160,
+          "heads": {
+            "sil": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 0
+            },
+            "a": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "i": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "u": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "e": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "o": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            }
+          }
+        }
+      },
+      "surprised": {
+        "label": "놀람",
+        "idle": "clips/surprised/idle.webm",
+        "talking_body": "clips/surprised/talking-body.webm",
+        "face_preview": "expressions/surprised.png",
+        "face_bbox": [
+          0.32,
+          0.07,
+          0.36,
+          0.2
+        ],
+        "talking_heads": {
+          "sil": "clips/surprised/head-sil.webm",
+          "a": "clips/surprised/head-a.webm",
+          "i": "clips/surprised/head-i.webm",
+          "u": "clips/surprised/head-u.webm",
+          "e": "clips/surprised/head-e.webm",
+          "o": "clips/surprised/head-o.webm"
+        },
+        "talking_head_crop": true,
+        "sync": {
+          "default_hold_ms": 160,
+          "heads": {
+            "sil": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 0
+            },
+            "a": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "i": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "u": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "e": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "o": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            }
+          }
+        }
+      },
+      "sad": {
+        "label": "슬픔",
+        "idle": "clips/sad/idle.webm",
+        "talking_body": "clips/sad/talking-body.webm",
+        "face_preview": "expressions/sad.png",
+        "face_bbox": [
+          0.32,
+          0.07,
+          0.36,
+          0.2
+        ],
+        "talking_heads": {
+          "sil": "clips/sad/head-sil.webm",
+          "a": "clips/sad/head-a.webm",
+          "i": "clips/sad/head-i.webm",
+          "u": "clips/sad/head-u.webm",
+          "e": "clips/sad/head-e.webm",
+          "o": "clips/sad/head-o.webm"
+        },
+        "talking_head_crop": true,
+        "sync": {
+          "default_hold_ms": 160,
+          "heads": {
+            "sil": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 0
+            },
+            "a": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "i": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "u": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "e": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "o": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            }
+          }
+        }
+      },
+      "angry": {
+        "label": "단호함",
+        "idle": "clips/angry/idle.webm",
+        "talking_body": "clips/angry/talking-body.webm",
+        "face_preview": "expressions/angry.png",
+        "face_bbox": [
+          0.32,
+          0.07,
+          0.36,
+          0.2
+        ],
+        "talking_heads": {
+          "sil": "clips/angry/head-sil.webm",
+          "a": "clips/angry/head-a.webm",
+          "i": "clips/angry/head-i.webm",
+          "u": "clips/angry/head-u.webm",
+          "e": "clips/angry/head-e.webm",
+          "o": "clips/angry/head-o.webm"
+        },
+        "talking_head_crop": true,
+        "sync": {
+          "default_hold_ms": 160,
+          "heads": {
+            "sil": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 0
+            },
+            "a": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "i": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "u": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "e": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "o": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            }
+          }
+        }
+      }
+    }
+  },
+  "prosody_map": {
+    "laughing": {
+      "state": "happy",
+      "mode": "talking"
+    },
+    "laugh": {
+      "state": "happy",
+      "mode": "talking"
+    },
+    "laughter": {
+      "state": "happy",
+      "mode": "talking"
+    },
+    "chuckle": {
+      "state": "happy",
+      "mode": "talking"
+    },
+    "giggle": {
+      "state": "happy",
+      "mode": "talking"
+    },
+    "cheer": {
+      "state": "happy",
+      "mode": "talking"
+    },
+    "sigh": {
+      "state": "sad",
+      "mode": "talking"
+    },
+    "exhale": {
+      "state": "sad",
+      "mode": "talking"
+    },
+    "cry": {
+      "state": "sad",
+      "mode": "talking"
+    },
+    "sob": {
+      "state": "sad",
+      "mode": "talking"
+    },
+    "hesitation": {
+      "state": "thinking",
+      "mode": "talking"
+    },
+    "pause": {
+      "state": "thinking",
+      "mode": "talking"
+    },
+    "hum": {
+      "state": "thinking",
+      "mode": "talking"
+    },
+    "gasp": {
+      "state": "surprised",
+      "mode": "talking"
+    },
+    "shout": {
+      "state": "angry",
+      "mode": "talking"
+    },
+    "whisper": {
+      "state": "neutral",
+      "mode": "talking",
+      "voice": "soft"
+    },
+    "breath": {
+      "state": "neutral",
+      "mode": "talking"
+    },
+    "inhale": {
+      "state": "neutral",
+      "mode": "talking"
+    },
+    "cough": {
+      "state": "neutral",
+      "mode": "talking"
+    },
+    "sneeze": {
+      "state": "neutral",
+      "mode": "talking"
+    },
+    "sniff": {
+      "state": "neutral",
+      "mode": "talking"
+    },
+    "yawn": {
+      "state": "neutral",
+      "mode": "talking"
+    },
+    "moan": {
+      "state": "neutral",
+      "mode": "talking"
+    }
+  },
+  "asset_quality": {
+    "expression_previews": {
+      "source": "imagegen-2026-07-12",
+      "states": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "surprised",
+        "thinking"
+      ],
+      "reviewer_checklist": {
+        "full_head_visible": true,
+        "eyes_open": true,
+        "front_facing": true,
+        "identity_preserved": true,
+        "not_color_border_placeholder": true,
+        "no_text_label": true
+      },
+      "status": "reviewed-pass"
+    },
+    "state_videos": {
+      "source": "image-derived-state-video-fixture-2026-07-12",
+      "status": "reviewed-pass",
+      "note": "Minimal process fixture: per-state videos are generated from reviewed expression assets and hash-bound in asset-quality.review.json."
+    }
   }
 }

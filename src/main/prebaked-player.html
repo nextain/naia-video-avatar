@@ -15,7 +15,9 @@
   aside { padding: 14px; border-right: 1px solid #263241; overflow: auto; }
   aside.right { border-right: 0; border-left: 1px solid #263241; }
   main { padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  video { width: min(406px, 92vw); aspect-ratio: 406 / 720; background: #111; border-radius: 10px; object-fit: contain; box-shadow: 0 18px 50px #0008; }
+  #stage { position: relative; width: min(406px, 92vw); aspect-ratio: 406 / 720; background: #111; border-radius: 10px; overflow: hidden; box-shadow: 0 18px 50px #0008; }
+  video { width: 100%; height: 100%; object-fit: contain; }
+  #head { position: absolute; inset: 0; pointer-events: none; }
   button { background: #202938; color: #e6edf3; border: 1px solid #38475c; border-radius: 7px; padding: 8px 10px; cursor: pointer; text-align: left; }
   button:hover { background: #2a3648; }
   button.active { background: #2f6feb; border-color: #2f6feb; }
@@ -25,31 +27,27 @@
   .label { font-weight: 700; font-size: 13px; }
   .desc { color: #9ba9ba; font-size: 12px; margin-top: 3px; line-height: 1.4; }
   img { width: 100%; border-radius: 8px; background: #111; border: 1px solid #263241; display: block; }
-  code { color: #b7d6ff; }
   #meta { max-width: 760px; color: #9ba9ba; line-height: 1.5; font-size: 13px; }
   #now { color: #7ee787; }
-  @media (max-width: 980px) {
-    #layout { grid-template-columns: 1fr; }
-    aside, aside.right { border: 0; border-bottom: 1px solid #263241; }
-  }
+  @media (max-width: 980px) { #layout { grid-template-columns: 1fr; } aside, aside.right { border: 0; border-bottom: 1px solid #263241; } }
 </style>
 </head>
 <body>
 <header>
   <h1>prebaked nva player</h1>
   <span class="pill" id="title">loading</span>
-  <span class="pill">VRM식 슬롯 → webm 조합</span>
+  <span class="pill">state_engine webm pronunciation cache</span>
   <label class="pill">locale <select id="localeSelect"></select></label>
 </header>
 <div id="layout">
   <aside>
-    <h2>Expressions</h2>
+    <h2>States</h2>
     <div id="states" class="list"></div>
     <h2>Visemes</h2>
     <div id="visemes" class="list"></div>
   </aside>
   <main>
-    <video id="video" playsinline controls loop muted></video>
+    <div id="stage"><video id="body" playsinline controls loop muted></video><video id="head" playsinline loop muted></video></div>
     <div id="now" class="pill">ready</div>
     <p id="meta"></p>
   </main>
@@ -62,99 +60,58 @@
 const qs = new URLSearchParams(location.search);
 const base = (qs.get("nva") || "../../examples/osarang-prebaked.nva").replace(/\/$/, "");
 let currentLocale = qs.get("locale") || "";
-const video = document.getElementById("video");
+const body = document.getElementById("body");
+const head = document.getElementById("head");
 const title = document.getElementById("title");
 const now = document.getElementById("now");
 const meta = document.getElementById("meta");
 const localeSelect = document.getElementById("localeSelect");
 let active = null;
-
+let speechTimer = null;
+let currentHead = "";
 const clipUrl = (path) => `${base}/${path}`;
-const setActive = (button) => {
-  if (active) active.classList.remove("active");
-  active = button;
-  if (active) active.classList.add("active");
-};
-const play = (clip, label, loop, button) => {
-  setActive(button);
-  video.loop = loop;
-  video.muted = false;
-  video.src = clipUrl(clip);
-  video.play().catch(() => {
-    video.muted = true;
-    video.play().catch(() => {});
-  });
-  now.textContent = label;
-};
-const button = ({ label, desc, onClick }) => {
-  const b = document.createElement("button");
-  b.innerHTML = `<div class="label">${label}</div>${desc ? `<div class="desc">${desc}</div>` : ""}`;
-  b.onclick = () => onClick(b);
-  return b;
-};
-
+const setActive = (button) => { if (active) active.classList.remove("active"); active = button; if (active) active.classList.add("active"); };
+const button = ({ label, desc, onClick }) => { const b = document.createElement("button"); b.innerHTML = `<div class="label">${label}</div>${desc ? `<div class="desc">${desc}</div>` : ""}`; b.onclick = () => onClick(b); return b; };
 const m = await (await fetch(`${base}/manifest.json`)).json();
+const engine = m.state_engine;
+const slots = m.vrm_slots || {};
 title.textContent = m.meta?.name || "nva";
 meta.textContent = m.meta?.note || "";
-
-const slots = m.vrm_slots || {};
-const availableLocales = slots.profile?.available_locales || slots.profile?.locales || Object.keys(Object.values(slots.speech || {})[0]?.by_locale || {});
+const availableLocales = slots.profile?.available_locales || slots.profile?.locales || [slots.profile?.default_locale || "ko-KR"];
 currentLocale = availableLocales.includes(currentLocale) ? currentLocale : (slots.profile?.default_locale || availableLocales[0] || "ko-KR");
 localeSelect.innerHTML = availableLocales.map((locale) => `<option value="${locale}">${locale}</option>`).join("");
 localeSelect.value = currentLocale;
-localeSelect.onchange = () => {
-  currentLocale = localeSelect.value;
-  renderSpeech();
-};
-function localizedSpeech(slot) {
-  return slot?.by_locale?.[currentLocale] || slot?.by_locale?.[slots.profile?.default_locale] || slot || {};
+localeSelect.onchange = () => { currentLocale = localeSelect.value; };
+function stopSpeech() { if (speechTimer) clearInterval(speechTimer); speechTimer = null; currentHead = ""; head.pause(); head.removeAttribute("src"); }
+function playBody(clip, label, loop, buttonEl) { stopSpeech(); setActive(buttonEl); body.loop = loop; body.muted = false; body.src = clipUrl(clip); body.play().catch(() => { body.muted = true; body.play().catch(() => {}); }); now.textContent = label; }
+function setHead(clip) { const next = clipUrl(clip); if (currentHead === next) return; currentHead = next; head.src = next; head.play().catch(() => {}); }
+function playStateIdle(stateKey, buttonEl) { const st = engine?.states?.[stateKey]; if (!st?.idle) return; playBody(st.idle, `${stateKey}: idle`, true, buttonEl); }
+function playStateTalking(stateKey, buttonEl) {
+  const st = engine?.states?.[stateKey]; const visemes = engine?.visemes || Object.keys(st?.talking_heads || {});
+  if (!st?.talking_body || !visemes.every((v) => st.talking_heads?.[v] && st.sync?.heads?.[v])) return;
+  playBody(st.talking_body, `${stateKey}: talking`, true, buttonEl);
+  const started = performance.now();
+  const hold = st.sync?.default_hold_ms || 160;
+  const tick = () => { const index = Math.floor((performance.now() - started) / hold) % visemes.length; setHead(st.talking_heads[visemes[index]]); };
+  tick(); speechTimer = setInterval(tick, 40);
 }
-
 const states = document.getElementById("states");
-for (const [key, state] of Object.entries(slots.expressions || m.expression_states || {})) {
-  const box = document.createElement("div");
-  box.className = "card";
-  const img = state.preview_image || state.image;
-  box.innerHTML = img ? `<img src="${clipUrl(img)}" alt="${state.label}">` : "";
-  box.appendChild(button({
-    label: `${state.label} (${key})`,
-    desc: `animation: ${state.animation}`,
-    onClick: (b) => {
-      const a = m.animations[state.animation];
-      if (a) play(a.clip, `${state.label} 상태`, true, b);
-    },
-  }));
-  states.appendChild(box);
-}
-
-const visemes = document.getElementById("visemes");
-for (const [key, v] of Object.entries(slots.visemes || m.viseme_clips || {})) {
-  visemes.appendChild(button({
-    label: `${v.label} (${key})`,
-    desc: v.clip,
-    onClick: (b) => play(v.clip, `${v.label} 입모양`, false, b),
-  }));
-}
-
-const utterances = document.getElementById("utterances");
-function renderSpeech() {
-  utterances.innerHTML = "";
-  for (const [key, u] of Object.entries(slots.speech || m.prebaked_speech?.utterances || {})) {
-    const lu = localizedSpeech(u);
-    utterances.appendChild(button({
-      label: lu.text || u.text,
-      desc: `locale=${currentLocale}, expression=${u.expression || u.state}, viseme=${lu.viseme || u.viseme}, intent=${u.intent || key}`,
-      onClick: (b) => play(lu.clip || u.clip, lu.text || u.text, false, b),
-    }));
+if (engine?.states) {
+  for (const [key, state] of Object.entries(engine.states)) {
+    const box = document.createElement("div"); box.className = "card";
+    const img = state.face_preview;
+    box.innerHTML = img ? `<img src="${clipUrl(img)}" alt="${state.label || key}">` : "";
+    box.appendChild(button({ label: `${state.label || key} idle`, desc: state.idle, onClick: (b) => playStateIdle(key, b) }));
+    box.appendChild(button({ label: `${state.label || key} talking`, desc: `${state.talking_body} + ${Object.keys(state.talking_heads || {}).length} heads`, onClick: (b) => playStateTalking(key, b) }));
+    states.appendChild(box);
   }
+} else {
+  states.textContent = "No state_engine in this bundle.";
 }
-renderSpeech();
-
-const idle = m.animations?.idle;
-if (idle) {
-  video.src = clipUrl(idle.clip);
-  now.textContent = "대기";
-}
+document.getElementById("visemes").textContent = "Viseme units are previewed through state_engine talking playback, not standalone partial clips.";
+document.getElementById("utterances").textContent = "Sentence speech clips are not part of portable NVA. Use state_engine pronunciation cache.";
+const firstState = engine?.default_state || Object.keys(engine?.states || {})[0];
+if (firstState) playStateIdle(firstState, null); else if (m.animations?.idle) playBody(m.animations.idle.clip, "legacy idle", true, null);
 </script>
 </body>
 </html>

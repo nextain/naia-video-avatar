@@ -138,5 +138,92 @@
       }
     ]
   },
-  "chroma_key": "#00b140"
+  "chroma_key": "#00b140",
+  "state_engine": {
+    "version": "0.1",
+    "default_state": "neutral",
+    "visemes": [
+      "sil",
+      "a",
+      "i",
+      "u",
+      "e",
+      "o"
+    ],
+    "states": {
+      "neutral": {
+        "label": "neutral",
+        "idle": "clips/stand_idle.webm",
+        "talking_body": "clips/stand_idle.webm",
+        "face_preview": "expressions/neutral.png",
+        "face_bbox": [
+          0.36,
+          0.02,
+          0.28,
+          0.24
+        ],
+        "talking_heads": {
+          "sil": "clips/viseme-sil.webm",
+          "a": "clips/viseme-a.webm",
+          "i": "clips/viseme-i.webm",
+          "u": "clips/viseme-u.webm",
+          "e": "clips/viseme-e.webm",
+          "o": "clips/viseme-o.webm"
+        },
+        "sync": {
+          "default_hold_ms": 160,
+          "heads": {
+            "sil": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 0
+            },
+            "a": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "i": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "u": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "e": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            },
+            "o": {
+              "fps": 25,
+              "duration_ms": 1200,
+              "loopable": true,
+              "hold_min_ms": 80,
+              "hold_max_ms": 240,
+              "mouth_peak_ms": 120
+            }
+          }
+        }
+      }
+    }
+  }
 }

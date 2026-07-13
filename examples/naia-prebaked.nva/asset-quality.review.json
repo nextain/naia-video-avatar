@@ -1,0 +1,116 @@
+{
+    "reviewed_at":  "2026-07-12",
+    "reviewer":  "historical-prototype-review",
+    "method":  "Historical six-head prototype evidence; current integration and final transition contract are held",
+    "evidence":  [
+                     ".agents/work/test-results/nva-state-engine/editor-state-gallery.png",
+                     ".agents/work/test-results/nva-state-engine/editor-prosody-sad-talking.png",
+                     ".agents/work/test-results/nva-state-engine/editor-tts-overlay.png"
+                 ],
+    "expression_previews":  {
+                                "states":  [
+                                               "neutral",
+                                               "happy",
+                                               "sad",
+                                               "angry",
+                                               "surprised",
+                                               "thinking"
+                                           ],
+                                "checklist":  {
+                                                  "full_head_visible":  true,
+                                                  "eyes_open":  true,
+                                                  "front_facing":  true,
+                                                  "identity_preserved":  true,
+                                                  "not_color_border_placeholder":  true,
+                                                  "no_text_label":  true
+                                              },
+                                "sha256":  {
+                                               "expressions/neutral.png":  "c13a8297ae2c09d8098cbc8e29f41dd15cce40f89513099e3eb8e2ecf14453e0",
+                                               "expressions/happy.png":  "1cfc77fb8815acbdd164f865d460a3500483b26e3bc9b56701e69f0967f5750e",
+                                               "expressions/sad.png":  "50145c1e5be9b7efdc090c234dc7a5f36591ba5cf19c7b24e19204d8803164f8",
+                                               "expressions/angry.png":  "0b838f69a80e8973c4541b8987d49c4428bbe81b60d5a0fb08daeeb5edcf1e4d",
+                                               "expressions/surprised.png":  "68b1b1e3a5b74be974d98688922d86b9ae385de4764f6529c24c9c83d7233878",
+                                               "expressions/thinking.png":  "2fdf46759b0a58e0e58f6d21d4f9de1460241f5085692ff0d06833af5222c3fa"
+                                           },
+                                "status":  "reviewed-pass"
+                            },
+    "state_videos":  {
+                         "states":  [
+                                        "neutral",
+                                        "happy",
+                                        "sad",
+                                        "angry",
+                                        "surprised",
+                                        "thinking"
+                                    ],
+                         "visemes":  [
+                                         "sil",
+                                         "a",
+                                         "i",
+                                         "u",
+                                         "e",
+                                         "o"
+                                     ],
+                         "checklist":  {
+                                           "assets_hash_bound":  true,
+                                           "media_ready_verified":  true,
+                                           "phoneme_heads_present":  true,
+                                           "not_sentence_clip_path":  true,
+                                           "state_idle_distinct":  false,
+                                           "state_talking_body_distinct":  true,
+                                           "full_body_idle":  true,
+                                           "idle_restored_from_source_fullbody":  "clips/sijak.webm"
+                                       },
+                         "sha256":  {
+                                        "clips/neutral/idle.webm":  "4dfcac57c90ccba2e1575dfaf8f4c53ff245147339253a5562469627c2cd4e71",
+                                        "clips/neutral/talking-body.webm":  "fba9b37c6b5ea89953f3aa91c0ab7db8c9eb91ecddc0c121f7d0552749a26d09",
+                                        "clips/neutral/head-sil.webm":  "4de910882ca17a657bb98408f080492178bb19d5c69accd4708307d2b119fb3b",
+                                        "clips/neutral/head-a.webm":  "422b9f85cada75892f2216a8c8c0657d869f83fa6748f2d6f83aefe8871e09a7",
+                                        "clips/neutral/head-i.webm":  "f9fc0e8bdb94a90e06eb17f7d79197706997cc053e830312824571fcadbe717b",
+                                        "clips/neutral/head-u.webm":  "1a4333cf14696423b3c4d82223b0e9a9426090526e071992e18c5c898b76e260",
+                                        "clips/neutral/head-e.webm":  "e024d19a6eefc4183e8f1080c72f30786be1b2f5a326e74f41eed58e09d87b17",
+                                        "clips/neutral/head-o.webm":  "463b64e3f005dbccce8830d3c0dc99deafc81aa8d9fc508c056cf7ea5bbd08dd",
+                                        "clips/happy/idle.webm":  "4dfcac57c90ccba2e1575dfaf8f4c53ff245147339253a5562469627c2cd4e71",
+                                        "clips/happy/talking-body.webm":  "b50d2240df68efe6853dc9e007b283c7606e5099b32f24cb08501315d23ad94f",
+                                        "clips/happy/head-sil.webm":  "70d2a7caf37498bd3f4e0087e24bf5945cae165026dbcf52012144aa1e268eea",
+                                        "clips/happy/head-a.webm":  "17c439b4718fb6faff97ea83c1b20c840f4851c2b630beb5b9a83aa4dddd4d59",
+                                        "clips/happy/head-i.webm":  "16637c569238cdb604ba9bf1d2a5a68482c40a33f033c9b2d60bc2d7587c258d",
+                                        "clips/happy/head-u.webm":  "fa079841109937da04bfa8547c611ce26984f2800a4063dfeaa5063cf79d579a",
+                                        "clips/happy/head-e.webm":  "9f22ee3afa8251fcb056306fd5f74aa2555c0adbc9f51ecffbe874ca1286b3b1",
+                                        "clips/happy/head-o.webm":  "d82612f4e3e1573e8333090c84cf3a606612616205681d479e31dfd60b72d0d1",
+                                        "clips/sad/idle.webm":  "4dfcac57c90ccba2e1575dfaf8f4c53ff245147339253a5562469627c2cd4e71",
+                                        "clips/sad/talking-body.webm":  "bea24cc405d8920c89e70e66dca6a3f119cd153e9e9fd075c28feff6ccc497a3",
+                                        "clips/sad/head-sil.webm":  "12e29cdb201ded02c0c7a7f0e141202afb91f30cd5cb2d595a8dbd50dd93b4c4",
+                                        "clips/sad/head-a.webm":  "78377a18545bd0a54acd0466f6674fb2b86ef20c3831418efbced98f181fed0d",
+                                        "clips/sad/head-i.webm":  "db9c1d9b2061d055a3993835f89a4b557753ffc124c3f48e134fc294d0cf1731",
+                                        "clips/sad/head-u.webm":  "472ee60e59fc4d82ec8a6db15ba7e0cad550de3ae1036a468a6ac32bd221163e",
+                                        "clips/sad/head-e.webm":  "ceadb2161f7ede20a06b1bfb07d4dc4d8d44c59b2db0b486f131416a45f0b024",
+                                        "clips/sad/head-o.webm":  "94c857539956939d6fba07b4e5f5eec0d6b9023e88e4aee5b188deacc3d54689",
+                                        "clips/angry/idle.webm":  "4dfcac57c90ccba2e1575dfaf8f4c53ff245147339253a5562469627c2cd4e71",
+                                        "clips/angry/talking-body.webm":  "a0f112717bde373dde87381e774cbd6b5d4985e35f2b3aa8da1901a3bdf5d24d",
+                                        "clips/angry/head-sil.webm":  "e42b6d3462e405066a6a1a917284adf18c18ea24745619ceb714cb3ac46272cf",
+                                        "clips/angry/head-a.webm":  "7ba20e5a051354bd85002e6be1fe3950cb6acb330f7fc0595bfcf46bbdadf1af",
+                                        "clips/angry/head-i.webm":  "56b33942306539ac40500bc73e9078169b2da8b46653e776117c43802d4d4601",
+                                        "clips/angry/head-u.webm":  "01c45a2a2243ab44c77ea2205aa5b4621d472a3b3d956809a1b281cb752ab56c",
+                                        "clips/angry/head-e.webm":  "82813e4f235154e619fdcb9a829fcae8a09173cee91c38d35fb76a515afdce0d",
+                                        "clips/angry/head-o.webm":  "d7a03ed0ac1cbda16968bf27f07a15a5d4cbf9bfc8bca1e4a9e4a9ba6d1bc26f",
+                                        "clips/surprised/idle.webm":  "4dfcac57c90ccba2e1575dfaf8f4c53ff245147339253a5562469627c2cd4e71",
+                                        "clips/surprised/talking-body.webm":  "1fd72894d1f4e82431c4d6df653c84da03bde48f033361b8c32ad2aaf26fd127",
+                                        "clips/surprised/head-sil.webm":  "a8d9db85f6ab45a59501b5e6967f5de80b8f2b886acd3df3d0ecd36ba695c586",
+                                        "clips/surprised/head-a.webm":  "27eaaf1966c15fdcd00fe2bbc55b159fba9b24540862c7092e706c712ea7096f",
+                                        "clips/surprised/head-i.webm":  "96f96776cae1b6c790dd8dafccf380e8298e4126a9c473be4d9b839a777c160a",
+                                        "clips/surprised/head-u.webm":  "baadb09ffaeda1cfe6c411966129550e250b6d5bf86768fdb3b01a074e55e1df",
+                                        "clips/surprised/head-e.webm":  "e1a7cd7787b338c271467b6f5c9d9b317eba029724fc600db67e19f8a07e1dc0",
+                                        "clips/surprised/head-o.webm":  "3e97b3c1a33659f31197cdb06abee4183bdbf7076887ede59a3d9e090a39ac37",
+                                        "clips/thinking/idle.webm":  "4dfcac57c90ccba2e1575dfaf8f4c53ff245147339253a5562469627c2cd4e71",
+                                        "clips/thinking/talking-body.webm":  "2e854ce35f1abe8f578f4fa9db322103fda6a13c88cf87634d752269b2342ccc",
+                                        "clips/thinking/head-sil.webm":  "43356ff8abaf61cea0896744be80d891e69c7266d695ebe046116d3bdec2fb26",
+                                        "clips/thinking/head-a.webm":  "640d23f889ff012a0cedd9c4710f0417d180202f16dd6ef81e63737ba8ad0693",
+                                        "clips/thinking/head-i.webm":  "0e8711b3cc91d0e22430818935dbe9cf35647cb05a9bd96fce929f9ef05dbc37",
+                                        "clips/thinking/head-u.webm":  "8cd73ad7708018453f83217983bde8c2224fe8f9e244e1659de4e07aac076103",
+                                        "clips/thinking/head-e.webm":  "81255a664f33d500574e39f09a7df4cb27d93f638307af790dfe7dcdf60c5412",
+                                        "clips/thinking/head-o.webm":  "13f29e777a1285ca926126612171b93fa3d3b2b637cd4756295e4a7c05a10abb"
+                                    },
+                         "status":  "held"
+                     }
+}

@@ -1,11 +1,12 @@
-# Naia VRM-Style Slot NVA
+﻿# Naia NVA State Engine Bundle
 
 Generated from `naia.nva`.
 
-- Preview: `/src/main/prebaked-player.html?nva=../../examples/naia-prebaked.nva`
-- Canonical contract: `manifest.vrm_slots`
-- Speech clips: `clips/say-*.webm`
-- Viseme clips: `clips/viseme-*.webm`
-- Expression images: `expressions/*.png`
+- Preview/editor: `/src/main/editor.html`
+- State resource hierarchy: `manifest.state_engine`
+- State clips: `clips/{state}/idle.webm` and `clips/{state}/talking-body.webm`
+- Talking-head prototype clips: `clips/{state}/head-{sil|a|i|u|e|o}.webm` (held; not the final continuity contract)
+- Expression previews: `expressions/{state}.png`
+- Gestures: original idle plus `gesture-1` / `gesture-2` remain preserved as single motion clips.
 
-These sample webm files are service slots. The editor/runtime only play generated webm files; generation tools can replace files at the same paths.
+This held sample preserves the six standalone mouth-shape videos used by the prototype. Runtime TTS audio is not cached in NVA. The final talking-head transition contract will be selected after RTX 3090 cascade benchmarking.

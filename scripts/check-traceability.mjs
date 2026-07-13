@@ -15,8 +15,10 @@
  */
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
-const ROOT = process.env.TRACE_PROJECT_ROOT || process.cwd();
+const SCRIPT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = process.env.TRACE_PROJECT_ROOT || SCRIPT_ROOT;
 const PROGRESS = path.join(ROOT, "docs/progress");
 const args = new Set(process.argv.slice(2));
 const ENFORCE = args.has("--enforce");
@@ -24,15 +26,22 @@ const STRICT_ORPHANS = args.has("--strict-orphans");
 
 // registry 파일 → 그 파일이 "정의"하는 엔티티 종류(1번째 컬럼 ID)
 const REGISTRIES = [
-	{ file: "01.requirements/INDEX.md", defines: "REQ" },
-	{ file: "02.user-scenarios/INDEX.md", defines: "UC" },
-	{ file: "03.uc-tests/INDEX.md", defines: "TEST-S" },
-	{ file: "04.features/INDEX.md", defines: "SPEC" },
-	{ file: "05.features-tests/INDEX.md", defines: "TEST-F" },
+	{ file: "01.requirements/INDEX.md", defines: "REQ", prefixes: ["REQ"] },
+	{ file: "02.user-scenarios/INDEX.md", defines: "UC", prefixes: ["UC"] },
+	{ file: "03.uc-tests/INDEX.md", defines: "TEST-S", prefixes: ["TEST-S", "UCT"] },
+	{ file: "04.features/INDEX.md", defines: "SPEC", prefixes: ["SPEC", "FE"] },
+	{ file: "05.features-tests/INDEX.md", defines: "TEST-F", prefixes: ["TEST-F", "FT"] },
 ];
 
-const ID_RE = /\b(?:REQ|UC|SPEC|TEST-S|TEST-F)-\d+\b/g;
+const ID_RE = /\b(?:REQ|UC|UCT|FE|FT|SPEC|TEST-S|TEST-F)-(?:\d+|VM-\d+|RES-\d+|TEXT-\d+)\b/g;
 const idsIn = (s) => (String(s).match(ID_RE) || []);
+const kindOf = (id) => {
+	if (id.startsWith("TEST-S-") || id.startsWith("UCT-")) return "TEST-S";
+	if (id.startsWith("TEST-F-") || id.startsWith("FT-")) return "TEST-F";
+	if (id.startsWith("FE-")) return "SPEC";
+	if (id.startsWith("SPEC-")) return "SPEC";
+	return id.split("-")[0];
+};
 
 // 표 데이터 행만: '|' 로 시작 + 구분선(|---|) 아님 + 헤더(ID 텍스트) 아님
 function tableRows(text) {
@@ -53,11 +62,11 @@ for (const reg of REGISTRIES) {
 		if (cells.length === 0) continue;
 		const own = idsIn(cells[0]);
 		// 1번째 컬럼의 해당-종류 ID = 이 registry 가 정의
-		for (const id of own) if (id.startsWith(reg.defines + "-")) defined[reg.defines].add(id);
+		for (const id of own) if (reg.prefixes.some((p) => id.startsWith(p + "-"))) defined[reg.defines].add(id);
 		// 나머지 컬럼(또는 1열의 타종류 ID) = 참조
 		const refCells = cells.slice(1).join(" ") + " " + own.filter((id) => !id.startsWith(reg.defines + "-")).join(" ");
 		for (const id of idsIn(refCells)) {
-			const kind = id.startsWith("TEST-S-") ? "TEST-S" : id.startsWith("TEST-F-") ? "TEST-F" : id.split("-")[0];
+			const kind = kindOf(id);
 			refs.push({ id, kind, from: reg.file });
 		}
 	}

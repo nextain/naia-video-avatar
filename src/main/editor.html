@@ -1,522 +1,141 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>nva 에디터</title>
+<title>NVA state engine editor</title>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
-  :root{ color-scheme:dark; }
-  *{ box-sizing:border-box; }
-  body{ margin:0; font-family:system-ui,sans-serif; background:#0e1219; color:#e6edf3; }
-  header{ display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid #222c3a; flex-wrap:wrap; }
-  header h1{ font-size:15px; margin:0; } .pill{ background:#222c3a; border-radius:999px; padding:2px 8px; font-size:11px; }
-  button{ background:#222c3a; color:#e6edf3; border:1px solid #33415a; border-radius:7px; padding:6px 11px; cursor:pointer; font-size:13px; }
-  button:hover{ background:#2c3a4e; } button.primary{ background:#2f6feb; border-color:#2f6feb; } button.go{ background:#27c08a; border-color:#27c08a; color:#06281d; }
-  button.sm{ padding:3px 8px; font-size:12px; }
-  input,select,textarea{ background:#0c1118; color:#cfe3ff; border:1px solid #33415a; border-radius:6px; padding:5px 7px; font-size:13px; width:100%; }
-  label.f{ display:block; font-size:11px; color:#8b98a9; margin:8px 0 3px; }
-  #wrap{ display:flex; height:calc(100vh - 50px); }
-  aside{ width:320px; overflow:auto; padding:12px; } #struct{ border-right:1px solid #222c3a; } #form{ border-left:1px solid #222c3a; }
-  main{ flex:1; display:flex; flex-direction:column; align-items:center; padding:14px; overflow:auto; }
-  #player{ width:340px; max-width:92%; }
-  canvas{ background:#000; border-radius:10px; width:100%; height:auto; display:block; }
-  h2{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#8b98a9; margin:14px 0 6px; display:flex; justify-content:space-between; align-items:center; }
-  .item{ display:flex; justify-content:space-between; align-items:center; padding:5px 8px; border-radius:6px; cursor:pointer; font-size:13px; margin:2px 0; background:#161d28; }
-  .item:hover{ background:#1d2735; } .item.sel{ background:#2f6feb; }
-  .item .tag{ font-size:10px; color:#8b98a9; } .item.sel .tag{ color:#cfe0ff; }
-  .kind-talking{ color:#27c08a; } .kind-idle{ color:#8fb8ff; } .kind-gesture{ color:#e0a93a; }
-  .ctrls{ margin:8px 0; } .ctrls button{ margin:0 4px 4px 0; }
-  #valid{ white-space:pre-wrap; font-family:ui-monospace,monospace; font-size:11px; background:#0c1118; border:1px solid #222c3a; border-radius:7px; padding:8px; width:100%; max-width:520px; max-height:110px; overflow:auto; }
-  .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; } .ok{ background:#27c08a; } .bad{ background:#ff5a5a; }
-  .muted{ color:#8b98a9; font-size:11px; }
-  #status{ font-size:12px; color:#8b98a9; }
-  #guide{ position:fixed; inset:0; background:rgba(0,0,0,.72); display:none; z-index:50; align-items:center; justify-content:center; }
-  #guide.on{ display:flex; }
-  #guide .box{ background:#11151c; border:1px solid #33415a; border-radius:12px; max-width:620px; max-height:82vh; overflow:auto; padding:22px 26px; line-height:1.6; }
-  #guide h3{ margin:0 0 10px; font-size:17px; } #guide h4{ margin:16px 0 4px; color:#8fb8ff; font-size:13px; }
-  #guide code{ background:#0c1118; padding:1px 6px; border-radius:4px; } #guide .close{ float:right; } #guide .tag{ color:#8b98a9; font-size:12px; }
-#struct h2{ border-top:1px solid #2c3a48; padding-top:12px; margin-top:14px; }
-#struct > h2:first-of-type{ border-top:none; padding-top:0; margin-top:0; }
-#ttsPanel{ border-bottom:1px solid #2c3a48; padding-bottom:10px; margin-bottom:10px; }
+:root{color-scheme:dark;--bg:#0d1118;--panel:#141b25;--line:#293546;--text:#e6edf3;--muted:#8d9aad;--accent:#26c48d;--blue:#4d88ff;--warn:#ffcf66;--bad:#ff6666}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,#1a2a2a,#0d1118 42%,#090c11);color:var(--text);font-family:ui-sans-serif,system-ui,sans-serif}button,input,select,textarea{font:inherit}button{background:#222d3e;color:var(--text);border:1px solid #3a4b64;border-radius:8px;padding:6px 10px;cursor:pointer}button:hover{background:#2c3b50}.primary{background:var(--accent);border-color:var(--accent);color:#061b14}.small{font-size:12px;padding:4px 8px}input,select,textarea{width:100%;background:#0b1017;color:var(--text);border:1px solid #334258;border-radius:7px;padding:6px 8px}label{display:block;margin:9px 0 4px;color:var(--muted);font-size:12px}header{height:54px;display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:rgba(13,17,24,.9);position:sticky;top:0;z-index:10}h1{font-size:16px;margin:0 10px 0 0}.pill{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:3px 8px}.wrap{display:grid;grid-template-columns:330px 1fr 360px;height:calc(100vh - 54px)}aside,main{min-height:0;overflow:auto;padding:14px}aside{background:rgba(20,27,37,.78)}#left{border-right:1px solid var(--line)}#right{border-left:1px solid var(--line)}h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 8px;display:flex;justify-content:space-between;align-items:center}.hint{font-size:12px;color:var(--muted);line-height:1.45}.row{display:flex;gap:8px;align-items:center}.item{display:flex;justify-content:space-between;gap:8px;align-items:center;background:#17202c;border:1px solid transparent;border-radius:8px;margin:5px 0;padding:8px;cursor:pointer}.item:hover{border-color:#3a4b64}.item.active{background:#183d35;border-color:var(--accent)}.item .meta{font-size:11px;color:var(--muted);text-align:right}.tag{font-size:10px;color:var(--muted);border:1px solid #3a4b64;border-radius:99px;padding:2px 6px}.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tile{background:#111923;border:1px solid var(--line);border-radius:10px;padding:7px;text-align:left}.tile.active{border-color:var(--accent)}.face{aspect-ratio:1/1;overflow:hidden;background:#05070a;border-radius:8px}.face img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}.tile .name{margin-top:6px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#stageBox{width:min(420px,92vw);margin:4px auto 12px}canvas{width:100%;height:auto;background:#000;border-radius:16px;box-shadow:0 22px 80px rgba(0,0,0,.35)}#valid{white-space:pre-wrap;font:12px ui-monospace,monospace;background:#080c12;border:1px solid var(--line);border-radius:10px;padding:10px;max-height:150px;overflow:auto}.ok{color:var(--accent)}.bad{color:var(--bad)}.warn{color:var(--warn)}.controls{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}.formSection{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.resList{display:grid;gap:6px;margin:8px 0 12px}.resRow{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;background:#101823;border:1px solid var(--line);border-radius:8px;padding:7px}.resRow .path{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.resRow.missing{border-color:#5a3440}.resourcePreviewBox{background:#070a0f;border:1px solid var(--line);border-radius:10px;min-height:80px;padding:8px;margin:8px 0 10px}.resourcePreviewBox img{width:100%;max-height:220px;object-fit:contain;display:block}.resourcePreviewBox .empty{color:var(--muted);font-size:12px}
 </style>
 </head>
 <body>
 <header>
-  <h1>nva <span data-i18n="app.editor">에디터</span> <span class="pill" data-i18n="app.pill">v0.2 · 제작 도구</span></h1>
-  <button id="loadNaia" data-i18n="btn.loadNaia">Naia 슬롯 NVA</button>
-  <button id="loadOsarang" data-i18n="btn.loadOsarang">오사랑 슬롯 NVA</button>
-  <button id="loadDemo" data-i18n="btn.loadDemo">박스 데모</button>
-  <label class="sm" style="display:inline-block"><input type="file" id="openNva" accept=".nva,.zip" style="display:none">
-    <button class="sm" id="openNvaBtn" onclick="document.getElementById('openNva').click()" data-i18n="btn.openNva">.nva 열기</button></label>
-  <button id="exportBtn" class="go" data-i18n="btn.export">⬇ .nva 내보내기</button>
-  <button id="helpBtn" data-i18n="btn.help">❔ 사용법</button>
-  <button id="langBtn" class="sm" style="margin-left:auto">English</button>
-  <span class="pill" id="buildTag" title="빌드 — 캐시 확인용">build ?</span>
-  <span><span class="dot bad" id="vdot"></span><span id="status" data-i18n="status.loading">로딩…</span></span>
+  <h1>NVA state engine editor</h1>
+  <button id="loadNaia">Naia slot NVA</button>
+  <button id="loadOsarang">Osarang slot NVA</button>
+  <button id="loadDemo">Box demo</button>
+  <input id="openNva" type="file" accept=".nva,.zip" hidden>
+  <button id="openNvaBtn">Open .nva</button>
+  <button id="exportBtn" class="primary">Export .nva</button>
+  <span class="pill" id="status">ready</span>
 </header>
-<div id="guide"><div class="box">
-  <button class="close" id="guideClose" data-i18n="btn.close">✕ 닫기</button>
-  <div id="guideBody"></div>
-</div></div>
-<div id="wrap">
-  <!-- 좌: 리소스 -->
-  <aside id="struct">
-    <h2 data-i18n="sec.meta">메타 정보</h2>
-    <label class="f" data-i18n="meta.name">이름</label><input id="m_name">
-    <label class="f" data-i18n="meta.owner">제작자 / 소유자</label><input id="m_owner">
-    <h2 data-i18n="sec.bg">배경 / 레이어</h2>
-    <label class="f" data-i18n="bg.type">배경 종류</label>
-    <select id="m_bgtype"><option value="transparent" data-i18n="bg.transparent">투명 (알파 — 소비자가 합성)</option><option value="color" data-i18n="bg.color">단색</option></select>
-    <label class="f"><span data-i18n="bg.preview">미리보기 배경색</span> <span class="muted" data-i18n="bg.previewNote">(투명 배경도 이 색 위에 얹어 확인)</span></label><input id="m_bg" type="color">
-    <label class="f"><span data-i18n="bg.chroma">크로마키 지움 색</span> <span class="muted" data-i18n="bg.chromaNote">(구형 불투명 클립만 — 알파 webm 이면 비움)</span></label>
-    <div style="display:flex;gap:6px;align-items:center"><input id="m_chroma" type="color" style="flex:1"><button class="sm" id="m_chroma_clr" data-i18n="btn.clear">지움</button></div>
-    <h2><span data-i18n="sec.anim">애니메이션</span> <span><button class="sm" id="addAnim" data-i18n="btn.addAnim">+ 동작 추가</button></span></h2>
+<div class="wrap">
+  <aside id="left">
+    <h2>Meta</h2>
+    <label>Name</label><input id="m_name">
+    <label>Owner</label><input id="m_owner">
+    <h2>Background</h2>
+    <label>Type</label><select id="m_bgtype"><option value="transparent">transparent</option><option value="color">color</option></select>
+    <label>Preview color</label><input id="m_bg" type="color" value="#fff2d6">
+    <label>Chroma key</label><div class="row"><input id="m_chroma" type="color" value="#00b140"><button id="m_chroma_clr" class="small">clear</button></div>
+    <h2>State engine <span><button id="addState" class="small">+ state</button><button id="addGesture" class="small">+ gesture</button></span></h2>
+    <p class="hint">State = idle full-body + talking body + cropped talking head per viseme. Gesture = one video clip.</p>
+    <div id="stateList"></div>
+    <h2>Gestures / legacy animations</h2>
     <div id="animList"></div>
-    <p class="muted" id="animHelp" data-i18n="anim.help">기본 2개 = 대기(idle) · 말하기(speak). 그 아래 동작(gesture-n)을 필요한 만큼 추가.</p>
-    <h2><span data-i18n="sec.vrm">VRM식 슬롯</span></h2>
-    <div id="vrmSlots" class="muted"></div>
+    <h2>Legacy VRM slots</h2>
+    <div id="vrmSlots" class="hint"></div>
   </aside>
-
-  <!-- 중앙: 플레이어 + 유효성 -->
   <main>
-    <h2 style="align-self:center" data-i18n="sec.player">플레이어 (webm 미리보기)</h2>
-    <div id="player">
-      <canvas id="cv" width="360" height="640"></canvas>
-      <div class="ctrls" id="playCtrls"></div>
-    </div>
-    <h2 style="align-self:flex-start" data-i18n="sec.valid">검사</h2>
-    <div id="valid">…</div>
+    <h2>Preview</h2>
+    <div id="stageBox"><canvas id="cv" width="360" height="640"></canvas></div>
+    <div class="controls" id="playCtrls"></div>
+    <h2>Validation</h2>
+    <div id="valid">No manifest loaded.</div>
   </main>
-
-  <!-- 우: 무료 TTS 테스트 + 선택 애니 편집 -->
-  <aside id="form">
-    <div id="ttsPanel">
-      <h2 style="margin-top:0"><span data-i18n="tts.title">무료 TTS 테스트</span></h2>
-      <label class="f" data-i18n="locale.current">발화 언어</label>
-      <select id="localeSelect"></select>
-      <label class="f" data-i18n="tts.text">테스트 문장</label>
-      <textarea id="ttsText" rows="3" data-i18n-ph="tts.placeholder">안녕하세요. 강남구청 안내원 오사랑입니다.</textarea>
-      <label class="f" data-i18n="tts.voice">브라우저 음성</label>
-      <select id="ttsVoice"></select>
-      <div class="ctrls">
-        <button class="sm go" id="ttsSpeak" data-i18n="tts.speak">▶ TTS 재생</button>
-        <button class="sm" id="ttsStop" data-i18n="tts.stop">정지</button>
-      </div>
-      <p class="muted" id="ttsStatus" data-i18n="tts.note">브라우저 내장 Web Speech API를 사용합니다. NVA에는 저장되지 않습니다.</p>
+  <aside id="right">
+    <h2>TTS engine preview</h2>
+    <label>Locale</label><select id="localeSelect"></select>
+    <label>Text</label><textarea id="ttsText" rows="3">안녕하세요. 지금 상태 기반 발화를 확인합니다.</textarea>
+    <div class="controls"><button id="ttsKoreanSample" class="small">Korean sample</button><button id="ttsVisemeSmoke" class="small">Viseme smoke: aiueo</button></div>
+    <label>Browser voice</label><select id="ttsVoice"></select>
+    <div class="controls"><button id="ttsSpeak" class="primary">Play TTS</button><button id="ttsStop">Stop</button></div>
+    <p id="ttsStatus" class="hint">TTS drives state talking body + head overlay. Use Korean spoken text for review; aiueo is only a viseme smoke sample. Cascade/Ditto production text should already expand numbers and symbols into spoken form.</p>
+    <div class="formSection">
+      <h2>Expression / state gallery</h2>
+      <p class="hint">Shows cropped face/state previews when state_engine exists.</p>
+      <div id="exprGalleryGrid" class="gallery"></div>
     </div>
-    <div id="formBody"><p class="muted" data-i18n="form.empty">왼쪽 애니메이션 항목을 선택하면 편집합니다.</p></div>
+    <div class="formSection" id="formBody"><p class="hint">Select a state or gesture to edit.</p></div>
   </aside>
 </div>
-
 <script type="module">
-import { validateManifest, migrateToV02, animKind } from "./nva-core.js?v=20260703l";
-const BUILD="20260703l";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
-
-// ─────────────────────────────────────────────────────────────
-//  i18n — 한국어/English. 고유명사(naia·nva·VP9·TTS·URL·AI·LLM·webm)만
-//  양쪽 공통으로 유지, 나머지 일반어는 각 언어로. (한/영 혼용 금지.)
-// ─────────────────────────────────────────────────────────────
-const I18N = {
-  ko: {
-    "doc.title":"nva 에디터",
-    "app.editor":"에디터", "app.pill":"v0.2 · 제작 도구",
-    "btn.loadNaia":"Naia 슬롯 NVA", "btn.loadOsarang":"오사랑 슬롯 NVA", "btn.loadDemo":"박스 데모", "btn.openNva":".nva 열기",
-    "btn.export":"⬇ .nva 내보내기", "btn.help":"❔ 사용법", "btn.close":"✕ 닫기",
-    "btn.clear":"지움", "btn.addAnim":"+ 동작 추가",
-    "btn.speak":"🎙 말하기", "btn.listen":"▶ 듣기", "btn.apply":"적용", "btn.del":"삭제",
-    "lang.toggle":"English",
-    "status.loading":"로딩…",
-    "status.loadNaia":"Naia VRM식 슬롯 NVA 불러옴",
-    "status.loadDemo":"박스 데모 불러옴",
-    "status.loadOsarang":"오사랑 VRM식 슬롯 NVA 불러옴",
-    "status.opened":"{name} 불러옴",
-    "status.exported":"내보내기 완료 (.nva v0.2)",
-    "sec.meta":"메타 정보", "sec.bg":"배경 / 레이어", "sec.anim":"애니메이션",
-    "sec.player":"플레이어 (webm 미리보기)", "sec.valid":"검사", "sec.vrm":"VRM식 슬롯",
-    "meta.name":"이름", "meta.owner":"제작자 / 소유자",
-    "bg.type":"배경 종류",
-    "bg.transparent":"투명 (알파 — 소비자가 합성)", "bg.color":"단색",
-    "bg.preview":"미리보기 배경색", "bg.previewNote":"(투명 배경도 이 색 위에 얹어 확인)",
-    "bg.chroma":"크로마키 지움 색", "bg.chromaNote":"(구형 불투명 클립만 — 알파 webm 이면 비움)",
-    "anim.help":"기본 = 대기(idle) · 발화/표정 webm 슬롯. 필요한 동작(gesture-n)을 추가.",
-    "form.empty":"왼쪽 애니메이션 항목을 선택하면 편집합니다.",
-    "form.clip":"클립 (파일 — 알파 webm 권장)",
-    "form.type":"종류",
-    "form.type.idle":"대기", "form.type.talking":"발화 루프", "form.type.gesture":"동작",
-    "form.label":"라벨 (AI가 이 이름으로 지목 — 유일해야 함)",
-    "form.desc":"설명 (AI가 이 설명을 보고 언제 재생할지 판단)",
-    "form.bbox":"머리 영역 [x, y, w, h] (0~1) — 구형 NVA 호환 필드.",
-    "canvas.head":"머리 영역", "canvas.face":"얼굴 영역", "form.bboxColor":"가이드 색",
-    "head.title":"헤드 이미지 (투명 PNG — 없으면 영상 frame0 자동)",
-    "head.fromVideo":"영상에서 생성", "head.upload":"PNG 업로드", "head.clear":"지움",
-    "head.none":"없음 (영상 frame0 자동)", "head.set":"헤드 이미지 설정됨", "head.genFail":"생성 실패(클립·영역 확인)",
-    "head.chroma":"헤드 크로마 색", "head.chromaNote":"(구형 합성용 · 배경/레이어와 별개)",
-    "head.chromaDefault":"기본 마젠타 (투명 PNG면 신경 안 써도 됨)",
-    "tts.title":"무료 TTS 테스트",
-    "locale.current":"발화 언어",
-    "tts.text":"테스트 문장",
-    "tts.placeholder":"안녕하세요. 강남구청 안내원 오사랑입니다.",
-    "tts.voice":"브라우저 음성",
-    "tts.speak":"▶ TTS 재생",
-    "tts.stop":"정지",
-    "tts.note":"브라우저 내장 Web Speech API를 사용합니다. NVA에는 저장되지 않습니다.",
-    "tts.ready":"사용 가능한 브라우저 음성 {n}개",
-    "tts.empty":"사용 가능한 브라우저 음성이 아직 없습니다.",
-    "tts.unsupported":"이 브라우저는 Web Speech API를 지원하지 않습니다.",
-    "tts.playing":"TTS 재생 중",
-    "tts.done":"TTS 재생 완료",
-    "tts.stopped":"TTS 정지",
-    "confirm.del":"'{key}' 동작을 삭제할까요?",
-    "alert.loadFirst":"먼저 불러오세요", "alert.exportBlocked":"내보내기 차단 — {msg}",
-    "err.validation":"유효성 오류:\n{errs}",
-    "valid.valid":"✅ 유효", "valid.invalid":"❌ 오류", "valid.err":"오류  ", "valid.warn":"경고  ", "valid.noWarn":"(경고 없음)",
-    "seed.idle":"대기", "seed.speak":"말하기", "seed.gesture":"동작{n}",
-    "vrm.empty":"VRM식 슬롯 없음 — animations만 사용하는 구형 NVA",
-    "vrm.summary":"expression {e}개 · viseme {v}개 · motion {m}개 · speech {s}개",
-    "vrm.llm":"LLM 출력 권장: { expression, motion, speech 또는 viseme }",
-  },
-  en: {
-    "doc.title":"nva editor",
-    "app.editor":"editor", "app.pill":"v0.2 · authoring tool",
-    "btn.loadNaia":"Naia slot NVA", "btn.loadOsarang":"Osarang slot NVA", "btn.loadDemo":"Box demo", "btn.openNva":"Open .nva",
-    "btn.export":"⬇ Export .nva", "btn.help":"❔ Help", "btn.close":"✕ Close",
-    "btn.clear":"Clear", "btn.addAnim":"+ Add gesture",
-    "btn.speak":"🎙 Speak", "btn.listen":"▶ Play", "btn.apply":"Apply", "btn.del":"Delete",
-    "lang.toggle":"한국어",
-    "status.loading":"Loading…",
-    "status.loadNaia":"Naia VRM-style slot NVA loaded",
-    "status.loadDemo":"Box demo loaded",
-    "status.loadOsarang":"Osarang VRM-style slot NVA loaded",
-    "status.opened":"{name} loaded",
-    "status.exported":"Exported (.nva v0.2)",
-    "sec.meta":"Meta", "sec.bg":"Background / Layer", "sec.anim":"Animations",
-    "sec.player":"Player (webm preview)", "sec.valid":"Validation", "sec.vrm":"VRM-style slots",
-    "meta.name":"Name", "meta.owner":"Author / Owner",
-    "bg.type":"Background type",
-    "bg.transparent":"transparent (alpha — composited downstream)", "bg.color":"solid color",
-    "bg.preview":"Preview background color", "bg.previewNote":"(shown behind transparent clips too)",
-    "bg.chroma":"Chroma-key (remove) color", "bg.chromaNote":"(legacy opaque clips only — leave empty for alpha webm)",
-    "anim.help":"Base entries = idle plus speech/expression webm slots. Add gesture-n entries as needed.",
-    "form.empty":"Select an animation on the left to edit.",
-    "form.clip":"Clip (file — alpha webm recommended)",
-    "form.type":"Type",
-    "form.type.idle":"Idle", "form.type.talking":"Speech loop", "form.type.gesture":"Gesture",
-    "form.label":"Label (AI selects by this — must be unique)",
-    "form.desc":"Description (AI decides when to play from this)",
-    "form.bbox":"Head region [x, y, w, h] (0-1) — legacy NVA compatibility field.",
-    "canvas.head":"Head region", "canvas.face":"Face region", "form.bboxColor":"Guide color",
-    "head.title":"Head image (transparent PNG — auto frame0 if empty)",
-    "head.fromVideo":"From video", "head.upload":"Upload PNG", "head.clear":"Clear",
-    "head.none":"None (auto frame0 from clip)", "head.set":"Head image set", "head.genFail":"Generate failed (check clip/region)",
-    "head.chroma":"Head chroma color", "head.chromaNote":"(legacy compositing · separate from Background/Layer)",
-    "head.chromaDefault":"Default magenta (ignore for transparent PNG)",
-    "tts.title":"Free TTS test",
-    "locale.current":"Speech locale",
-    "tts.text":"Test sentence",
-    "tts.placeholder":"Hello. I am Osarang, your Gangnam-gu office guide.",
-    "tts.voice":"Browser voice",
-    "tts.speak":"▶ Play TTS",
-    "tts.stop":"Stop",
-    "tts.note":"Uses the browser Web Speech API. It is not saved into the NVA.",
-    "tts.ready":"{n} browser voices available",
-    "tts.empty":"No browser voices are available yet.",
-    "tts.unsupported":"This browser does not support the Web Speech API.",
-    "tts.playing":"TTS playing",
-    "tts.done":"TTS finished",
-    "tts.stopped":"TTS stopped",
-    "confirm.del":"Delete gesture '{key}'?",
-    "alert.loadFirst":"Load first", "alert.exportBlocked":"Export blocked — {msg}",
-    "err.validation":"Validation errors:\n{errs}",
-    "valid.valid":"✅ VALID", "valid.invalid":"❌ INVALID", "valid.err":"ERROR  ", "valid.warn":"WARN   ", "valid.noWarn":"(no warnings)",
-    "seed.idle":"Idle", "seed.speak":"Speak", "seed.gesture":"Gesture {n}",
-    "vrm.empty":"No VRM-style slots — legacy NVA using animations only",
-    "vrm.summary":"{e} expressions · {v} visemes · {m} motions · {s} speech clips",
-    "vrm.llm":"Recommended LLM output: { expression, motion, speech or viseme }",
-  },
-};
-const GUIDE = {
-  ko:`<h3>nva 에디터 — 사용법 (v0.2)</h3>
-  <p class="tag">naia video clip avatar — 비디오 클립 아바타 포맷 제작/편집</p>
-  <h4>구조 (단일 상태)</h4>
-  <b>진입 = 대기(idle, loop)</b> → 말 안 할 땐 대기 루프, 말할 땐 미리 만든 발화 webm.
-  <b>발화/표정 슬롯</b> = 이미 생성한 webm 클립. <b>동작(gesture, 비loop)</b> = AI가 트리거하는 표정/제스처.
-  <p class="muted">종류는 대기/말하기/동작 중 선택. 포즈/전환/상태(앉기·눕기 등)는 다음 버전.</p>
-  <h4>사용</h4>
-  <b>오사랑 슬롯 NVA</b> / <b>.nva 열기</b> → 왼쪽 애니메이션과 VRM식 슬롯 확인 → 가운데 플레이어에서 webm 미리보기 → 오른쪽 무료 TTS로 문장 톤 확인 → <b>내보내기</b>.
-  <h4>배경 · 알파</h4>
-  알파(VP9 yuva420p webm) 클립은 배경 위에 그대로 합성. 미리보기 배경색으로 확인.
-  <h4>AI 트리거</h4>
-  각 애니메이션의 <b>라벨</b>과 <b>설명</b>을 AI가 읽고 대화 상황에 맞는 동작을 골라 재생. 라벨은 유일해야 함.`,
-  en:`<h3>nva editor — Guide (v0.2)</h3>
-  <p class="tag">naia video clip avatar — authoring for the video-clip avatar format</p>
-  <h4>Structure (single state)</h4>
-  <b>Entry = idle (loop)</b> → idle loop when silent; prebuilt speech webm when speaking.
-  <b>Speech/expression slots</b> = already generated webm clips. <b>Gesture (non-loop)</b> = AI-triggered expressions/gestures.
-  <p class="muted">Pick a type among idle/speak/gesture. Poses/transitions/states (sit, lie) are a later version.</p>
-  <h4>Usage</h4>
-  <b>Osarang slot NVA</b> / <b>Open .nva</b> → inspect animations and VRM-style slots on the left → preview webm in the center player → test copy with free TTS on the right → <b>Export</b>.
-  <h4>Background · Alpha</h4>
-  Alpha (VP9 yuva420p webm) clips composite straight over the background. Check with the preview color.
-  <h4>AI triggers</h4>
-  The AI reads each animation's <b>label</b> and <b>description</b> and plays the one that fits the conversation. Labels must be unique.`,
-};
-let lang = localStorage.getItem("nva_lang") || "ko";
-function t(key, vars){ let s = (I18N[lang] && I18N[lang][key]) || (I18N.ko[key]) || key;
-  if(vars) for(const k in vars) s = s.split("{"+k+"}").join(vars[k]); return s; }
-function applyI18n(){
-  document.documentElement.lang = lang;
-  document.title = t("doc.title");
-  document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent = t(el.dataset.i18n); });
-  document.querySelectorAll("[data-i18n-ph]").forEach(el=>{ el.placeholder = t(el.dataset.i18nPh); });
-  $("langBtn").textContent = t("lang.toggle");
-  $("struct").dataset.lockmsg = t("lockmsg");
-  $("guideBody").innerHTML = GUIDE[lang] || GUIDE.ko;
-  // 동적 영역 재렌더(현재 언어 반영)
-  if(M){ renderStruct(); renderForm(); refresh(); initTtsVoices(); }
-}
-
-let M=null, baseUrl="", blobMap={}, selected=null, busy=false, currentLocale="ko-KR";
-let speaking=false, current=null;
-let soundOn=false;
+import { validateManifest, migrateToV02, animKind, buildStateSpeechPlan, textToViseme, routeProsodyState } from './nva-core.js?v=20260712-state';
 const $=id=>document.getElementById(id);
-const cv=$("cv"), ctx=cv.getContext("2d"), off=document.createElement("canvas"), octx=off.getContext("2d",{willReadFrequently:true});
-const video=document.createElement("video"); video.muted=true; video.playsInline=true;
-window.addEventListener("pointerdown", ()=>{ soundOn=true; video.muted=false; }, { once:true });
-const clipUrl=c=> blobMap[c]?.url || (baseUrl ? `${baseUrl}/${c}` : c);
-function hexRGB(h){ h=(h||"#00b140").replace("#",""); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
-
-// ── 미리보기 합성 ──
-function compose(ts){
-  const bg=M?.background;
-  const preview=(bg?.type==="color" && bg?.color) ? bg.color : (($("m_bg")&&$("m_bg").value) || "#fff2d6");
+const cv=$('cv'), ctx=cv.getContext('2d'), off=document.createElement('canvas'), octx=off.getContext('2d',{willReadFrequently:true});
+const video=document.createElement('video'); video.muted=true; video.playsInline=true;
+let headVideo=null, speechTicker=null, currentHeadClip='', M=null, baseUrl='', blobMap={}, selected=null, current=null, activeState=null, currentLocale='ko-KR', soundOn=false, resourcePreview=null;
+video.addEventListener('loadeddata',()=>updateDebug());
+video.addEventListener('canplay',()=>updateDebug());
+window.addEventListener('pointerdown',()=>{soundOn=true; video.muted=false},{once:true});
+const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const isAbs=v=>/^(?:[a-z][a-z0-9+.-]*:|\/\/|\/)/i.test(v||'');
+function clipUrl(c){ if(!c)return ''; if(blobMap[c]?.url)return blobMap[c].url; if(isAbs(c))return c; return baseUrl?`${baseUrl}/${c}`:c; }
+function setStatus(s,cls=''){ $('status').textContent=s; $('status').className='pill '+cls; }
+function hexRGB(h){h=(h||'#00b140').replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function compose(){
+  const bg=M?.background; const preview=(bg?.type==='color'&&bg?.color)?bg.color:$('m_bg').value;
   ctx.fillStyle=preview; ctx.fillRect(0,0,cv.width,cv.height);
   if(video.readyState>=2){
-    if(M?.chroma_key){
-      off.width=cv.width; off.height=cv.height; octx.clearRect(0,0,cv.width,cv.height); octx.drawImage(video,0,0,cv.width,cv.height);
-      const [cr,cg,cb]=hexRGB(M.chroma_key), img=octx.getImageData(0,0,cv.width,cv.height),d=img.data;
-      for(let i=0;i<d.length;i+=4){ const dr=d[i]-cr,dg=d[i+1]-cg,db=d[i+2]-cb; if(dr*dr+dg*dg+db*db<90*90) d[i+3]=0; }
-      octx.putImageData(img,0,0); ctx.drawImage(off,0,0);
-    } else { ctx.drawImage(video,0,0,cv.width,cv.height); }
+    if(M?.chroma_key){ off.width=cv.width; off.height=cv.height; octx.clearRect(0,0,cv.width,cv.height); octx.drawImage(video,0,0,cv.width,cv.height); const [cr,cg,cb]=hexRGB(M.chroma_key); const img=octx.getImageData(0,0,cv.width,cv.height),d=img.data; for(let i=0;i<d.length;i+=4){const dr=d[i]-cr,dg=d[i+1]-cg,db=d[i+2]-cb;if(dr*dr+dg*dg+db*db<90*90)d[i+3]=0;} octx.putImageData(img,0,0); ctx.drawImage(off,0,0); }
+    else ctx.drawImage(video,0,0,cv.width,cv.height);
   }
+  if(headVideo?.readyState>=2 && M?.__engineSpeech){ const st=M.state_engine.states[M.__engineSpeech.state]; const b=st?.face_bbox||[.34,.05,.32,.36]; if(st?.talking_head_crop) ctx.drawImage(headVideo,b[0]*cv.width,b[1]*cv.height,b[2]*cv.width,b[3]*cv.height); else ctx.drawImage(headVideo,b[0]*headVideo.videoWidth,b[1]*headVideo.videoHeight,b[2]*headVideo.videoWidth,b[3]*headVideo.videoHeight,b[0]*cv.width,b[1]*cv.height,b[2]*cv.width,b[3]*cv.height); }
   requestAnimationFrame(compose);
 }
-function playClip(clip,loop){ video.muted=!soundOn; video.src=clipUrl(clip); video.loop=loop; video.play().catch(()=>{}); }
-function goto(key){ const a=M?.animations?.[key]; if(!a||busy) return; busy=true;
-  current={key,clip:a.clip,loop:!!a.loop,can_talk:!!a.can_talk,face_bbox:a.face_bbox||null};
-  playClip(a.clip, !!a.loop); busy=false; }
-
-// ── 좌측 구조 + 플레이 버튼 ──
+function defaultHeadSync(v){ return {fps:25,duration_ms:1200,loopable:true,hold_min_ms:80,hold_max_ms:240,mouth_peak_ms:v==='sil'?0:120}; }
+function ensureStateEngine(){
+  M.animations=M.animations||{}; M.state_engine=M.state_engine||{}; const e=M.state_engine; e.version=e.version||'0.1'; e.visemes=Array.isArray(e.visemes)&&e.visemes.length?e.visemes:['sil','a','i','u','e','o']; e.states=e.states||{}; e.default_state=e.default_state||Object.keys(e.states)[0]||'neutral';
+  if(!e.states[e.default_state]) e.states[e.default_state]={label:e.default_state,idle:'',talking_body:'',face_preview:'',face_bbox:[.34,.05,.32,.36],talking_heads:{},sync:{default_hold_ms:160,heads:{}}};
+  for(const st of Object.values(e.states)){ st.talking_heads=st.talking_heads||{}; st.face_bbox=Array.isArray(st.face_bbox)&&st.face_bbox.length===4?st.face_bbox:[.34,.05,.32,.36]; st.sync=st.sync||{}; st.sync.default_hold_ms=Number(st.sync.default_hold_ms)>0?Number(st.sync.default_hold_ms):160; st.sync.heads=st.sync.heads||{}; for(const v of e.visemes){ if(typeof st.talking_heads[v]!=='string') st.talking_heads[v]=''; st.sync.heads[v]={...defaultHeadSync(v),...(st.sync.heads[v]||{})}; } }
+}
+function refresh(){ if(!M)return; ensureStateEngine(); const r=validateManifest(M); $('valid').innerHTML=(r.ok?'<span class="ok">VALID</span>':'<span class="bad">INVALID</span>')+'\n'+r.errors.map(e=>'ERROR '+e).join('\n')+(r.errors.length?'\n':'')+r.warnings.map(w=>'WARN '+w).join('\n')+(r.warnings.length?'':'(no warnings)'); cv.width=M.canvas?.width||360; cv.height=M.canvas?.height||640; renderStruct(); updateDebug(); }
 function renderStruct(){
-  $("m_name").value=M.meta?.name||""; $("m_owner").value=M.meta?.owner||M.meta?.author||"";
-  $("m_bgtype").value=M.background?.type||"transparent";
-  $("m_bg").value=(M.background?.color)||"#fff2d6"; $("m_chroma").value=M.chroma_key||"#00b140";
-  const al=$("animList"); al.innerHTML="";
-  for(const[k,a]of Object.entries(M.animations||{})) al.appendChild(itemRow(k,animKind(a)));
-  const pc=$("playCtrls"); pc.innerHTML="";
-  for(const[k,a]of Object.entries(M.animations||{})){ const b=document.createElement("button"); b.className="sm"; b.textContent=a.label||k; b.onclick=()=>goto(k); pc.appendChild(b); }
-  renderVrmSlots();
+  $('m_name').value=M.meta?.name||''; $('m_owner').value=M.meta?.owner||M.meta?.author||''; $('m_bgtype').value=M.background?.type||'transparent'; $('m_bg').value=M.background?.color||'#fff2d6'; $('m_chroma').value=M.chroma_key||'#00b140';
+  const sl=$('stateList'); sl.innerHTML=''; for(const [key,st] of Object.entries(M.state_engine.states)){ const heads=Object.values(st.talking_heads||{}).filter(Boolean).length; const d=document.createElement('div'); d.className='item state-item '+(selected==='state:'+key?'active':''); d.innerHTML=`<span>${esc(st.label||key)}</span><span class="meta">idle ${st.idle?'OK':'-'} / body ${st.talking_body?'OK':'-'} / heads ${heads}/${M.state_engine.visemes.length}</span>`; d.onclick=()=>selectState(key); sl.appendChild(d); }
+  const al=$('animList'); al.innerHTML=''; for(const [key,a] of Object.entries(M.animations||{})){ const kind=animKind(a); const d=document.createElement('div'); d.className='item '+(selected===key?'active':''); d.innerHTML=`<span>${esc(a.label||key)}</span><span class="tag">${kind}</span>`; d.onclick=()=>selectAnim(key); al.appendChild(d); }
+  const pc=$('playCtrls'); pc.innerHTML=''; for(const [key,st] of Object.entries(M.state_engine.states)){ const b=document.createElement('button'); b.className='small'; b.textContent=`state ${st.label||key}`; b.onclick=()=>playEngineIdle(key); pc.appendChild(b); }
+  for(const [key,a] of Object.entries(M.animations||{})){ const b=document.createElement('button'); b.className='small'; b.textContent=a.label||key; b.onclick=()=>goto(key); pc.appendChild(b); }
+  const s=M.vrm_slots||{}; const states=M.state_engine?.states||{};
+  $('vrmSlots').textContent=`expressions ${Object.keys(s.expressions||{}).length}, prototype head keys ${M.state_engine.visemes.length}, state-engine states ${Object.keys(states).length}`;
+  renderGallery();
 }
-function renderVrmSlots(){
-  const el=$("vrmSlots"); if(!el) return;
-  const s=M?.vrm_slots;
-  if(!s){ el.innerHTML=`<p>${t("vrm.empty")}</p>`; return; }
-  const entries = [
-    ["expression", s.expressions || {}],
-    ["viseme", s.visemes || {}],
-    ["motion", s.motions || {}],
-    ["speech", s.speech || {}],
-  ];
-  el.innerHTML =
-    `<p>${t("vrm.summary",{e:Object.keys(s.expressions||{}).length,v:Object.keys(s.visemes||{}).length,m:Object.keys(s.motions||{}).length,s:Object.keys(s.speech||{}).length})}</p>`+
-    `<p><code>${t("vrm.llm")}</code></p>`+
-    entries.map(([name,obj])=>`<div style="margin:8px 0"><b style="color:#cfe3ff">${name}</b><br>`+
-      Object.keys(obj).slice(0,10).map(k=>`<button class="sm" data-vrm="${name}:${k}" style="margin:3px 3px 0 0">${k}</button>`).join("")+
-      (Object.keys(obj).length>10?` <span>…</span>`:"")+
-      `</div>`).join("");
-  el.querySelectorAll("[data-vrm]").forEach(btn=>btn.onclick=()=>{
-    const [kind,key]=btn.dataset.vrm.split(":");
-    const slot = s[kind==="expression"?"expressions":kind==="viseme"?"visemes":kind==="motion"?"motions":"speech"]?.[key];
-    const anim = slot?.animation || (kind==="motion" ? key : null);
-    const clip = kind==="speech" ? localizedSpeech(slot).clip : slot?.clip;
-    if(anim && M.animations?.[anim]) goto(anim);
-    else if(clip) playClip(clip,false);
-  });
-}
-function itemRow(key,tag){ const d=document.createElement("div"); d.className="item"+(selected===key?" sel":"");
-  const del = tag==="gesture" ? `<button class="sm" data-del title="${t("btn.del")}" style="padding:0 6px;margin-left:6px;background:#3a2530;border-color:#5a3542;color:#e6a">✕</button>` : "";
-  d.innerHTML=`<span>${key}</span><span style="display:flex;align-items:center;gap:2px"><span class="tag kind-${tag}">${tag}</span>${del}</span>`;
-  d.onclick=()=>select(key);
-  const db=d.querySelector("[data-del]"); if(db) db.onclick=e=>{ e.stopPropagation();
-    if(confirm(t("confirm.del",{key}))){ delete M.animations[key]; if(selected===key) selected=null; renderForm(); refresh(); } };
-  return d; }
-function select(key){ selected=key; renderStruct(); renderForm(); goto(key); }
-
-// ── 우측 편집 폼 (animation 전용) ──
-function renderForm(){
-  const fb=$("formBody"); if(!selected||!M.animations[selected]){ fb.innerHTML=`<p class="muted">${t("form.empty")}</p>`; return; }
-  const a=M.animations[selected];
-  // 순서: 클립 · 종류(idle/talking/gesture) · 라벨 · 설명. 발화는 미리 만든 webm 클립을 그대로 재생한다.
-  fb.innerHTML=`<h2>${selected} <span class="tag kind-${animKind(a)}">${animKind(a)}</span></h2>`+
-    fClip(a.clip)+
-    fType(a)+
-    fInp("label",t("form.label"),a.label)+
-    fArea("description",t("form.desc"),a.description);
-  bindForm(v=>Object.assign(a,v));
-  const ts=fb.querySelector("[data-type]");   // 종류 변경 → loop/can_talk 설정 + 재렌더(머리영역 노출 갱신)
-  if(ts) ts.onchange=()=>{ const v=ts.value; a.loop=(v!=="gesture"); a.can_talk=(v==="talking"); renderForm(); refresh(); };
-}
-const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
-const fInp=(k,l,v)=>`<label class="f">${l}</label><input data-k="${k}" value="${esc(v)}">`;
-const fArea=(k,l,v)=>`<label class="f">${l}</label><textarea data-k="${k}" rows="2" style="width:100%;box-sizing:border-box;font:inherit;padding:4px">${esc(v)}</textarea>`;
-const fClip=(v)=>`<label class="f">${t("form.clip")}</label><input data-k="clip" value="${esc(v)}"><input type="file" accept="video/*,.webm" data-clip="clip" style="font-size:11px;margin-top:3px">`;
-const fType=(a)=>{ const k=a.can_talk?"talking":(a.loop?"idle":"gesture");
-  return `<label class="f">${t("form.type")}</label><select data-type>${[["idle","form.type.idle"],["talking","form.type.talking"],["gesture","form.type.gesture"]].map(([v,lk])=>`<option value="${v}" ${k===v?"selected":""}>${t(lk)}</option>`).join("")}</select>`; };
-function bindForm(apply){
-  $("formBody").querySelectorAll("[data-k]").forEach(el=>el.onchange=()=>{ const k=el.dataset.k, v=el.type==="checkbox"?el.checked:el.value; apply({[k]:v}); refresh(); });
-  $("formBody").querySelectorAll("[data-clip]").forEach(el=>el.onchange=()=>{
-    const f=el.files[0]; if(!f)return; const name="clips/"+f.name; blobMap[name]={url:URL.createObjectURL(f),blob:f}; apply({[el.dataset.clip]:name}); refresh();
-    if(current&&current.key===selected){ busy=false; current=null; goto(selected); } });   // 새 클립 즉시 플레이어 재생
-}
-
-// ── 갱신 ──
-function refresh(){
-  const r=validateManifest(M);
-  $("valid").textContent=(r.ok?t("valid.valid")+"\n":t("valid.invalid")+"\n")+r.errors.map(e=>t("valid.err")+e).join("\n")+(r.errors.length?"\n":"")+r.warnings.map(w=>t("valid.warn")+w).join("\n")+(r.warnings.length?"":t("valid.noWarn"));
-  $("vdot").className="dot "+(r.ok?"ok":"bad");
-  cv.width=M.canvas?.width||360; cv.height=M.canvas?.height||640;
-  renderStruct();
-}
-
-// 메타 입력
-$("m_name").onchange=e=>{ (M.meta=M.meta||{}).name=e.target.value; refresh(); };
-$("m_owner").onchange=e=>{ (M.meta=M.meta||{}).owner=e.target.value; M.meta.author=e.target.value; refresh(); };
-$("m_bgtype").onchange=e=>{ (M.background=M.background||{}).type=e.target.value; if(e.target.value==="color"&&!M.background.color) M.background.color=$("m_bg").value; refresh(); };
-$("m_bg").onchange=e=>{ (M.background=M.background||{type:"color"}).color=e.target.value; };
-$("m_chroma").onchange=e=>{ M.chroma_key=e.target.value; };
-$("m_chroma_clr").onclick=()=>{ delete M.chroma_key; refresh(); };
-
-// 기본 2개(대기 idle + 말하기 speak) 보장 — 로드/신규 시 없으면 생성
-function ensureBase(){
-  M.animations = M.animations || {};
-  const has = pred => Object.values(M.animations).some(a=>pred(a));
-  if(!has(a=>a.loop && !a.can_talk)) M.animations = { idle:{clip:"",loop:true,can_talk:false,label:t("seed.idle")}, ...M.animations };
-  if(!has(a=>a.loop &&  a.can_talk)) M.animations = { ...M.animations, speak:{clip:"",loop:true,can_talk:true,face_bbox:[0.11,0.10,0.78,0.46],label:t("seed.speak")} };
-}
-$("addAnim").onclick=()=>{ let n=1; while(M.animations["gesture-"+n]) n++; const k="gesture-"+n;
-  M.animations[k]={clip:"",loop:false,can_talk:false,label:t("seed.gesture",{n}),description:""}; select(k); refresh(); };
-
-// 로드 / 내보내기
-async function loadManifest(m,base){ M=migrateToV02(m); ensureBase(); baseUrl=base||""; selected=null; syncLocaleOptions(); renderForm(); refresh(); syncTtsText();
-  const idle=Object.keys(M.animations||{}).find(k=>M.animations[k].loop&&!M.animations[k].can_talk)||Object.keys(M.animations||{})[0]; if(idle) goto(idle); }
-async function loadNaiaBundle(){ const base="../../examples/naia-prebaked.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent=t("status.loadNaia"); }
-$("loadNaia").onclick=loadNaiaBundle;
-$("loadOsarang").onclick=async()=>{ const base="../../examples/osarang-prebaked.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent=t("status.loadOsarang"); };
-$("loadDemo").onclick=async()=>{ const base="../../examples/demo.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent=t("status.loadDemo"); };
-$("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const zip=await JSZip.loadAsync(f);
-  const mf=await zip.file("manifest.json").async("string"); blobMap={}; baseUrl="";
-  for(const [path,zf] of Object.entries(zip.files)){ if(/\.(webm|mp4|jpg|png|wav)$/.test(path)){ const blob=await zf.async("blob"); blobMap[path]={url:URL.createObjectURL(blob),blob}; } }
-  loadManifest(JSON.parse(mf),""); $("status").textContent=t("status.opened",{name:f.name}); };
-// nva(manifest + clips)를 zip blob 으로 내보내기.
-async function buildNvaZip(){
-  const r=validateManifest(M); if(!r.ok) throw new Error(t("err.validation",{errs:r.errors.join("\n")}));
-  const zip=new JSZip(); zip.file("manifest.json", JSON.stringify(M,null,2));
-  const clips=new Set(Object.values(M.animations||{}).map(a=>a.clip).filter(Boolean));
-  for(const a of Object.values(M.animations||{})){
-    if(a.head_image) clips.add(a.head_image);
-    if(a.expression_image) clips.add(a.expression_image);
-  }
-  const addSlotAsset=o=>{ if(!o||typeof o!=="object") return; for(const v of Object.values(o)){ if(v?.clip) clips.add(v.clip); if(v?.audio) clips.add(v.audio); if(v?.image) clips.add(v.image); if(v?.preview_image) clips.add(v.preview_image); if(v?.expression_image) clips.add(v.expression_image); if(v?.by_locale) addSlotAsset(v.by_locale); } };
-  addSlotAsset(M.vrm_slots?.expressions); addSlotAsset(M.vrm_slots?.visemes); addSlotAsset(M.vrm_slots?.motions); addSlotAsset(M.vrm_slots?.speech);
-  addSlotAsset(M.expression_states); addSlotAsset(M.viseme_clips); addSlotAsset(M.prebaked_speech?.utterances);
-  for(const c of clips){ try{ if(blobMap[c]) zip.file(c,blobMap[c].blob); else if(baseUrl){ const b=await (await fetch(`${baseUrl}/${c}`)).blob(); zip.file(c,b); } }catch(e){} }
-  return await zip.generateAsync({type:"blob"});
-}
-$("exportBtn").onclick=async()=>{
-  if(!M){ alert(t("alert.loadFirst")); return; }
-  try{ const out=await buildNvaZip(); const a=document.createElement("a"); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||"character")+".nva"; a.click(); $("status").textContent=t("status.exported"); }
-  catch(e){ alert(t("alert.exportBlocked",{msg:e.message})); }
-};
-
-// 무료 TTS 테스트. 브라우저 내장 음성만 사용하며 NVA 번들에는 저장하지 않는다.
-function availableLocales(){
-  const p=M?.vrm_slots?.profile || {};
-  return p.available_locales || p.locales || Object.keys(Object.values(M?.vrm_slots?.speech || {})[0]?.by_locale || {}) || [p.default_locale || "ko-KR"];
-}
-function syncLocaleOptions(){
-  const sel=$("localeSelect");
-  if(!sel) return;
-  const locales=availableLocales();
-  const preferred = M?.vrm_slots?.profile?.default_locale || currentLocale || locales[0] || "ko-KR";
-  currentLocale = locales.includes(preferred) ? preferred : (locales[0] || preferred);
-  sel.innerHTML=locales.map(locale=>`<option value="${esc(locale)}">${esc(locale)}</option>`).join("");
-  sel.value=currentLocale;
-}
-function localizedSpeech(slot){
-  if(!slot) return {};
-  return slot.by_locale?.[currentLocale] || slot.by_locale?.[M?.vrm_slots?.profile?.default_locale] || slot;
-}
-function preferredSpeechText(){
-  const first = localizedSpeech(Object.values(M?.vrm_slots?.speech || {})[0])?.text;
-  return first || $("ttsText")?.value || t("tts.placeholder");
-}
-function syncTtsText(){
-  const tx=$("ttsText");
-  if(tx && !tx.dataset.userEdited) tx.value=preferredSpeechText();
-}
-function initTtsVoices(){
-  const sel=$("ttsVoice"), st=$("ttsStatus");
-  if(!sel || !st) return;
-  if(!("speechSynthesis" in window)){
-    sel.innerHTML="";
-    st.textContent=t("tts.unsupported");
-    $("ttsSpeak").disabled=true;
-    $("ttsStop").disabled=true;
-    return;
-  }
-  const voices=window.speechSynthesis.getVoices();
-  sel.innerHTML=voices.map((v,i)=>`<option value="${esc(v.voiceURI)}">${esc(v.name)} · ${esc(v.lang)}${v.default?" · default":""}</option>`).join("");
-  const exact=voices.find(v=>v.lang===currentLocale);
-  const sameLang=voices.find(v=>v.lang?.slice(0,2)===currentLocale.slice(0,2));
-  if(exact || sameLang) sel.value=(exact || sameLang).voiceURI;
-  st.textContent=voices.length?t("tts.ready",{n:voices.length}):t("tts.empty");
-}
-function speakTts(){
-  if(!("speechSynthesis" in window)){ $("ttsStatus").textContent=t("tts.unsupported"); return; }
-  const text=($("ttsText").value||"").trim();
-  if(!text) return;
-  const u=new SpeechSynthesisUtterance(text);
-  const voices=window.speechSynthesis.getVoices();
-  const picked=voices.find(v=>v.voiceURI===$("ttsVoice").value);
-  if(picked){ u.voice=picked; u.lang=picked.lang; }
-  else u.lang=currentLocale || (lang==="ko" ? "ko-KR" : "en-US");
-  u.onstart=()=>{ speaking=true; $("ttsStatus").textContent=t("tts.playing"); };
-  u.onend=()=>{ speaking=false; $("ttsStatus").textContent=t("tts.done"); };
-  u.onerror=()=>{ speaking=false; $("ttsStatus").textContent=t("tts.done"); };
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(u);
-}
-function stopTts(){
-  if("speechSynthesis" in window) window.speechSynthesis.cancel();
-  speaking=false;
-  $("ttsStatus").textContent=t("tts.stopped");
-}
-$("ttsText").oninput=()=>{ $("ttsText").dataset.userEdited="1"; };
-$("localeSelect").onchange=()=>{ currentLocale=$("localeSelect").value; delete $("ttsText").dataset.userEdited; syncTtsText(); initTtsVoices(); };
-$("ttsSpeak").onclick=speakTts;
-$("ttsStop").onclick=stopTts;
-if("speechSynthesis" in window) window.speechSynthesis.onvoiceschanged=initTtsVoices;
-initTtsVoices();
-
-$("helpBtn").onclick=()=>$("guide").classList.add("on");
-$("guideClose").onclick=()=>$("guide").classList.remove("on");
-$("guide").onclick=e=>{ if(e.target.id==="guide") $("guide").classList.remove("on"); };
-$("langBtn").onclick=()=>{ lang = (lang==="ko") ? "en" : "ko"; localStorage.setItem("nva_lang", lang); applyI18n(); };
-
-const _bt=$("buildTag"); if(_bt) _bt.textContent="build "+BUILD;   // 캐시 확인용 — 헤더에 현재 빌드 표시
-applyI18n();
-requestAnimationFrame(compose);
-loadNaiaBundle();
+function renderGallery(){ const g=$('exprGalleryGrid'); g.innerHTML=''; const states=M.state_engine?.states||{}; for(const [key,st] of Object.entries(states)){ const btn=document.createElement('button'); btn.className='tile expr-item '+(activeState===key?'active':''); const src=st.face_preview?clipUrl(st.face_preview):''; btn.innerHTML=`<div class="face face-crop">${src?`<img src="${src}" alt="">`:''}</div><div class="name">${esc(st.label||key)}</div>`; btn.onclick=()=>selectState(key); g.appendChild(btn); } }
+function selectState(key){ selected='state:'+key; activeState=key; renderStateForm(key); renderStruct(); playEngineIdle(key); }
+function selectAnim(key){ selected=key; renderAnimForm(key); renderStruct(); goto(key); }
+function stateResourceRows(key){ const st=M.state_engine.states[key]; const rows=[['face_preview','Face preview',st.face_preview,'image'],['idle','Idle full-body video',st.idle,'video'],['talking_body','Talking body video',st.talking_body,'video'],...M.state_engine.visemes.map(v=>[`head:${v}`,`Head ${v}`,st.talking_heads[v],'video'])]; return `<h2>State resources</h2><p class="hint">Preview each selected-state resource independently. This does not start TTS.</p><div id="resourcePreviewBox" class="resourcePreviewBox"><div class="empty">No individual resource preview selected.</div></div><div class="resList">${rows.map(([role,label,path,type])=>`<div class="resRow ${path?'':'missing'}"><div><strong>${esc(label)}</strong><div class="path">${esc(path||'missing')}</div></div><button type="button" class="small" data-res-preview="${esc(role)}" data-res-path="${esc(path||'')}" data-res-type="${esc(type)}" ${path?'':'disabled'}>preview</button></div>`).join('')}</div>`; }
+function previewStateResource(key,role,path,type){ const box=$('resourcePreviewBox'); resourcePreview={state:key,role,path,type,readyState:0,startedAt:Date.now()}; if(type==='image'){ if(box)box.innerHTML=`<img src="${clipUrl(path)}" alt="${esc(role)}"><div class="hint">${esc(key)} / ${esc(role)} / ${esc(path)}</div>`; resourcePreview.readyState=4; updateDebug(); return true; } if(box){ box.innerHTML=`<video data-resource-video muted playsinline loop controls autoplay style="width:100%;max-height:220px;background:#000;border-radius:8px"></video><div class="hint">${esc(key)} / ${esc(role)} / ${esc(path)}</div>`; const rv=box.querySelector('[data-resource-video]'); rv.onloadeddata=()=>{resourcePreview.readyState=rv.readyState;updateDebug();}; rv.oncanplay=()=>{resourcePreview.readyState=rv.readyState;updateDebug();}; rv.src=clipUrl(path); rv.play().catch(()=>{}); } updateDebug(); return true; }
+function renderStateForm(key){ const st=M.state_engine.states[key]; const vis=M.state_engine.visemes; $('formBody').innerHTML=`<h2>State: ${esc(key)} <button type="button" class="small" data-res-preview="idle" data-res-path="${esc(st.idle||'')}" data-res-type="video" ${st.idle?'':'disabled'}>preview idle</button></h2>${stateResourceRows(key)}<label>Label</label><input data-state-k="label" value="${esc(st.label||key)}"><label>Idle full-body video</label><input data-state-k="idle" value="${esc(st.idle||'')}"><input type="file" data-state-file="idle" accept="video/*,.webm"><label>Talking body video</label><input data-state-k="talking_body" value="${esc(st.talking_body||'')}"><input type="file" data-state-file="talking_body" accept="video/*,.webm"><label>Cropped face preview</label><input data-state-k="face_preview" value="${esc(st.face_preview||'')}"><input type="file" data-state-file="face_preview" accept="image/*"><label>Face bbox x,y,w,h</label><input data-state-k="face_bbox" value="${esc((st.face_bbox||[]).join(', '))}"><label>Held prototype talking-head keys</label><div class="grid3">${vis.map(v=>`<div><label>${esc(v)} <button type="button" class="small" data-res-preview="head:${esc(v)}" data-res-path="${esc(st.talking_heads[v]||'')}" data-res-type="video" ${st.talking_heads[v]?'':'disabled'}>preview</button></label><input data-head="${esc(v)}" value="${esc(st.talking_heads[v]||'')}"><input type="file" data-head-file="${esc(v)}" accept="video/*,.webm"></div>`).join('')}</div>`; bindStateForm(key); }
+function bindStateForm(key){ const st=M.state_engine.states[key]; $('formBody').querySelectorAll('[data-state-k]').forEach(el=>el.onchange=()=>{ const k=el.dataset.stateK; if(k==='face_bbox'){ const nums=el.value.split(',').map(x=>Number(x.trim())); if(nums.length===4&&nums.every(Number.isFinite)) st.face_bbox=nums; } else st[k]=el.value; refresh(); }); $('formBody').querySelectorAll('[data-state-file]').forEach(el=>el.onchange=()=>{ const f=el.files[0]; if(!f)return; const k=el.dataset.stateFile; const ext=f.name.split('.').pop()||(k==='face_preview'?'png':'webm'); const path=k==='face_preview'?`expressions/${key}.${ext}`:`clips/${key}-${k}.${ext}`; blobMap[path]={url:URL.createObjectURL(f),blob:f}; st[k]=path; refresh(); renderStateForm(key); }); $('formBody').querySelectorAll('[data-head]').forEach(el=>el.onchange=()=>{ st.talking_heads[el.dataset.head]=el.value; refresh(); }); $('formBody').querySelectorAll('[data-head-file]').forEach(el=>el.onchange=()=>{ const f=el.files[0]; if(!f)return; const v=el.dataset.headFile; const ext=f.name.split('.').pop()||'webm'; const path=`clips/${key}/head-${v}.${ext}`; blobMap[path]={url:URL.createObjectURL(f),blob:f}; st.talking_heads[v]=path; refresh(); renderStateForm(key); }); $('formBody').querySelectorAll('[data-res-preview]').forEach(el=>el.onclick=()=>previewStateResource(key,el.dataset.resPreview,el.dataset.resPath,el.dataset.resType)); }
+function renderAnimForm(key){ const a=M.animations[key]; $('formBody').innerHTML=`<h2>Gesture / animation: ${esc(key)}</h2><label>Clip</label><input data-anim-k="clip" value="${esc(a.clip||'')}"><input type="file" data-anim-file="clip" accept="video/*,.webm"><label>Label</label><input data-anim-k="label" value="${esc(a.label||'')}"><label>Description</label><textarea data-anim-k="description" rows="2">${esc(a.description||'')}</textarea><label>Type</label><select data-anim-type><option value="idle" ${a.loop&&!a.can_talk?'selected':''}>idle</option><option value="talking" ${a.can_talk?'selected':''}>talking legacy</option><option value="gesture" ${!a.loop&&!a.can_talk?'selected':''}>gesture</option></select>`; $('formBody').querySelectorAll('[data-anim-k]').forEach(el=>el.onchange=()=>{a[el.dataset.animK]=el.value;refresh();}); $('formBody').querySelector('[data-anim-type]').onchange=e=>{a.loop=e.target.value!=='gesture';a.can_talk=e.target.value==='talking';refresh();}; $('formBody').querySelector('[data-anim-file]').onchange=e=>{const f=e.target.files[0];if(!f)return;const path='clips/'+f.name;blobMap[path]={url:URL.createObjectURL(f),blob:f};a.clip=path;refresh();}; }
+function playClip(clip,loop){ if(!clip)return false; video.muted=!soundOn; video.src=clipUrl(clip); video.loop=loop; video.play().catch(()=>{}); return true; }
+function goto(key){ const a=M.animations?.[key]; if(!a)return; stopStateSpeech(); current={key,clip:a.clip,loop:!!a.loop,can_talk:!!a.can_talk,isSpeech:false}; playClip(a.clip,!!a.loop); updateDebug(); }
+function playEngineIdle(key){ ensureStateEngine(); const stateKey=key&&M.state_engine.states[key]?key:M.state_engine.default_state; const st=M.state_engine.states[stateKey]; if(!st?.idle)return false; stopStateSpeech(); activeState=stateKey; current={key:`state:${stateKey}:idle`,clip:st.idle,loop:true,can_talk:false,isSpeech:false}; playClip(st.idle,true); updateDebug(); return true; }
+function stopStateSpeech(){ if(speechTicker)clearInterval(speechTicker); speechTicker=null; currentHeadClip=''; if(headVideo){headVideo.pause();headVideo.removeAttribute('src');} headVideo=null; if(M?.__engineSpeech)delete M.__engineSpeech; updateDebug(); }
+function playStateEngineSpeech(text){ ensureStateEngine(); const plan=buildStateSpeechPlan(M,text,activeState); if(!plan)return false; const st=M.state_engine.states[plan.state]; stopStateSpeech(); activeState=plan.state; current={key:`state:${plan.state}:talking`,clip:plan.talking_body,loop:true,can_talk:true,isSpeech:true}; M.__engineSpeech={state:plan.state,text,viseme:plan.sequence[0],timeline:plan.timeline,sync:{mode:"timeline"}}; playClip(plan.talking_body,true); headVideo=document.createElement('video'); headVideo.muted=true; headVideo.loop=true; headVideo.playsInline=true; const started=performance.now(); const pick=(ms)=>{let cur=plan.timeline[0]?.viseme||plan.sequence[0]; for(const item of plan.timeline){ if((item.t_ms||0)>ms)break; cur=item.viseme||cur; } return cur;}; const tick=()=>{setEngineViseme(pick(performance.now()-started),{mode:"timeline",elapsed_ms:Math.round(performance.now()-started)});}; tick(); speechTicker=setInterval(tick,40); updateDebug(); return true; }
+function setEngineViseme(v,sync){ const state=M?.__engineSpeech?.state; const st=state&&M.state_engine?.states?.[state]; if(!st?.talking_heads?.[v]||!headVideo)return false; M.__engineSpeech.viseme=v; M.__engineSpeech.sync=sync||M.__engineSpeech.sync||{mode:'timer'}; const next=clipUrl(st.talking_heads[v]); if(currentHeadClip!==next){ currentHeadClip=next; headVideo.onloadeddata=()=>updateDebug(); headVideo.oncanplay=()=>updateDebug(); headVideo.src=next; headVideo.play().catch(()=>{}); } updateDebug(); return true; }
+function visemeAtTextIndex(text,index,heads){ return textToViseme(String(text||'').charAt(Math.max(0,index||0)), Object.keys(heads||{}).filter(k=>heads[k])); }
+function updateDebug(){ window.__nvaDebug={loaded:!!M,activeState,stateEngine:!!M?.state_engine,engineSpeech:M?.__engineSpeech||null,current,resourcePreview,ttsStarted:!!M?.__ttsStarted,ttsError:M?.__ttsError||null,ttsRawText:M?.__ttsRawText||null,ttsSpokenText:M?.__ttsSpokenText||null,videoReady:video.readyState,headReady:headVideo?headVideo.readyState:0,headClip:currentHeadClip}; }
+function availableLocales(){ const p=M?.vrm_slots?.profile||{}; return p.available_locales||p.locales||[p.default_locale||'ko-KR']; }
+function syncLocaleOptions(){ const locales=availableLocales(); currentLocale=locales.includes(currentLocale)?currentLocale:locales[0]||'ko-KR'; $('localeSelect').innerHTML=locales.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join(''); $('localeSelect').value=currentLocale; }
+function initTtsVoices(){ if(!('speechSynthesis'in window)){ $('ttsStatus').textContent='Web Speech API unsupported'; return; } const voices=window.speechSynthesis.getVoices(); $('ttsVoice').innerHTML=voices.map(v=>`<option value="${esc(v.voiceURI)}">${esc(v.name)} - ${esc(v.lang)}</option>`).join(''); const pick=voices.find(v=>v.lang===currentLocale)||voices.find(v=>v.lang?.slice(0,2)===currentLocale.slice(0,2)); if(pick)$('ttsVoice').value=pick.voiceURI; }
+function speakTts(){ if(!('speechSynthesis'in window)){ $('ttsStatus').textContent='Web Speech API unsupported'; return; } const rawText=$('ttsText').value.trim(); if(!rawText)return; const routed=routeProsodyState(M,rawText,activeState); const text=routed.cleanText||rawText.replace(/\[[a-z][a-z0-9_-]*\]/gi,'').trim()||rawText; M.__ttsRawText=rawText; M.__ttsSpokenText=text; if(routed.state)activeState=routed.state; soundOn=true; video.muted=false; const used=playStateEngineSpeech(text); if(!used){ $('ttsStatus').textContent='State engine assets missing: TTS preview blocked'; setStatus('state engine asset missing','bad'); updateDebug(); return; } M.__ttsStarted=false; M.__ttsError=null; const u=new SpeechSynthesisUtterance(text); const voices=window.speechSynthesis.getVoices(); const picked=voices.find(v=>v.voiceURI===$('ttsVoice').value); if(picked){u.voice=picked;u.lang=picked.lang}else u.lang=currentLocale; u.onstart=()=>{M.__ttsStarted=true; updateDebug(); $('ttsStatus').textContent=`TTS playing spoken text through state engine${routed.tag?' via ['+routed.tag+'] -> '+routed.state:''}`}; u.onboundary=e=>{const state=M?.__engineSpeech?.state; const heads=state&&M.state_engine?.states?.[state]?.talking_heads; const v=heads&&visemeAtTextIndex(text,e.charIndex,heads); if(v)setEngineViseme(v,{mode:'speechSynthesis.boundary',charIndex:e.charIndex||0,elapsedTime:e.elapsedTime||0});}; u.onend=()=>{const st=M?.__engineSpeech?.state; stopStateSpeech(); if(st)playEngineIdle(st); $('ttsStatus').textContent='TTS finished'}; u.onerror=e=>{M.__ttsError=e?.error||'speechSynthesis.error'; updateDebug(); u.onend(e);}; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }
+function stopTts(){ if('speechSynthesis'in window)window.speechSynthesis.cancel(); const st=M?.__engineSpeech?.state; stopStateSpeech(); if(st)playEngineIdle(st); $('ttsStatus').textContent='TTS stopped'; }
+function manifestCandidateBases(){ const parts=location.pathname.split('/').filter(Boolean); const idx=parts.lastIndexOf('main'); const root=idx>=0?`/${parts.slice(0,idx).join('/')}`:''; return [...new Set(['../../examples','./examples','/examples',`${root}/examples`,'/projects/naia-video-avatar/examples'])]; }
+async function loadManifestCandidates(name){ const errs=[]; for(const base of manifestCandidateBases()){ const b=`${base.replace(/[\\/]+$/,'')}/${name}`; try{ const res=await fetch(`${b}/manifest.json`,{cache:'no-store'}); if(!res.ok){errs.push(`${b}:${res.status}`);continue} return {m:await res.json(),base:b}; }catch(e){errs.push(`${b}:${e.message}`)} } throw new Error(errs.join(' | ')); }
+async function loadBundleFromName(name){ const r=await loadManifestCandidates(name); await loadManifest(r.m,r.base); setStatus(`${name} loaded`,'ok'); }
+async function loadManifest(m,base){ M=migrateToV02(m); baseUrl=base||''; blobMap={}; selected=null; ensureStateEngine(); syncLocaleOptions(); initTtsVoices(); refresh(); playEngineIdle(M.state_engine.default_state); }
+async function buildNvaZip(){ const r=validateManifest(M); if(!r.ok)throw new Error(r.errors.join('\n')); const zip=new JSZip(); zip.file('manifest.json',JSON.stringify(M,null,2)); const clips=new Set(Object.values(M.animations||{}).map(a=>a.clip).filter(Boolean)); for(const st of Object.values(M.state_engine?.states||{})){ if(st.idle)clips.add(st.idle); if(st.talking_body)clips.add(st.talking_body); if(st.face_preview)clips.add(st.face_preview); for(const c of Object.values(st.talking_heads||{}))if(c)clips.add(c); } const missing=[]; for(const c of clips){ try{ if(blobMap[c])zip.file(c,blobMap[c].blob); else if(baseUrl){ const res=await fetch(`${baseUrl}/${c}`); if(!res.ok)throw new Error(String(res.status)); zip.file(c,await res.blob()); } else missing.push(c); }catch{ missing.push(c); } } if(missing.length)throw new Error('Missing export assets:\n'+missing.join('\n')); return zip.generateAsync({type:'blob'}); }
+$('m_name').onchange=e=>{(M.meta=M.meta||{}).name=e.target.value;refresh()}; $('m_owner').onchange=e=>{(M.meta=M.meta||{}).owner=e.target.value;M.meta.author=e.target.value;refresh()}; $('m_bgtype').onchange=e=>{(M.background=M.background||{}).type=e.target.value;refresh()}; $('m_bg').onchange=e=>{(M.background=M.background||{}).color=e.target.value;refresh()}; $('m_chroma').onchange=e=>{M.chroma_key=e.target.value;refresh()}; $('m_chroma_clr').onclick=()=>{delete M.chroma_key;refresh()};
+$('addState').onclick=()=>{ if(!M)return; const raw=prompt('State name','happy'); if(raw===null)return; const key=String(raw||'state').trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'_')||'state'; ensureStateEngine(); if(!M.state_engine.states[key])M.state_engine.states[key]={label:key,idle:'',talking_body:'',face_preview:'',face_bbox:[.34,.05,.32,.36],talking_heads:Object.fromEntries(M.state_engine.visemes.map(v=>[v,''])),sync:{default_hold_ms:160,heads:Object.fromEntries(M.state_engine.visemes.map(v=>[v,defaultHeadSync(v)]))}}; selectState(key); refresh(); };
+$('addGesture').onclick=()=>{ if(!M)return; let n=1; while(M.animations['gesture-'+n])n++; M.animations['gesture-'+n]={clip:'',loop:false,can_talk:false,label:'gesture '+n,description:''}; selectAnim('gesture-'+n); refresh(); };
+$('loadNaia').onclick=()=>loadBundleFromName('naia-prebaked.nva').catch(e=>setStatus(e.message,'bad')); $('loadOsarang').onclick=()=>loadBundleFromName('osarang-prebaked.nva').catch(e=>setStatus(e.message,'bad')); $('loadDemo').onclick=()=>loadBundleFromName('demo.nva').catch(e=>setStatus(e.message,'bad'));
+$('openNvaBtn').onclick=()=>$('openNva').click(); $('openNva').onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const zip=await JSZip.loadAsync(f); const mf=await zip.file('manifest.json').async('string'); blobMap={}; for(const [path,zf] of Object.entries(zip.files)){ if(/\.(webm|mp4|jpg|png|wav)$/i.test(path)){ const blob=await zf.async('blob'); blobMap[path]={url:URL.createObjectURL(blob),blob}; } } await loadManifest(JSON.parse(mf),''); setStatus(`${f.name} loaded`,'ok'); };
+$('exportBtn').onclick=async()=>{ if(!M)return alert('Load first'); try{ const out=await buildNvaZip(); const a=document.createElement('a'); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||'character')+'.nva'; a.click(); setStatus('exported','ok'); }catch(e){ alert(e.message); } };
+$('ttsSpeak').onclick=speakTts; $('ttsStop').onclick=stopTts; $('ttsKoreanSample').onclick=()=>{$('ttsText').value='안녕하세요. 지금 상태 기반 발화를 확인합니다.'}; $('ttsVisemeSmoke').onclick=()=>{$('ttsText').value='aiueo'}; $('localeSelect').onchange=()=>{currentLocale=$('localeSelect').value;initTtsVoices()}; if('speechSynthesis'in window)window.speechSynthesis.onvoiceschanged=initTtsVoices;
+requestAnimationFrame(compose); loadBundleFromName('naia-prebaked.nva').catch(e=>setStatus(e.message,'bad'));
 </script>
 </body>
 </html>

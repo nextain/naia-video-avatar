@@ -1,56 +1,50 @@
-{
+﻿{
   "schema_version": "1.0",
-  "description": "프로세스 현황 SoT. 세션 시작/종료 시 반드시 업데이트. 구조명세·이슈·리소스를 유기적으로 링크.",
-
+  "description": "Process status SoT. Keep .users/context/process-status.md mirrored after updates.",
   "refs": {
     "project_structure": "docs/project-structure.md",
     "agents_rules": ".agents/context/agents-rules.json",
     "issue_docs_dir": "docs/progress/99.dev-comm/"
   },
-
   "current_work": {
-    "issue": "nva-poc",
-    "title": "nva 포맷 v0.2 + VRM식 webm 슬롯 에디터/플레이어",
+    "issue": "nva-state-engine-validation",
+    "title": "NVA state-based speech-engine validation prototype",
     "issue_doc": null,
     "github_issue": null,
     "started": "2026-06-21",
-    "last_updated": "2026-07-11",
-    "status": "active",
-    "note": "v0.2 기반으로 VRM식 expression/viseme/motion/speech 슬롯을 webm 클립으로 재생하는 방향으로 전환. 에디터는 외부 AI/Ditto/cascade 연결 없이 생성된 webm만 미리보기·검증·내보내기하며, 무료 브라우저 TTS는 발화 문장 테스트용으로만 사용한다. 오사랑/Naia 샘플은 aiueo 포함 viseme webm + 감정 expression 이미지 + ko-KR/en-US 사전 생성 speech webm으로 구성. manifest는 naia-shell 14개 target locale과 VoxCPM 30개 언어 생성 가능 메타를 포함한다. Ditto sync gate는 free/local TTS wav -> Ditto render -> remux/finalize webm -> A/V sync report 순서로 검증하며, 오사랑 샘플은 240ms video delay 보정 후 best_lag_ms=+40ms, Playwright 재생 readyState=4로 확인했다."
+    "last_updated": "2026-07-13",
+    "status": "held",
+    "note": "Canonical resource hierarchy remains state-based: each state binds idle video, talking-body video, cropped face preview, face bbox, and a talking-head video set. The sil/a/i/u/e/o six-clip implementation is preserved only as a verified prototype, not the final continuity contract. Directional mouth-shape transitions may require up to n^2 clips; interpolation or another transition strategy remains possible. Resume after RTX 3090 cascade benchmarking selects the talking-head transition contract. Gestures remain separate single clips."
   },
-
   "sdlc_gates": {
-    "P01": { "status": "done", "name": "user_scenarios", "deliverable": "docs/progress/02.user-scenarios/INDEX.md", "ref": "UC-001..UC-004" },
-    "P02": { "status": "done", "name": "test_scenarios", "deliverable": "docs/progress/03.uc-tests/INDEX.md", "ref": "TEST-S-001..TEST-S-005" },
-    "P03": { "status": "done", "name": "requirements", "deliverable": "docs/progress/01.requirements/INDEX.md", "ref": "REQ-001..REQ-007, NFR-001..NFR-004" },
-    "P04": { "status": "done", "name": "integration_test", "deliverable": "headless 캡쳐(/var/tmp/nva_*.png) + node nva-core 검증 + export unzip", "ref": "TEST-F-001..TEST-F-004" },
-    "P05": { "status": "partial", "name": "requirements_complete", "deliverable": "포맷·뷰어·에디터·export = Done / cascade 연결 + kiosk-v3 배포 = 잔여(GPU·VM 외부 의존)", "ref": null }
+    "P01": { "status": "done", "name": "user_scenarios", "deliverable": "docs/progress/02.user-scenarios/INDEX.md", "ref": "UC-001..UC-004, UC-VM-001..UC-VM-006, UC-RES-001..UC-RES-005" },
+    "P02": { "status": "done", "name": "test_scenarios", "deliverable": "docs/progress/03.uc-tests/INDEX.md", "ref": "TEST-S-001..TEST-S-005, UCT-VM-001..UCT-VM-006, UCT-RES-001..UCT-RES-005" },
+    "P03": { "status": "done", "name": "requirements", "deliverable": "docs/progress/01.requirements/INDEX.md", "ref": "REQ-001..REQ-008, REQ-VM-001..REQ-VM-008, REQ-RES-001..REQ-RES-005" },
+    "P04": { "status": "held", "name": "integration_test", "deliverable": "The held prototype Playwright suite passes 14/14 and builder smoke evidence is recorded. Current nva-core validation still fails the v0.1 migration case because the migrated manifest has no state_engine. Transition-contract tests require revision after the RTX 3090 benchmark.", "ref": "TEST-F-001..TEST-F-006, FT-VM-001..FT-VM-007, FT-RES-001..FT-RES-005" },
+    "P05": { "status": "held", "name": "requirements_complete", "deliverable": "The six-clip state-engine prototype evidence is retained, but final completion is held until RTX 3090 cascade benchmarking selects and validates the talking-head transition contract.", "ref": "REQ-VM-001..REQ-VM-008, REQ-RES-001..REQ-RES-005, UCT-VM-001..UCT-VM-006, UCT-RES-001..UCT-RES-005, FE-VM-001..FE-VM-007, FE-RES-001..FE-RES-005, FT-VM-001..FT-VM-007, FT-RES-001..FT-RES-005" }
   },
-
   "resource_registry": {
-    "last_enforce_run": "2026-06-21",
+    "last_enforce_run": "2026-07-12",
     "violations": []
   },
-
   "_usage": {
     "session_start": [
-      "1. 이 파일 읽기",
-      "2. current_work 확인",
-      "3. last_updated를 현재 시각으로 갱신",
-      "4. sdlc_gates 상태 확인 후 작업 시작"
+      "1. Read this file",
+      "2. Confirm current_work",
+      "3. Update last_updated to current date",
+      "4. Confirm SDLC gates before coding"
     ],
     "session_end": [
-      "1. 완료된 게이트 status → done",
-      "2. deliverable 경로 기재",
-      "3. last_updated 갱신",
-      "4. .users/context/process-status.md 동기화",
-      "5. 이 파일을 커밋에 포함"
+      "1. Mark completed gates done with deliverables",
+      "2. Update last_updated",
+      "3. Mirror to .users/context/process-status.md",
+      "4. Include this file in commit"
     ],
     "new_issue": [
-      "1. current_work 필드 업데이트",
-      "2. docs/progress/99.dev-comm/issue-{N}-{slug}.md 신규 생성",
-      "3. sdlc_gates 전체 status → pending으로 리셋",
-      "4. resource_registry.violations 초기화"
+      "1. Update current_work",
+      "2. Create docs/progress/99.dev-comm/issue-{N}-{slug}.md when needed",
+      "3. Reset relevant sdlc_gates to pending",
+      "4. Clear resource_registry.violations"
     ]
   }
 }
