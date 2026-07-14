@@ -1,50 +1,34 @@
-﻿# Process status
+# Process status
 
-> SoT mirror of `.agents/context/process-status.json`.
+> `.agents/context/process-status.json`의 사용자용 미러.
 
-## Current work
+## 현재 작업
 
-- Issue: `nva-state-engine-validation`
-- Title: NVA state-based speech-engine validation prototype
-- Status: held
-- Started: 2026-06-21
-- Last updated: 2026-07-13
+- Issue: `nva-v03-state-resource-editor` (`nextain/naia-video-avatar#7`)
+- 제목: NVA 0.3 상태 리소스 계약과 Windows 에디터
+- 상태: done
+- 시작/갱신: 2026-07-14
 
-Current canonical direction: state-based NVA resources. Final talking-head continuity is held for RTX 3090 cascade validation.
+NVA 0.3이 현재 portable 정본이다. 각 캐릭터 상태는 revision이 있는 idle,
+talking-body, 확장 가능한 버전형 talking-head source/descriptor, 객체형 face bbox를
+소유한다. Windows에서 `profile_ref`를 설정하고 원격 Cascade 주소는 에디터 로컬
+설정으로만 보관한다.
 
-Each generated primary state binds:
+0.1/0.2 manifest는 명시적으로 0.3으로 이행한다. `sil/a/i/u/e/o` 구현은 역사적
+실험 증거일 뿐이다. 전이 키, 보간, 코덱, 합성 위치는 portable 계약을 막지 않으며
+RTX 3090 실험 증거로 결정한다.
 
-- idle video
-- talking-body video
-- cropped face preview
-- face bbox
-- a talking-head video set whose final transition keys are not yet fixed
+## SDLC 게이트
 
-The `sil/a/i/u/e/o` six-clip implementation remains a verified prototype, not the final continuity contract. Directional transitions may require up to n² clips; interpolation or another strategy remains possible. Resume after the RTX 3090 cascade benchmark selects the contract. Gestures remain separate single clips.
+| 게이트 | 상태 | 산출물 |
+|---|:---:|---|
+| P01 사용자 시나리오 | done | `docs/progress/02.user-scenarios/INDEX.md` (`UC-AV-002/003/005/007`) |
+| P02 테스트 시나리오 | done | `docs/progress/03.uc-tests/INDEX.md` (`UCT-AV-002/003/005/007`) |
+| P03 요구사항 | done | `docs/progress/01.requirements/INDEX.md` (`REQ-ARCH-001..005`, `REQ-EXP-002`, `REQ-NVA-001..002`) |
+| P04 통합 테스트 | done | core, JSON Schema, Playwright 원격 호출, export/reopen, migration, 경로·버전·격리·자산 완전성 |
+| P05 요구 충족 | done | 개발·테스트 리뷰 각각 연속 2회 clean. 증거: `.agents/reviews/nva-v03-review-pass-2026-07-14.md`. Cascade 상태 map과 3090 증거는 소비자 단계. |
 
-Editor validation covers state gallery, asset completeness, prosody routing, TTS talking-body plus head overlay, Naia original idle/gesture preservation, and Playwright visual evidence.
+## 세션 체크리스트
 
-## SDLC gates
-
-| Gate | Status | Deliverable |
-|------|:------:|-------------|
-| P01 user_scenarios | done | `docs/progress/02.user-scenarios/INDEX.md` (`UC-001..UC-004`, `UC-VM-001..UC-VM-006`, `UC-RES-001..UC-RES-005`) |
-| P02 test_scenarios | done | `docs/progress/03.uc-tests/INDEX.md` (`TEST-S-001..TEST-S-005`, `UCT-VM-001..UCT-VM-006`, `UCT-RES-001..UCT-RES-005`) |
-| P03 requirements | done | `docs/progress/01.requirements/INDEX.md` (`REQ-001..REQ-008`, `REQ-VM-001..REQ-VM-008`, `REQ-RES-001..REQ-RES-005`) |
-| P04 integration_test | held | The held prototype Playwright suite passes 14/14 and builder evidence is recorded. Current `nva-core` validation still fails the v0.1 migration case because the migrated manifest has no `state_engine`. Transition-contract tests must be revised after the RTX 3090 benchmark. |
-| P05 requirements_complete | held | Historical six-clip prototype evidence is retained; final completion waits for the RTX 3090 talking-head transition benchmark. |
-
-## Session checklist
-
-Start:
-
-- Read `.agents/context/process-status.json`.
-- Confirm `current_work`.
-- Update `last_updated` when making process changes.
-- Confirm SDLC gates before coding.
-
-End:
-
-- Mark completed gates done with deliverables.
-- Mirror updates to this file.
-- Include process status files with the change set.
+시작 시 이 파일의 SoT와 게이트를 확인한다. 종료 시 상태와 증거를 갱신하고 JSON/MD를
+함께 커밋한다.

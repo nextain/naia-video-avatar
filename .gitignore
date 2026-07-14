@@ -6,6 +6,8 @@ node_modules/
 # Build artifacts
 dist/
 build/
+test-results/
+playwright-report/
 *.tsbuildinfo
 *.js.map
 

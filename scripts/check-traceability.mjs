@@ -33,7 +33,9 @@ const REGISTRIES = [
 	{ file: "05.features-tests/INDEX.md", defines: "TEST-F", prefixes: ["TEST-F", "FT"] },
 ];
 
-const ID_RE = /\b(?:REQ|UC|UCT|FE|FT|SPEC|TEST-S|TEST-F)-(?:\d+|VM-\d+|RES-\d+|TEXT-\d+)\b/g;
+// Product-wide IDs may carry one or more domain segments (for example
+// REQ-ARCH-001, UC-AV-005, TEST-S-EDITOR-001). Keep the registry generic.
+const ID_RE = /\b(?:TEST-S|TEST-F|REQ|UC|UCT|FE|FT|SPEC)-(?:[A-Z][A-Z0-9]*-)*\d+\b/g;
 const idsIn = (s) => (String(s).match(ID_RE) || []);
 const kindOf = (id) => {
 	if (id.startsWith("TEST-S-") || id.startsWith("UCT-")) return "TEST-S";

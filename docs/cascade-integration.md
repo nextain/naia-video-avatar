@@ -1,92 +1,66 @@
-# nva ↔ output_cascade ↔ kiosk-v3 연결 설계
+# NVA 0.3 ↔ output_cascade 연결 계약
 
-> nva(포맷/뷰어/에디터)를 output_cascade에 엮어 kiosk-v3.xrcloud.app에서 강남구 아바타를
-> 실시간 구동하기 위한 배선·매핑·배포 설계. **이 repo는 브라우저측 어댑터까지** 책임지고,
-> GPU 렌더(cascade)·VM 배포는 외부(naia-omni-cascade / visualxlab).
+> 이 저장소는 Windows 제작 에디터와 NVA 포맷을 책임진다. GPU 렌더와 원격 서비스는
+> `naia-omni-cascade`가 책임진다. Cascade 주소는 로컬 설정이며 번들에 넣지 않는다.
 
-## 1. 배선도
+## 1. 배선
 
-```
-[키오스크 브라우저]  ditto/nva renderer
-      │ https://kiosk-v3.xrcloud.app
+```text
+[Windows NVA editor]
+      │  NVA 0.3 bundle + character_state_id
       ▼
-[VM nginx]
-      ├─ location /        → web(:13000)          (Next.js + STT WS)
-      └─ location /avatar/ → cascade(:8910)        (역터널)
-      ▼
-[output_cascade :8910]  compat façade
-      │   POST /stream_text {text} → fMP4   |  POST /stream (wav) → fMP4
-      │   GET  /idle · /listening  → 루프 mp4 |  GET /health
-      ├─ TTS  (VoxCPM2 :22600 / tts_server :8901)
-      ├─ Ditto trt (:8902)          ← speaking 실시간 렌더(말하는 얼굴)
-      └─ nva 번들(강남구 캐릭터)     ← CharacterBundle 로드(idle/event 클립 + source frame)
+[remote output_cascade :8910]
+      ├─ TTS
+      ├─ Ditto talking-head renderer
+      └─ CharacterBundle state map
 ```
 
-현 kiosk-v2 = renderer가 `/avatar` → trt(:8902) **직결**. kiosk-v3 = `/avatar` → **cascade(:8910)**가
-trt를 감싸고 TTS·nva 번들·idle/event를 흡수 → 출력부 단일화. **renderer 코드는 무변경**(façade 동일 계약).
+## 2. HTTP 계약
 
-## 2. nva ↔ output_cascade CharacterBundle 매핑
-
-cascade가 nva 번들을 소비하려면 nva manifest → `CharacterBundle`(naia-omni-cascade `schema.py`) 변환:
-
-| nva manifest | CharacterBundle | 비고 |
+| 목적 | 요청 | 기대 결과 |
 |---|---|---|
-| `states.<talking>.clip` | `idle_clip_path` / `listening_clip_path` | 안정 포즈 루프 |
-| `states.<animation>.clip`, `transitions.*.clip` | `event_clips{}` | idle break / 전환 |
-| speaking 구동 정지 프레임 | `source_frame_path` | Ditto 입력(필수) |
-| `states.<talking>.face_bbox` | (Ditto crop 영역) | 헤드토킹 위치 |
-| `meta.voice_ref` | `voice_ref` (VoiceRef) | 음색 클론 |
-| `matte` (알파) | `matte_path` | 투명 합성 |
-| `canvas` | `RenderConfig` | 해상도/fps |
+| 연결 확인 | `GET /health` | JSON health |
+| 번들 등록 | `POST /upload_nva` (raw zip body) | default 상태와 상태 목록 |
+| 상태별 말하기 | `POST /stream_text` `{text, character_state_id}` | 선택 상태의 fMP4 |
+| 같은 상태 idle 복귀 | `GET /idle?character_state_id=<id>` | 선택 상태 idle 영상 |
 
-> 이 로더(`nva → CharacterBundle`)는 **naia-omni-cascade 측 구현 대상**(이 repo 범위 밖).
-> nva가 표준 입력 포맷이 되고, cascade가 소비자.
+말하기 완료, 취소, 오류, barge-in 뒤에는 요청에 사용한 같은 상태의 idle로 돌아간다.
+상태 ID가 없으면 manifest의 `default_character_state_id`를 사용하고, 모르는 상태 ID는
+다른 상태로 조용히 대체하지 않고 오류로 거부한다.
 
-## 3. 브라우저측 어댑터 (이 repo — 작성 완료)
+## 3. manifest 매핑
 
-`src/main/nva-cascade-adapter.js` — `NvaCascadeRenderer`:
-- speaking 시 cascade façade(`/stream_text`·`/stream`) 호출 → MSE fMP4 재생, barge-in(generation).
-- `probeCascade(url)` 로 연결 가능 여부 판단 → 뷰어가 **cascade(실렌더) ↔ mock(입 오버레이)** 선택.
-- cascade 미가동(GPU 없음)이면 뷰어는 mock으로 폴백(데모 지속).
-
-## 4. kiosk-v3.conf (nginx — visualxlab VM 적용)
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name kiosk-v3.xrcloud.app;
-    # ssl_certificate ... (기존 와일드카드/인증서 재사용)
-
-    location / {
-        proxy_pass http://127.0.0.1:13000;   # web (역터널 ← 로컬 :3000)
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;   # STT WebSocket
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-    }
-    location /avatar/ {
-        proxy_pass http://127.0.0.1:8910/;   # output_cascade (역터널 ← 로컬 :8910)
-        proxy_buffering off;                  # 스트리밍 fMP4 즉시 전달
-        proxy_read_timeout 300s;
-    }
-}
-```
-> kiosk-v2.conf와 차이 = `/avatar` 프록시 대상만 `:18902`(trt 직결) → `:8910`(cascade). 나머지 동일.
-
-## 5. 배포 절차 (외부 의존 — visualxlab / 루크)
-
-1. **GPU**: cascade 스택 기동 — trt(:8902) + TTS(:22600/:8901) + output_cascade(:8910). `/health` ok 확인.
-2. **nva 번들**: 강남구 캐릭터(오사랑) nva → CharacterBundle 등록(`POST :8910/characters`). ⚠️ 라이브 kiosk-v2 GPU와 충돌 금지(별 GPU 또는 시분할).
-3. **VM**: `kiosk-v3.conf` 배치 + 역터널 `:8910` + DNS `kiosk-v3.xrcloud.app`.
-4. **검증**: 브라우저 → kiosk-v3 → `/avatar/health` ok → speaking 실렌더 확인. (호환 갭: `/idle` Range·loop 재생 실측.)
-
-## 6. 현 상태
-
-| 단계 | 상태 |
+| NVA 0.3 | Cascade 상태 리소스 |
 |---|---|
-| 브라우저 어댑터(`nva-cascade-adapter.js`) | ✅ 작성 (이 repo) |
-| kiosk-v3.conf 설계 | ✅ 작성 (§4) |
-| nva→CharacterBundle 로더 | ⏳ naia-omni-cascade 구현 대상 |
-| GPU 기동 + VM 배포 + 강남구 nva 등록 | ⏳ visualxlab/루크 (물리 인프라) |
+| `character_states.<id>.idle.path` | idle clip |
+| `character_states.<id>.talking_body.path` | talking-body clip |
+| `character_states.<id>.talking_head.source` | Ditto source |
+| `character_states.<id>.talking_head.descriptor` | renderer profile/adapter descriptor |
+| `character_states.<id>.face_bbox` | head composition placement |
+| 각 `revision` | 캐시 무효화와 교체 추적 |
 
-→ 코드/설정/매핑은 준비됨. **실배포·GPU 렌더·시연만 외부 인프라 대기.**
+Cascade loader는 상태 map을 보존해야 한다. 로드 시 한 상태로 평탄화하거나
+`sil/a/i/u/e/o` 같은 실험 표현을 제품 포맷으로 고정하면 안 된다.
+
+## 4. 에디터 검증 범위
+
+에디터는 원격 Cascade를 mock 또는 실제 3090 서비스로 호출해 아래를 검증한다.
+
+- health 성공과 실패 표시
+- 현재 `.nva` 원문 업로드
+- 선택 상태 ID가 말하기와 idle 요청에 전달됨
+- 상태별 프로파일과 bbox가 export/reopen 뒤 보존됨
+- Cascade 주소가 export manifest에 유출되지 않음
+
+얼굴 검출·입 동기화·경계 품질의 제품 임계치는 아직 미정이다. 먼저 기존 자산이
+검출·로드·렌더되는지 증거를 수집하고, 점수는 관측치로만 기록한다.
+
+## 5. 현재 구현 상태
+
+| 구성 | 상태 |
+|---|---|
+| NVA 0.3 schema/core/migration | 구현됨 |
+| Windows 제작 에디터 | 구현됨 |
+| 에디터 원격 Cascade 호출 | 구현됨 |
+| Cascade 상태 map loader/API | `naia-omni-cascade`에서 구현·검증 대상 |
+| 기존 3090 자산 인식 증거 | Cascade 단계에서 생성 대상 |

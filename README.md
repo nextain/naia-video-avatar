@@ -11,7 +11,7 @@
 | 무엇 | 위치 |
 |------|------|
 | **의도 · 제작 가이드** (펄스나인용) | [`docs/nva-format-guide.md`](docs/nva-format-guide.md) |
-| **포맷 필드 스펙** (states/transitions/scenarios/레이어) | [`src/main/nva-schema.json`](src/main/nva-schema.json) |
+| **포맷 필드 스펙** (상태별 idle/body/head/bbox) | [`src/main/nva-schema.json`](src/main/nva-schema.json) |
 | **요구·UC·설계·테스트** (V모델) | [`docs/progress/01~05`](docs/progress/) |
 | **cascade 연결**(데모↔naia-omni) | [`docs/cascade-integration.md`](docs/cascade-integration.md) |
 | **헌장 / 구조 규칙** | [`AGENTS.md`](AGENTS.md), [`docs/project-structure.md`](docs/project-structure.md) |
@@ -21,37 +21,38 @@
 
 ```
 src/main/
-  nva-schema.json          포맷 JSON Schema (v0.1)
-  nva-core.js              검증 + 상태머신 + 포즈 그래프 + 시나리오 (브라우저·node 양용, 정본 로직)
-  editor.html              ★ 제작 도구 — 리소스/구조 편집 + 미리보기 플레이 + .nva export (범용)
+  nva-schema.json          포맷 JSON Schema (v0.3)
+  nva-core.js              검증 + 이행 + 상태별 리소스 런타임 (브라우저·node 양용, 정본 로직)
+  editor.html              ★ Windows 제작 도구 — 상태별 리소스 편집 + 원격 Cascade 시험 + .nva export
   demo.html                ★ 데모(시연) — nva 시나리오 → cascade 실시간 렌더
   nva-cascade-adapter.js   cascade(/avatar) 연결 어댑터 (데모용)
 examples/
   build-sample.sh          ffmpeg 더미 박스 캐릭터 생성
-  demo.nva/                샘플 번들 (manifest.json + clips/ ×7 + 시나리오 4)
+  demo.nva/                공개 안전 샘플 번들 (neutral/seated 두 상태)
 docs/                      포맷 가이드 + cascade 연결 + V모델(progress/01~05)
-src/test/nva-core.test.mjs 단위 테스트 (19 assert)
+src/test/                 단위·계약·Playwright 테스트
 ```
 
 > **에디터(제작 도구) ↔ 데모(시연)는 분리**. 에디터는 범용 nva 제작용(강남구 무관), 데모는 만든 nva를 cascade로 실행.
 
-## 포맷 요약 (nva manifest)
+## 포맷 요약 (NVA 0.3)
 
-- **state**: `talking`(말하기 안정 포즈, `face_bbox`=헤드토킹 위치) / `animation`(동작). 클립 + 포즈 메타.
-- **transition**: 포즈 간 이동 클립. `entry_pose`(from) → `exit_pose`(to).
-- **scenario**: 연출 — 상태/이벤트 + 대사(`say`) + 타이밍(`dwell_ms`) 시퀀스. 뷰어/데모가 자동 재생.
-- **포즈 연속성**: A→B 가능 ⟺ `A.exit_pose == B.entry_pose` (아니면 transition 자동 삽입).
-- **레이어**: 배경(`background`) + 캐릭터(알파/`chroma_key`) + 헤드토킹. 동시 알파 디코딩 ≤ 2.
+- 최상위 `character_states`의 각 상태가 idle, talking-body, talking-head source/descriptor, `face_bbox`를 함께 소유한다.
+- 상태와 각 리소스에 revision이 있어 한 상태를 바꿔도 다른 상태가 보존된다.
+- 말하기 완료·취소·오류·barge-in 뒤에는 같은 상태의 idle로 복귀한다.
+- talking-head 내부 표현과 전이·보간·코덱·합성 위치는 3090 실험 전에는 강제하지 않는다.
+- 0.1/0.2 번들은 0.3으로 명시적으로 이행하고 미래 버전은 거부한다.
 
 ## 사용
 
 ```bash
 # 로컬 서버 (file:// 는 fetch 제한 → http 권장)
+pnpm install
 python3 -m http.server 8099
 ```
 - **제작(에디터)**: `http://localhost:8099/src/main/editor.html`
-  → 데모 로드 / .nva 열기 → +말하기·+동작·+전환·+시나리오 → 클립 업로드·메타 편집 → 미리보기 → **.nva export**
-  → 화면 우상단 **❔ 의도·사용법·구조** 버튼에 안내 내장
+  → 기존 .nva/데모 열기 → 상태별 idle/body/head/bbox와 Windows 프로파일 편집
+  → 원격 Cascade health/upload/상태별 말하기 시험 → **.nva export/reopen**
 - **시연(데모)**: `http://localhost:8099/src/main/demo.html?nva=../../examples/demo.nva&cascade=<cascade-url>`
   → 시나리오 버튼 → nva 시나리오를 cascade가 실시간 렌더 (cascade 없으면 자막만)
 
@@ -60,8 +61,9 @@ python3 -m http.server 8099
 ## 검증
 
 ```bash
-node src/test/nva-core.test.mjs          # 단위 19 assert
-node scripts/check-traceability.mjs      # V모델 추적성 (orphan 0)
+pnpm test                                # 단위 + 계약 + 정적 검증
+pnpm test:browser                        # Playwright 에디터 검증
+node scripts/check-traceability.mjs --enforce --strict-orphans
 ```
 에디터/데모 렌더는 headless(playwright) 캡쳐로 검증.
 

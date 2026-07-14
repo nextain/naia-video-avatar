@@ -1,0 +1,13 @@
+{
+  "name": "@nextain/naia-video-avatar",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/run-node-tests.mjs",
+    "test:browser": "playwright test -c src/test/playwright.config.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  }
+}

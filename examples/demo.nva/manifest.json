@@ -1,229 +1,144 @@
 {
-  "nva_version": "0.2",
+  "nva_version": "0.3",
+  "contract": {
+    "name": "nva-state-resource",
+    "version": "1.0"
+  },
+  "revision": { "id": "demo-manifest-r1" },
   "meta": {
-    "name": "데모 박스 캐릭터",
+    "name": "Demo box character",
     "author": "nextain",
     "owner": "nextain",
     "license": "CC-BY-4.0",
-    "created": "2026-06-21"
+    "created": "2026-06-21",
+    "provenance": "Procedural public-safe fixture bundled with naia-video-avatar"
   },
-  "canvas": {
-    "width": 360,
-    "height": 640,
-    "fps": 25
+  "canvas": { "width": 360, "height": 640, "fps": 25 },
+  "background": { "type": "color", "color": "#202830" },
+  "chroma_key": "#00b140",
+  "default_character_state_id": "neutral",
+  "character_states": {
+    "neutral": {
+      "label": "Neutral standing",
+      "revision": { "id": "demo-neutral-state-r1" },
+      "idle": {
+        "path": "clips/stand_idle.webm",
+        "media_type": "video/webm",
+        "revision": { "id": "demo-neutral-idle-r1" }
+      },
+      "talking_body": {
+        "path": "clips/stand_idle.webm",
+        "media_type": "video/webm",
+        "revision": { "id": "demo-neutral-body-r1" }
+      },
+      "talking_head": {
+        "revision": { "id": "demo-neutral-head-r1" },
+        "source": {
+          "path": "expressions/neutral.png",
+          "media_type": "image/png",
+          "revision": { "id": "demo-neutral-head-source-r1" }
+        },
+        "descriptor": {
+          "schema_version": "1.0",
+          "kind": "remote-profile",
+          "profile_ref": "demo-windows-default",
+          "note": "The Windows editor selects the profile; the Cascade endpoint is configured outside the portable NVA."
+        }
+      },
+      "face_bbox": {
+        "schema_version": "1.0",
+        "source_width": 360,
+        "source_height": 640,
+        "coordinate_space": "normalized_0_1",
+        "x": 0.36,
+        "y": 0.02,
+        "width": 0.28,
+        "height": 0.24,
+        "anchor_frame": 0,
+        "confidence": 1,
+        "detector_version": "procedural-fixture-v1",
+        "drift_report": { "max_normalized_displacement": 0 }
+      }
+    },
+    "seated": {
+      "label": "Seated",
+      "revision": { "id": "demo-seated-state-r1" },
+      "idle": {
+        "path": "clips/sit_idle.webm",
+        "media_type": "video/webm",
+        "revision": { "id": "demo-seated-idle-r1" }
+      },
+      "talking_body": {
+        "path": "clips/sit_idle.webm",
+        "media_type": "video/webm",
+        "revision": { "id": "demo-seated-body-r1" }
+      },
+      "talking_head": {
+        "revision": { "id": "demo-seated-head-r1" },
+        "source": {
+          "path": "clips/viseme-a.webm",
+          "media_type": "video/webm",
+          "revision": { "id": "demo-seated-head-source-r1" }
+        },
+        "descriptor": {
+          "schema_version": "1.0",
+          "kind": "remote-profile",
+          "profile_ref": "demo-windows-default"
+        }
+      },
+      "face_bbox": {
+        "schema_version": "1.0",
+        "source_width": 360,
+        "source_height": 640,
+        "coordinate_space": "normalized_0_1",
+        "x": 0.36,
+        "y": 0.24,
+        "width": 0.28,
+        "height": 0.24,
+        "anchor_frame": 0,
+        "confidence": 1,
+        "detector_version": "procedural-fixture-v1",
+        "drift_report": { "max_normalized_displacement": 0 }
+      }
+    }
   },
-  "background": {
-    "type": "color",
-    "color": "#202830"
-  },
-  "poses": [
-    "standing",
-    "sitting"
-  ],
-  "animations": {
-    "stand_talk": {
-      "clip": "clips/stand_idle.webm",
-      "entry_pose": "standing",
-      "exit_pose": "standing",
-      "loop": true,
-      "can_talk": true,
-      "face_bbox": [
-        0.417,
-        0.234,
-        0.167
-      ],
-      "label": "서서 말하기"
-    },
-    "sit_talk": {
-      "clip": "clips/sit_idle.webm",
-      "entry_pose": "sitting",
-      "exit_pose": "sitting",
-      "loop": true,
-      "can_talk": true,
-      "face_bbox": [
-        0.417,
-        0.456,
-        0.167
-      ],
-      "label": "앉아서 말하기"
-    },
-    "dance": {
-      "clip": "clips/dance.webm",
-      "entry_pose": "standing",
-      "exit_pose": "standing",
-      "loop": false,
-      "can_talk": false,
-      "label": "춤"
-    },
+  "gestures": {
     "wave": {
-      "clip": "clips/wave.webm",
-      "entry_pose": "standing",
-      "exit_pose": "standing",
-      "loop": false,
-      "can_talk": false,
-      "label": "인사"
+      "label": "Wave",
+      "revision": { "id": "demo-wave-r1" },
+      "clip": { "path": "clips/wave.webm", "media_type": "video/webm", "revision": { "id": "demo-wave-clip-r1" } },
+      "allowed_character_state_ids": ["neutral", "seated"],
+      "return_policy": "same-character-state"
     },
     "nod": {
-      "clip": "clips/nod.webm",
-      "entry_pose": "standing",
-      "exit_pose": "standing",
-      "loop": false,
-      "can_talk": false,
-      "label": "끄덕임"
-    },
-    "sit_down": {
-      "clip": "clips/sit_down.webm",
-      "entry_pose": "standing",
-      "exit_pose": "sitting",
-      "loop": false,
-      "can_talk": false,
-      "label": "앉기"
-    },
-    "stand_up": {
-      "clip": "clips/stand_up.webm",
-      "entry_pose": "sitting",
-      "exit_pose": "standing",
-      "loop": false,
-      "can_talk": false,
-      "label": "일어서기"
+      "label": "Nod",
+      "revision": { "id": "demo-nod-r1" },
+      "clip": { "path": "clips/nod.webm", "media_type": "video/webm", "revision": { "id": "demo-nod-clip-r1" } },
+      "allowed_character_state_ids": ["neutral", "seated"],
+      "return_policy": "same-character-state"
     }
+  },
+  "poses": ["standing", "sitting"],
+  "animations": {
+    "stand_talk": { "clip": "clips/stand_idle.webm", "entry_pose": "standing", "exit_pose": "standing", "loop": true, "can_talk": true, "face_bbox": [0.417, 0.234, 0.167], "label": "Standing" },
+    "sit_talk": { "clip": "clips/sit_idle.webm", "entry_pose": "sitting", "exit_pose": "sitting", "loop": true, "can_talk": true, "face_bbox": [0.417, 0.456, 0.167], "label": "Seated" },
+    "dance": { "clip": "clips/dance.webm", "entry_pose": "standing", "exit_pose": "standing", "loop": false, "can_talk": false, "label": "Dance" },
+    "wave": { "clip": "clips/wave.webm", "entry_pose": "standing", "exit_pose": "standing", "loop": false, "can_talk": false, "label": "Wave" },
+    "nod": { "clip": "clips/nod.webm", "entry_pose": "standing", "exit_pose": "standing", "loop": false, "can_talk": false, "label": "Nod" },
+    "sit_down": { "clip": "clips/sit_down.webm", "entry_pose": "standing", "exit_pose": "sitting", "loop": false, "can_talk": false, "label": "Sit down" },
+    "stand_up": { "clip": "clips/stand_up.webm", "entry_pose": "sitting", "exit_pose": "standing", "loop": false, "can_talk": false, "label": "Stand up" }
   },
   "scenario": {
     "nodes": {
-      "start": {
-        "type": "start",
-        "label": "진입"
-      },
-      "n0": {
-        "type": "scene",
-        "animation": "stand_talk",
-        "label": "안녕하세요, 강남구청 안내 키오스크입니다",
-        "dwell_ms": 2500
-      },
-      "n1": {
-        "type": "scene",
-        "animation": "wave",
-        "label": "무엇을 도와드릴까요?",
-        "dwell_ms": 2200
-      },
-      "n2": {
-        "type": "scene",
-        "animation": "sit_talk",
-        "label": "민원실은 본관 2층에 있습니다",
-        "dwell_ms": 3000
-      },
-      "n3": {
-        "type": "scene",
-        "animation": "stand_talk",
-        "label": "더 도와드릴까요?",
-        "dwell_ms": 2000
-      }
+      "start": { "type": "start", "label": "start" },
+      "n0": { "type": "scene", "animation": "stand_talk", "label": "hello", "dwell_ms": 2500 },
+      "n1": { "type": "scene", "animation": "wave", "label": "wave", "dwell_ms": 2200 },
+      "n2": { "type": "scene", "animation": "sit_talk", "label": "sit", "dwell_ms": 3000 }
     },
     "edges": [
-      {
-        "from": "start",
-        "to": "n0"
-      },
-      {
-        "from": "n0",
-        "to": "n1"
-      },
-      {
-        "from": "n1",
-        "to": "n2"
-      },
-      {
-        "from": "n2",
-        "to": "n3"
-      }
+      { "from": "start", "to": "n0" },
+      { "from": "n0", "to": "n1" },
+      { "from": "n1", "to": "n2" }
     ]
-  },
-  "chroma_key": "#00b140",
-  "state_engine": {
-    "version": "0.1",
-    "default_state": "neutral",
-    "visemes": [
-      "sil",
-      "a",
-      "i",
-      "u",
-      "e",
-      "o"
-    ],
-    "states": {
-      "neutral": {
-        "label": "neutral",
-        "idle": "clips/stand_idle.webm",
-        "talking_body": "clips/stand_idle.webm",
-        "face_preview": "expressions/neutral.png",
-        "face_bbox": [
-          0.36,
-          0.02,
-          0.28,
-          0.24
-        ],
-        "talking_heads": {
-          "sil": "clips/viseme-sil.webm",
-          "a": "clips/viseme-a.webm",
-          "i": "clips/viseme-i.webm",
-          "u": "clips/viseme-u.webm",
-          "e": "clips/viseme-e.webm",
-          "o": "clips/viseme-o.webm"
-        },
-        "sync": {
-          "default_hold_ms": 160,
-          "heads": {
-            "sil": {
-              "fps": 25,
-              "duration_ms": 1200,
-              "loopable": true,
-              "hold_min_ms": 80,
-              "hold_max_ms": 240,
-              "mouth_peak_ms": 0
-            },
-            "a": {
-              "fps": 25,
-              "duration_ms": 1200,
-              "loopable": true,
-              "hold_min_ms": 80,
-              "hold_max_ms": 240,
-              "mouth_peak_ms": 120
-            },
-            "i": {
-              "fps": 25,
-              "duration_ms": 1200,
-              "loopable": true,
-              "hold_min_ms": 80,
-              "hold_max_ms": 240,
-              "mouth_peak_ms": 120
-            },
-            "u": {
-              "fps": 25,
-              "duration_ms": 1200,
-              "loopable": true,
-              "hold_min_ms": 80,
-              "hold_max_ms": 240,
-              "mouth_peak_ms": 120
-            },
-            "e": {
-              "fps": 25,
-              "duration_ms": 1200,
-              "loopable": true,
-              "hold_min_ms": 80,
-              "hold_max_ms": 240,
-              "mouth_peak_ms": 120
-            },
-            "o": {
-              "fps": 25,
-              "duration_ms": 1200,
-              "loopable": true,
-              "hold_min_ms": 80,
-              "hold_max_ms": 240,
-              "mouth_peak_ms": 120
-            }
-          }
-        }
-      }
-    }
   }
 }

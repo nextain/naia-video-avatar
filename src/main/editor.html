@@ -1,141 +1,307 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NVA state engine editor</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NVA 0.3 상태 리소스 에디터</title>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
-:root{color-scheme:dark;--bg:#0d1118;--panel:#141b25;--line:#293546;--text:#e6edf3;--muted:#8d9aad;--accent:#26c48d;--blue:#4d88ff;--warn:#ffcf66;--bad:#ff6666}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,#1a2a2a,#0d1118 42%,#090c11);color:var(--text);font-family:ui-sans-serif,system-ui,sans-serif}button,input,select,textarea{font:inherit}button{background:#222d3e;color:var(--text);border:1px solid #3a4b64;border-radius:8px;padding:6px 10px;cursor:pointer}button:hover{background:#2c3b50}.primary{background:var(--accent);border-color:var(--accent);color:#061b14}.small{font-size:12px;padding:4px 8px}input,select,textarea{width:100%;background:#0b1017;color:var(--text);border:1px solid #334258;border-radius:7px;padding:6px 8px}label{display:block;margin:9px 0 4px;color:var(--muted);font-size:12px}header{height:54px;display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:rgba(13,17,24,.9);position:sticky;top:0;z-index:10}h1{font-size:16px;margin:0 10px 0 0}.pill{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:3px 8px}.wrap{display:grid;grid-template-columns:330px 1fr 360px;height:calc(100vh - 54px)}aside,main{min-height:0;overflow:auto;padding:14px}aside{background:rgba(20,27,37,.78)}#left{border-right:1px solid var(--line)}#right{border-left:1px solid var(--line)}h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 8px;display:flex;justify-content:space-between;align-items:center}.hint{font-size:12px;color:var(--muted);line-height:1.45}.row{display:flex;gap:8px;align-items:center}.item{display:flex;justify-content:space-between;gap:8px;align-items:center;background:#17202c;border:1px solid transparent;border-radius:8px;margin:5px 0;padding:8px;cursor:pointer}.item:hover{border-color:#3a4b64}.item.active{background:#183d35;border-color:var(--accent)}.item .meta{font-size:11px;color:var(--muted);text-align:right}.tag{font-size:10px;color:var(--muted);border:1px solid #3a4b64;border-radius:99px;padding:2px 6px}.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tile{background:#111923;border:1px solid var(--line);border-radius:10px;padding:7px;text-align:left}.tile.active{border-color:var(--accent)}.face{aspect-ratio:1/1;overflow:hidden;background:#05070a;border-radius:8px}.face img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}.tile .name{margin-top:6px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#stageBox{width:min(420px,92vw);margin:4px auto 12px}canvas{width:100%;height:auto;background:#000;border-radius:16px;box-shadow:0 22px 80px rgba(0,0,0,.35)}#valid{white-space:pre-wrap;font:12px ui-monospace,monospace;background:#080c12;border:1px solid var(--line);border-radius:10px;padding:10px;max-height:150px;overflow:auto}.ok{color:var(--accent)}.bad{color:var(--bad)}.warn{color:var(--warn)}.controls{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}.formSection{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.resList{display:grid;gap:6px;margin:8px 0 12px}.resRow{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;background:#101823;border:1px solid var(--line);border-radius:8px;padding:7px}.resRow .path{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.resRow.missing{border-color:#5a3440}.resourcePreviewBox{background:#070a0f;border:1px solid var(--line);border-radius:10px;min-height:80px;padding:8px;margin:8px 0 10px}.resourcePreviewBox img{width:100%;max-height:220px;object-fit:contain;display:block}.resourcePreviewBox .empty{color:var(--muted);font-size:12px}
+:root{color-scheme:dark;--bg:#0b0f15;--panel:#121a24;--line:#2a3748;--text:#e7edf5;--muted:#91a0b3;--ok:#29ca8e;--blue:#5d94ff;--bad:#ff6f78;--warn:#ffd071}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,#18302d,#0b0f15 45%);color:var(--text);font-family:ui-sans-serif,system-ui,sans-serif}button,input,select,textarea{font:inherit}button{border:1px solid #3a4d64;border-radius:8px;background:#202b3a;color:var(--text);padding:7px 10px;cursor:pointer}button:hover{background:#2b3a4f}button:disabled{cursor:not-allowed;opacity:.45}.primary{background:var(--ok);border-color:var(--ok);color:#061b14}.danger{border-color:#743943;color:#ffbec3}.small{font-size:12px;padding:4px 7px}input,select,textarea{width:100%;border:1px solid #344359;border-radius:7px;background:#090e15;color:var(--text);padding:7px 8px}label{display:block;margin:9px 0 4px;color:var(--muted);font-size:12px}header{height:58px;display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:rgba(11,15,21,.94);position:sticky;top:0;z-index:10}h1{font-size:16px;margin:0 10px 0 0}.pill{border:1px solid var(--line);border-radius:99px;color:var(--muted);font-size:11px;padding:3px 8px}.layout{display:grid;grid-template-columns:340px minmax(360px,1fr) 400px;height:calc(100vh - 58px)}aside,main{overflow:auto;min-height:0;padding:14px}aside{background:rgba(18,26,36,.86)}#left{border-right:1px solid var(--line)}#right{border-left:1px solid var(--line)}h2{display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px;color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}.row{display:flex;align-items:center;gap:7px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.item{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0;padding:9px;border:1px solid transparent;border-radius:9px;background:#17212e;cursor:pointer}.item:hover{border-color:#40536d}.item.active{border-color:var(--ok);background:#173b34}.meta{color:var(--muted);font-size:11px;text-align:right}.hint{color:var(--muted);font-size:12px;line-height:1.45}.card{border:1px solid var(--line);border-radius:10px;background:#0e151f;padding:10px;margin:8px 0}.controls{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0}.stage{width:min(440px,94%);margin:4px auto 14px}.stage canvas{display:block;width:100%;height:auto;background:#000;border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.4)}#remoteResult{display:none;width:min(440px,94%);max-height:320px;margin:12px auto;background:#000;border-radius:12px}.valid{white-space:pre-wrap;font:12px ui-monospace,monospace;border:1px solid var(--line);border-radius:9px;background:#070a0f;padding:10px;max-height:210px;overflow:auto}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}.resource{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.resource-head{display:flex;align-items:center;justify-content:space-between}.state-title{font-size:16px;margin:0}.bbox{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.statusline{min-height:20px;color:var(--muted);font-size:12px}.default-mark{color:var(--warn);font-size:11px}
+@media(max-width:1050px){.layout{grid-template-columns:300px 1fr}.layout>#right{grid-column:1/-1;border-left:0;border-top:1px solid var(--line);height:auto}.layout{height:auto}aside,main{overflow:visible}}
 </style>
 </head>
 <body>
 <header>
-  <h1>NVA state engine editor</h1>
-  <button id="loadNaia">Naia slot NVA</button>
-  <button id="loadOsarang">Osarang slot NVA</button>
-  <button id="loadDemo">Box demo</button>
+  <h1>NVA 0.3 상태 리소스 에디터</h1>
+  <button id="loadDemo">0.3 데모</button>
+  <button id="loadNaia">Naia 레거시 가져오기</button>
+  <button id="loadOsarang">Osarang 레거시 가져오기</button>
   <input id="openNva" type="file" accept=".nva,.zip" hidden>
-  <button id="openNvaBtn">Open .nva</button>
-  <button id="exportBtn" class="primary">Export .nva</button>
-  <span class="pill" id="status">ready</span>
+  <button id="openNvaBtn">.nva 열기</button>
+  <button id="exportBtn" class="primary">.nva 내보내기</button>
+  <span id="status" class="pill">준비</span>
 </header>
-<div class="wrap">
+<div class="layout">
   <aside id="left">
-    <h2>Meta</h2>
-    <label>Name</label><input id="m_name">
-    <label>Owner</label><input id="m_owner">
-    <h2>Background</h2>
-    <label>Type</label><select id="m_bgtype"><option value="transparent">transparent</option><option value="color">color</option></select>
-    <label>Preview color</label><input id="m_bg" type="color" value="#fff2d6">
-    <label>Chroma key</label><div class="row"><input id="m_chroma" type="color" value="#00b140"><button id="m_chroma_clr" class="small">clear</button></div>
-    <h2>State engine <span><button id="addState" class="small">+ state</button><button id="addGesture" class="small">+ gesture</button></span></h2>
-    <p class="hint">State = idle full-body + talking body + cropped talking head per viseme. Gesture = one video clip.</p>
+    <h2>프로젝트</h2>
+    <label>이름</label><input id="metaName">
+    <label>소유자</label><input id="metaOwner">
+    <label>Manifest revision</label><input id="manifestRevision">
+    <h2>Cascade 원격 설정</h2>
+    <p class="hint">Cascade 주소는 Windows 에디터 로컬 설정이며 NVA 파일에 저장하지 않습니다. 상태별 <code>profile_ref</code>만 portable 계약에 남습니다.</p>
+    <label>Endpoint</label><input id="cascadeEndpoint" value="http://127.0.0.1:8910">
+    <div class="controls"><button id="cascadeHealth">연결 확인</button><button id="cascadeUpload">현재 NVA 업로드</button></div>
+    <div id="cascadeStatus" class="statusline">연결하지 않음</div>
+    <h2>캐릭터 상태 <button id="addState" class="small">+ 상태</button></h2>
+    <p class="hint">표현 상태와 재생 상태를 분리합니다. 각 상태는 idle, talking body, talking-head source/descriptor, bbox를 가집니다.</p>
     <div id="stateList"></div>
-    <h2>Gestures / legacy animations</h2>
-    <div id="animList"></div>
-    <h2>Legacy VRM slots</h2>
-    <div id="vrmSlots" class="hint"></div>
+    <h2>동작 <button id="addGesture" class="small">+ 동작</button></h2>
+    <div id="gestureList"></div>
   </aside>
   <main>
-    <h2>Preview</h2>
-    <div id="stageBox"><canvas id="cv" width="360" height="640"></canvas></div>
-    <div class="controls" id="playCtrls"></div>
-    <h2>Validation</h2>
-    <div id="valid">No manifest loaded.</div>
+    <h2>상태 미리보기</h2>
+    <div class="stage"><canvas id="canvas" width="360" height="640"></canvas></div>
+    <div class="controls">
+      <button id="previewIdle">Idle</button>
+      <button id="previewTalking">Talking assets</button>
+      <button id="previewGesture">선택 동작</button>
+    </div>
+    <p class="hint">Talking assets는 body와 head source의 배치만 확인합니다. 입 동기화 방식은 NVA 포맷이 강제하지 않으며 실제 발화는 Cascade가 렌더합니다.</p>
+    <video id="remoteResult" controls playsinline></video>
+    <div class="card">
+      <h2>원격 상태 발화</h2>
+      <label>텍스트</label><textarea id="speakText" rows="3">안녕하세요. 선택한 상태로 원격 발화를 확인합니다.</textarea>
+      <div class="controls"><button id="remoteSpeak" class="primary">Cascade 발화</button><button id="remoteIdle">같은 상태 Idle</button></div>
+      <div id="speakStatus" class="statusline">선택 상태를 요청에 명시합니다.</div>
+    </div>
+    <h2>검증</h2>
+    <div id="validation" class="valid">Manifest를 불러오세요.</div>
   </main>
   <aside id="right">
-    <h2>TTS engine preview</h2>
-    <label>Locale</label><select id="localeSelect"></select>
-    <label>Text</label><textarea id="ttsText" rows="3">안녕하세요. 지금 상태 기반 발화를 확인합니다.</textarea>
-    <div class="controls"><button id="ttsKoreanSample" class="small">Korean sample</button><button id="ttsVisemeSmoke" class="small">Viseme smoke: aiueo</button></div>
-    <label>Browser voice</label><select id="ttsVoice"></select>
-    <div class="controls"><button id="ttsSpeak" class="primary">Play TTS</button><button id="ttsStop">Stop</button></div>
-    <p id="ttsStatus" class="hint">TTS drives state talking body + head overlay. Use Korean spoken text for review; aiueo is only a viseme smoke sample. Cascade/Ditto production text should already expand numbers and symbols into spoken form.</p>
-    <div class="formSection">
-      <h2>Expression / state gallery</h2>
-      <p class="hint">Shows cropped face/state previews when state_engine exists.</p>
-      <div id="exprGalleryGrid" class="gallery"></div>
-    </div>
-    <div class="formSection" id="formBody"><p class="hint">Select a state or gesture to edit.</p></div>
+    <div id="editorForm"><p class="hint">상태나 동작을 선택하세요.</p></div>
   </aside>
 </div>
 <script type="module">
-import { validateManifest, migrateToV02, animKind, buildStateSpeechPlan, textToViseme, routeProsodyState } from './nva-core.js?v=20260712-state';
-const $=id=>document.getElementById(id);
-const cv=$('cv'), ctx=cv.getContext('2d'), off=document.createElement('canvas'), octx=off.getContext('2d',{willReadFrequently:true});
-const video=document.createElement('video'); video.muted=true; video.playsInline=true;
-let headVideo=null, speechTicker=null, currentHeadClip='', M=null, baseUrl='', blobMap={}, selected=null, current=null, activeState=null, currentLocale='ko-KR', soundOn=false, resourcePreview=null;
-video.addEventListener('loadeddata',()=>updateDebug());
-video.addEventListener('canplay',()=>updateDebug());
-window.addEventListener('pointerdown',()=>{soundOn=true; video.muted=false},{once:true});
-const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-const isAbs=v=>/^(?:[a-z][a-z0-9+.-]*:|\/\/|\/)/i.test(v||'');
-function clipUrl(c){ if(!c)return ''; if(blobMap[c]?.url)return blobMap[c].url; if(isAbs(c))return c; return baseUrl?`${baseUrl}/${c}`:c; }
-function setStatus(s,cls=''){ $('status').textContent=s; $('status').className='pill '+cls; }
-function hexRGB(h){h=(h||'#00b140').replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
-function compose(){
-  const bg=M?.background; const preview=(bg?.type==='color'&&bg?.color)?bg.color:$('m_bg').value;
-  ctx.fillStyle=preview; ctx.fillRect(0,0,cv.width,cv.height);
-  if(video.readyState>=2){
-    if(M?.chroma_key){ off.width=cv.width; off.height=cv.height; octx.clearRect(0,0,cv.width,cv.height); octx.drawImage(video,0,0,cv.width,cv.height); const [cr,cg,cb]=hexRGB(M.chroma_key); const img=octx.getImageData(0,0,cv.width,cv.height),d=img.data; for(let i=0;i<d.length;i+=4){const dr=d[i]-cr,dg=d[i+1]-cg,db=d[i+2]-cb;if(dr*dr+dg*dg+db*db<90*90)d[i+3]=0;} octx.putImageData(img,0,0); ctx.drawImage(off,0,0); }
-    else ctx.drawImage(video,0,0,cv.width,cv.height);
+import {
+  NVA_VERSION,
+  isPortableAssetPath,
+  listStateAssets,
+  migrateToV03,
+  routeProsodyState,
+  validateManifest,
+} from './nva-core.js?v=20260714-v03';
+
+const $ = (id) => document.getElementById(id);
+const esc = (value) => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const canvas = $('canvas');
+const ctx = canvas.getContext('2d');
+const bodyVideo = document.createElement('video');
+bodyVideo.muted = true; bodyVideo.loop = true; bodyVideo.playsInline = true;
+const headVideo = document.createElement('video');
+headVideo.muted = true; headVideo.loop = true; headVideo.playsInline = true;
+const headImage = new Image();
+let manifest = null;
+let baseUrl = '';
+let blobs = {};
+let selected = null;
+let activeStateId = null;
+let previewMode = 'idle';
+let editCounter = 0;
+
+function setStatus(text, kind='') { $('status').textContent=text; $('status').className=`pill ${kind}`; }
+function nextRevision(prefix='edit') { editCounter += 1; return `${prefix}-${Date.now().toString(36)}-${editCounter}`.replace(/[^a-z0-9._+-]/gi,'-').slice(0,128); }
+function endpoint() { return $('cascadeEndpoint').value.trim().replace(/\/$/,''); }
+function assetUrl(path) { return blobs[path]?.url || (baseUrl ? `${baseUrl}/${path}` : path); }
+function currentState() { return manifest?.character_states?.[activeStateId] || null; }
+function touchManifest() { if (manifest) manifest.revision={...(manifest.revision||{}),id:nextRevision('manifest')}; }
+function bboxArray(box) { return [box?.x||0,box?.y||0,box?.width||0,box?.height||0]; }
+
+function draw() {
+  requestAnimationFrame(draw);
+  if (!manifest) return;
+  const bg=manifest.background;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle=bg?.type==='color'&&bg.color?bg.color:'#0a0d12';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  if (bodyVideo.readyState>=2) ctx.drawImage(bodyVideo,0,0,canvas.width,canvas.height);
+  if (previewMode==='talking') {
+    const state=currentState();
+    const box=state?.face_bbox;
+    if (box) {
+      const args=[box.x*canvas.width,box.y*canvas.height,box.width*canvas.width,box.height*canvas.height];
+      if (state.talking_head?.source?.media_type?.startsWith('video') && headVideo.readyState>=2) ctx.drawImage(headVideo,...args);
+      else if (headImage.complete&&headImage.naturalWidth) ctx.drawImage(headImage,...args);
+      ctx.strokeStyle='#29ca8e';ctx.lineWidth=2;ctx.strokeRect(...args);
+    }
   }
-  if(headVideo?.readyState>=2 && M?.__engineSpeech){ const st=M.state_engine.states[M.__engineSpeech.state]; const b=st?.face_bbox||[.34,.05,.32,.36]; if(st?.talking_head_crop) ctx.drawImage(headVideo,b[0]*cv.width,b[1]*cv.height,b[2]*cv.width,b[3]*cv.height); else ctx.drawImage(headVideo,b[0]*headVideo.videoWidth,b[1]*headVideo.videoHeight,b[2]*headVideo.videoWidth,b[3]*headVideo.videoHeight,b[0]*cv.width,b[1]*cv.height,b[2]*cv.width,b[3]*cv.height); }
-  requestAnimationFrame(compose);
 }
-function defaultHeadSync(v){ return {fps:25,duration_ms:1200,loopable:true,hold_min_ms:80,hold_max_ms:240,mouth_peak_ms:v==='sil'?0:120}; }
-function ensureStateEngine(){
-  M.animations=M.animations||{}; M.state_engine=M.state_engine||{}; const e=M.state_engine; e.version=e.version||'0.1'; e.visemes=Array.isArray(e.visemes)&&e.visemes.length?e.visemes:['sil','a','i','u','e','o']; e.states=e.states||{}; e.default_state=e.default_state||Object.keys(e.states)[0]||'neutral';
-  if(!e.states[e.default_state]) e.states[e.default_state]={label:e.default_state,idle:'',talking_body:'',face_preview:'',face_bbox:[.34,.05,.32,.36],talking_heads:{},sync:{default_hold_ms:160,heads:{}}};
-  for(const st of Object.values(e.states)){ st.talking_heads=st.talking_heads||{}; st.face_bbox=Array.isArray(st.face_bbox)&&st.face_bbox.length===4?st.face_bbox:[.34,.05,.32,.36]; st.sync=st.sync||{}; st.sync.default_hold_ms=Number(st.sync.default_hold_ms)>0?Number(st.sync.default_hold_ms):160; st.sync.heads=st.sync.heads||{}; for(const v of e.visemes){ if(typeof st.talking_heads[v]!=='string') st.talking_heads[v]=''; st.sync.heads[v]={...defaultHeadSync(v),...(st.sync.heads[v]||{})}; } }
+draw();
+
+function playVideo(video,path) {
+  video.pause();
+  video.removeAttribute('src');
+  if (!path) return;
+  video.src=assetUrl(path);
+  video.currentTime=0;
+  video.play().catch(()=>{});
 }
-function refresh(){ if(!M)return; ensureStateEngine(); const r=validateManifest(M); $('valid').innerHTML=(r.ok?'<span class="ok">VALID</span>':'<span class="bad">INVALID</span>')+'\n'+r.errors.map(e=>'ERROR '+e).join('\n')+(r.errors.length?'\n':'')+r.warnings.map(w=>'WARN '+w).join('\n')+(r.warnings.length?'':'(no warnings)'); cv.width=M.canvas?.width||360; cv.height=M.canvas?.height||640; renderStruct(); updateDebug(); }
-function renderStruct(){
-  $('m_name').value=M.meta?.name||''; $('m_owner').value=M.meta?.owner||M.meta?.author||''; $('m_bgtype').value=M.background?.type||'transparent'; $('m_bg').value=M.background?.color||'#fff2d6'; $('m_chroma').value=M.chroma_key||'#00b140';
-  const sl=$('stateList'); sl.innerHTML=''; for(const [key,st] of Object.entries(M.state_engine.states)){ const heads=Object.values(st.talking_heads||{}).filter(Boolean).length; const d=document.createElement('div'); d.className='item state-item '+(selected==='state:'+key?'active':''); d.innerHTML=`<span>${esc(st.label||key)}</span><span class="meta">idle ${st.idle?'OK':'-'} / body ${st.talking_body?'OK':'-'} / heads ${heads}/${M.state_engine.visemes.length}</span>`; d.onclick=()=>selectState(key); sl.appendChild(d); }
-  const al=$('animList'); al.innerHTML=''; for(const [key,a] of Object.entries(M.animations||{})){ const kind=animKind(a); const d=document.createElement('div'); d.className='item '+(selected===key?'active':''); d.innerHTML=`<span>${esc(a.label||key)}</span><span class="tag">${kind}</span>`; d.onclick=()=>selectAnim(key); al.appendChild(d); }
-  const pc=$('playCtrls'); pc.innerHTML=''; for(const [key,st] of Object.entries(M.state_engine.states)){ const b=document.createElement('button'); b.className='small'; b.textContent=`state ${st.label||key}`; b.onclick=()=>playEngineIdle(key); pc.appendChild(b); }
-  for(const [key,a] of Object.entries(M.animations||{})){ const b=document.createElement('button'); b.className='small'; b.textContent=a.label||key; b.onclick=()=>goto(key); pc.appendChild(b); }
-  const s=M.vrm_slots||{}; const states=M.state_engine?.states||{};
-  $('vrmSlots').textContent=`expressions ${Object.keys(s.expressions||{}).length}, prototype head keys ${M.state_engine.visemes.length}, state-engine states ${Object.keys(states).length}`;
-  renderGallery();
+
+function previewIdle() {
+  const state=currentState(); if(!state)return;
+  bodyVideo.loop=true;bodyVideo.onended=null;
+  previewMode='idle';
+  playVideo(headVideo,''); headImage.removeAttribute('src');
+  playVideo(bodyVideo,state.idle.path);
+  $('speakStatus').textContent=`${activeStateId} · playback_state=idle`;
 }
-function renderGallery(){ const g=$('exprGalleryGrid'); g.innerHTML=''; const states=M.state_engine?.states||{}; for(const [key,st] of Object.entries(states)){ const btn=document.createElement('button'); btn.className='tile expr-item '+(activeState===key?'active':''); const src=st.face_preview?clipUrl(st.face_preview):''; btn.innerHTML=`<div class="face face-crop">${src?`<img src="${src}" alt="">`:''}</div><div class="name">${esc(st.label||key)}</div>`; btn.onclick=()=>selectState(key); g.appendChild(btn); } }
-function selectState(key){ selected='state:'+key; activeState=key; renderStateForm(key); renderStruct(); playEngineIdle(key); }
-function selectAnim(key){ selected=key; renderAnimForm(key); renderStruct(); goto(key); }
-function stateResourceRows(key){ const st=M.state_engine.states[key]; const rows=[['face_preview','Face preview',st.face_preview,'image'],['idle','Idle full-body video',st.idle,'video'],['talking_body','Talking body video',st.talking_body,'video'],...M.state_engine.visemes.map(v=>[`head:${v}`,`Head ${v}`,st.talking_heads[v],'video'])]; return `<h2>State resources</h2><p class="hint">Preview each selected-state resource independently. This does not start TTS.</p><div id="resourcePreviewBox" class="resourcePreviewBox"><div class="empty">No individual resource preview selected.</div></div><div class="resList">${rows.map(([role,label,path,type])=>`<div class="resRow ${path?'':'missing'}"><div><strong>${esc(label)}</strong><div class="path">${esc(path||'missing')}</div></div><button type="button" class="small" data-res-preview="${esc(role)}" data-res-path="${esc(path||'')}" data-res-type="${esc(type)}" ${path?'':'disabled'}>preview</button></div>`).join('')}</div>`; }
-function previewStateResource(key,role,path,type){ const box=$('resourcePreviewBox'); resourcePreview={state:key,role,path,type,readyState:0,startedAt:Date.now()}; if(type==='image'){ if(box)box.innerHTML=`<img src="${clipUrl(path)}" alt="${esc(role)}"><div class="hint">${esc(key)} / ${esc(role)} / ${esc(path)}</div>`; resourcePreview.readyState=4; updateDebug(); return true; } if(box){ box.innerHTML=`<video data-resource-video muted playsinline loop controls autoplay style="width:100%;max-height:220px;background:#000;border-radius:8px"></video><div class="hint">${esc(key)} / ${esc(role)} / ${esc(path)}</div>`; const rv=box.querySelector('[data-resource-video]'); rv.onloadeddata=()=>{resourcePreview.readyState=rv.readyState;updateDebug();}; rv.oncanplay=()=>{resourcePreview.readyState=rv.readyState;updateDebug();}; rv.src=clipUrl(path); rv.play().catch(()=>{}); } updateDebug(); return true; }
-function renderStateForm(key){ const st=M.state_engine.states[key]; const vis=M.state_engine.visemes; $('formBody').innerHTML=`<h2>State: ${esc(key)} <button type="button" class="small" data-res-preview="idle" data-res-path="${esc(st.idle||'')}" data-res-type="video" ${st.idle?'':'disabled'}>preview idle</button></h2>${stateResourceRows(key)}<label>Label</label><input data-state-k="label" value="${esc(st.label||key)}"><label>Idle full-body video</label><input data-state-k="idle" value="${esc(st.idle||'')}"><input type="file" data-state-file="idle" accept="video/*,.webm"><label>Talking body video</label><input data-state-k="talking_body" value="${esc(st.talking_body||'')}"><input type="file" data-state-file="talking_body" accept="video/*,.webm"><label>Cropped face preview</label><input data-state-k="face_preview" value="${esc(st.face_preview||'')}"><input type="file" data-state-file="face_preview" accept="image/*"><label>Face bbox x,y,w,h</label><input data-state-k="face_bbox" value="${esc((st.face_bbox||[]).join(', '))}"><label>Held prototype talking-head keys</label><div class="grid3">${vis.map(v=>`<div><label>${esc(v)} <button type="button" class="small" data-res-preview="head:${esc(v)}" data-res-path="${esc(st.talking_heads[v]||'')}" data-res-type="video" ${st.talking_heads[v]?'':'disabled'}>preview</button></label><input data-head="${esc(v)}" value="${esc(st.talking_heads[v]||'')}"><input type="file" data-head-file="${esc(v)}" accept="video/*,.webm"></div>`).join('')}</div>`; bindStateForm(key); }
-function bindStateForm(key){ const st=M.state_engine.states[key]; $('formBody').querySelectorAll('[data-state-k]').forEach(el=>el.onchange=()=>{ const k=el.dataset.stateK; if(k==='face_bbox'){ const nums=el.value.split(',').map(x=>Number(x.trim())); if(nums.length===4&&nums.every(Number.isFinite)) st.face_bbox=nums; } else st[k]=el.value; refresh(); }); $('formBody').querySelectorAll('[data-state-file]').forEach(el=>el.onchange=()=>{ const f=el.files[0]; if(!f)return; const k=el.dataset.stateFile; const ext=f.name.split('.').pop()||(k==='face_preview'?'png':'webm'); const path=k==='face_preview'?`expressions/${key}.${ext}`:`clips/${key}-${k}.${ext}`; blobMap[path]={url:URL.createObjectURL(f),blob:f}; st[k]=path; refresh(); renderStateForm(key); }); $('formBody').querySelectorAll('[data-head]').forEach(el=>el.onchange=()=>{ st.talking_heads[el.dataset.head]=el.value; refresh(); }); $('formBody').querySelectorAll('[data-head-file]').forEach(el=>el.onchange=()=>{ const f=el.files[0]; if(!f)return; const v=el.dataset.headFile; const ext=f.name.split('.').pop()||'webm'; const path=`clips/${key}/head-${v}.${ext}`; blobMap[path]={url:URL.createObjectURL(f),blob:f}; st.talking_heads[v]=path; refresh(); renderStateForm(key); }); $('formBody').querySelectorAll('[data-res-preview]').forEach(el=>el.onclick=()=>previewStateResource(key,el.dataset.resPreview,el.dataset.resPath,el.dataset.resType)); }
-function renderAnimForm(key){ const a=M.animations[key]; $('formBody').innerHTML=`<h2>Gesture / animation: ${esc(key)}</h2><label>Clip</label><input data-anim-k="clip" value="${esc(a.clip||'')}"><input type="file" data-anim-file="clip" accept="video/*,.webm"><label>Label</label><input data-anim-k="label" value="${esc(a.label||'')}"><label>Description</label><textarea data-anim-k="description" rows="2">${esc(a.description||'')}</textarea><label>Type</label><select data-anim-type><option value="idle" ${a.loop&&!a.can_talk?'selected':''}>idle</option><option value="talking" ${a.can_talk?'selected':''}>talking legacy</option><option value="gesture" ${!a.loop&&!a.can_talk?'selected':''}>gesture</option></select>`; $('formBody').querySelectorAll('[data-anim-k]').forEach(el=>el.onchange=()=>{a[el.dataset.animK]=el.value;refresh();}); $('formBody').querySelector('[data-anim-type]').onchange=e=>{a.loop=e.target.value!=='gesture';a.can_talk=e.target.value==='talking';refresh();}; $('formBody').querySelector('[data-anim-file]').onchange=e=>{const f=e.target.files[0];if(!f)return;const path='clips/'+f.name;blobMap[path]={url:URL.createObjectURL(f),blob:f};a.clip=path;refresh();}; }
-function playClip(clip,loop){ if(!clip)return false; video.muted=!soundOn; video.src=clipUrl(clip); video.loop=loop; video.play().catch(()=>{}); return true; }
-function goto(key){ const a=M.animations?.[key]; if(!a)return; stopStateSpeech(); current={key,clip:a.clip,loop:!!a.loop,can_talk:!!a.can_talk,isSpeech:false}; playClip(a.clip,!!a.loop); updateDebug(); }
-function playEngineIdle(key){ ensureStateEngine(); const stateKey=key&&M.state_engine.states[key]?key:M.state_engine.default_state; const st=M.state_engine.states[stateKey]; if(!st?.idle)return false; stopStateSpeech(); activeState=stateKey; current={key:`state:${stateKey}:idle`,clip:st.idle,loop:true,can_talk:false,isSpeech:false}; playClip(st.idle,true); updateDebug(); return true; }
-function stopStateSpeech(){ if(speechTicker)clearInterval(speechTicker); speechTicker=null; currentHeadClip=''; if(headVideo){headVideo.pause();headVideo.removeAttribute('src');} headVideo=null; if(M?.__engineSpeech)delete M.__engineSpeech; updateDebug(); }
-function playStateEngineSpeech(text){ ensureStateEngine(); const plan=buildStateSpeechPlan(M,text,activeState); if(!plan)return false; const st=M.state_engine.states[plan.state]; stopStateSpeech(); activeState=plan.state; current={key:`state:${plan.state}:talking`,clip:plan.talking_body,loop:true,can_talk:true,isSpeech:true}; M.__engineSpeech={state:plan.state,text,viseme:plan.sequence[0],timeline:plan.timeline,sync:{mode:"timeline"}}; playClip(plan.talking_body,true); headVideo=document.createElement('video'); headVideo.muted=true; headVideo.loop=true; headVideo.playsInline=true; const started=performance.now(); const pick=(ms)=>{let cur=plan.timeline[0]?.viseme||plan.sequence[0]; for(const item of plan.timeline){ if((item.t_ms||0)>ms)break; cur=item.viseme||cur; } return cur;}; const tick=()=>{setEngineViseme(pick(performance.now()-started),{mode:"timeline",elapsed_ms:Math.round(performance.now()-started)});}; tick(); speechTicker=setInterval(tick,40); updateDebug(); return true; }
-function setEngineViseme(v,sync){ const state=M?.__engineSpeech?.state; const st=state&&M.state_engine?.states?.[state]; if(!st?.talking_heads?.[v]||!headVideo)return false; M.__engineSpeech.viseme=v; M.__engineSpeech.sync=sync||M.__engineSpeech.sync||{mode:'timer'}; const next=clipUrl(st.talking_heads[v]); if(currentHeadClip!==next){ currentHeadClip=next; headVideo.onloadeddata=()=>updateDebug(); headVideo.oncanplay=()=>updateDebug(); headVideo.src=next; headVideo.play().catch(()=>{}); } updateDebug(); return true; }
-function visemeAtTextIndex(text,index,heads){ return textToViseme(String(text||'').charAt(Math.max(0,index||0)), Object.keys(heads||{}).filter(k=>heads[k])); }
-function updateDebug(){ window.__nvaDebug={loaded:!!M,activeState,stateEngine:!!M?.state_engine,engineSpeech:M?.__engineSpeech||null,current,resourcePreview,ttsStarted:!!M?.__ttsStarted,ttsError:M?.__ttsError||null,ttsRawText:M?.__ttsRawText||null,ttsSpokenText:M?.__ttsSpokenText||null,videoReady:video.readyState,headReady:headVideo?headVideo.readyState:0,headClip:currentHeadClip}; }
-function availableLocales(){ const p=M?.vrm_slots?.profile||{}; return p.available_locales||p.locales||[p.default_locale||'ko-KR']; }
-function syncLocaleOptions(){ const locales=availableLocales(); currentLocale=locales.includes(currentLocale)?currentLocale:locales[0]||'ko-KR'; $('localeSelect').innerHTML=locales.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join(''); $('localeSelect').value=currentLocale; }
-function initTtsVoices(){ if(!('speechSynthesis'in window)){ $('ttsStatus').textContent='Web Speech API unsupported'; return; } const voices=window.speechSynthesis.getVoices(); $('ttsVoice').innerHTML=voices.map(v=>`<option value="${esc(v.voiceURI)}">${esc(v.name)} - ${esc(v.lang)}</option>`).join(''); const pick=voices.find(v=>v.lang===currentLocale)||voices.find(v=>v.lang?.slice(0,2)===currentLocale.slice(0,2)); if(pick)$('ttsVoice').value=pick.voiceURI; }
-function speakTts(){ if(!('speechSynthesis'in window)){ $('ttsStatus').textContent='Web Speech API unsupported'; return; } const rawText=$('ttsText').value.trim(); if(!rawText)return; const routed=routeProsodyState(M,rawText,activeState); const text=routed.cleanText||rawText.replace(/\[[a-z][a-z0-9_-]*\]/gi,'').trim()||rawText; M.__ttsRawText=rawText; M.__ttsSpokenText=text; if(routed.state)activeState=routed.state; soundOn=true; video.muted=false; const used=playStateEngineSpeech(text); if(!used){ $('ttsStatus').textContent='State engine assets missing: TTS preview blocked'; setStatus('state engine asset missing','bad'); updateDebug(); return; } M.__ttsStarted=false; M.__ttsError=null; const u=new SpeechSynthesisUtterance(text); const voices=window.speechSynthesis.getVoices(); const picked=voices.find(v=>v.voiceURI===$('ttsVoice').value); if(picked){u.voice=picked;u.lang=picked.lang}else u.lang=currentLocale; u.onstart=()=>{M.__ttsStarted=true; updateDebug(); $('ttsStatus').textContent=`TTS playing spoken text through state engine${routed.tag?' via ['+routed.tag+'] -> '+routed.state:''}`}; u.onboundary=e=>{const state=M?.__engineSpeech?.state; const heads=state&&M.state_engine?.states?.[state]?.talking_heads; const v=heads&&visemeAtTextIndex(text,e.charIndex,heads); if(v)setEngineViseme(v,{mode:'speechSynthesis.boundary',charIndex:e.charIndex||0,elapsedTime:e.elapsedTime||0});}; u.onend=()=>{const st=M?.__engineSpeech?.state; stopStateSpeech(); if(st)playEngineIdle(st); $('ttsStatus').textContent='TTS finished'}; u.onerror=e=>{M.__ttsError=e?.error||'speechSynthesis.error'; updateDebug(); u.onend(e);}; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }
-function stopTts(){ if('speechSynthesis'in window)window.speechSynthesis.cancel(); const st=M?.__engineSpeech?.state; stopStateSpeech(); if(st)playEngineIdle(st); $('ttsStatus').textContent='TTS stopped'; }
-function manifestCandidateBases(){ const parts=location.pathname.split('/').filter(Boolean); const idx=parts.lastIndexOf('main'); const root=idx>=0?`/${parts.slice(0,idx).join('/')}`:''; return [...new Set(['../../examples','./examples','/examples',`${root}/examples`,'/projects/naia-video-avatar/examples'])]; }
-async function loadManifestCandidates(name){ const errs=[]; for(const base of manifestCandidateBases()){ const b=`${base.replace(/[\\/]+$/,'')}/${name}`; try{ const res=await fetch(`${b}/manifest.json`,{cache:'no-store'}); if(!res.ok){errs.push(`${b}:${res.status}`);continue} return {m:await res.json(),base:b}; }catch(e){errs.push(`${b}:${e.message}`)} } throw new Error(errs.join(' | ')); }
-async function loadBundleFromName(name){ const r=await loadManifestCandidates(name); await loadManifest(r.m,r.base); setStatus(`${name} loaded`,'ok'); }
-async function loadManifest(m,base){ M=migrateToV02(m); baseUrl=base||''; blobMap={}; selected=null; ensureStateEngine(); syncLocaleOptions(); initTtsVoices(); refresh(); playEngineIdle(M.state_engine.default_state); }
-async function buildNvaZip(){ const r=validateManifest(M); if(!r.ok)throw new Error(r.errors.join('\n')); const zip=new JSZip(); zip.file('manifest.json',JSON.stringify(M,null,2)); const clips=new Set(Object.values(M.animations||{}).map(a=>a.clip).filter(Boolean)); for(const st of Object.values(M.state_engine?.states||{})){ if(st.idle)clips.add(st.idle); if(st.talking_body)clips.add(st.talking_body); if(st.face_preview)clips.add(st.face_preview); for(const c of Object.values(st.talking_heads||{}))if(c)clips.add(c); } const missing=[]; for(const c of clips){ try{ if(blobMap[c])zip.file(c,blobMap[c].blob); else if(baseUrl){ const res=await fetch(`${baseUrl}/${c}`); if(!res.ok)throw new Error(String(res.status)); zip.file(c,await res.blob()); } else missing.push(c); }catch{ missing.push(c); } } if(missing.length)throw new Error('Missing export assets:\n'+missing.join('\n')); return zip.generateAsync({type:'blob'}); }
-$('m_name').onchange=e=>{(M.meta=M.meta||{}).name=e.target.value;refresh()}; $('m_owner').onchange=e=>{(M.meta=M.meta||{}).owner=e.target.value;M.meta.author=e.target.value;refresh()}; $('m_bgtype').onchange=e=>{(M.background=M.background||{}).type=e.target.value;refresh()}; $('m_bg').onchange=e=>{(M.background=M.background||{}).color=e.target.value;refresh()}; $('m_chroma').onchange=e=>{M.chroma_key=e.target.value;refresh()}; $('m_chroma_clr').onclick=()=>{delete M.chroma_key;refresh()};
-$('addState').onclick=()=>{ if(!M)return; const raw=prompt('State name','happy'); if(raw===null)return; const key=String(raw||'state').trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'_')||'state'; ensureStateEngine(); if(!M.state_engine.states[key])M.state_engine.states[key]={label:key,idle:'',talking_body:'',face_preview:'',face_bbox:[.34,.05,.32,.36],talking_heads:Object.fromEntries(M.state_engine.visemes.map(v=>[v,''])),sync:{default_hold_ms:160,heads:Object.fromEntries(M.state_engine.visemes.map(v=>[v,defaultHeadSync(v)]))}}; selectState(key); refresh(); };
-$('addGesture').onclick=()=>{ if(!M)return; let n=1; while(M.animations['gesture-'+n])n++; M.animations['gesture-'+n]={clip:'',loop:false,can_talk:false,label:'gesture '+n,description:''}; selectAnim('gesture-'+n); refresh(); };
-$('loadNaia').onclick=()=>loadBundleFromName('naia-prebaked.nva').catch(e=>setStatus(e.message,'bad')); $('loadOsarang').onclick=()=>loadBundleFromName('osarang-prebaked.nva').catch(e=>setStatus(e.message,'bad')); $('loadDemo').onclick=()=>loadBundleFromName('demo.nva').catch(e=>setStatus(e.message,'bad'));
-$('openNvaBtn').onclick=()=>$('openNva').click(); $('openNva').onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const zip=await JSZip.loadAsync(f); const mf=await zip.file('manifest.json').async('string'); blobMap={}; for(const [path,zf] of Object.entries(zip.files)){ if(/\.(webm|mp4|jpg|png|wav)$/i.test(path)){ const blob=await zf.async('blob'); blobMap[path]={url:URL.createObjectURL(blob),blob}; } } await loadManifest(JSON.parse(mf),''); setStatus(`${f.name} loaded`,'ok'); };
-$('exportBtn').onclick=async()=>{ if(!M)return alert('Load first'); try{ const out=await buildNvaZip(); const a=document.createElement('a'); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||'character')+'.nva'; a.click(); setStatus('exported','ok'); }catch(e){ alert(e.message); } };
-$('ttsSpeak').onclick=speakTts; $('ttsStop').onclick=stopTts; $('ttsKoreanSample').onclick=()=>{$('ttsText').value='안녕하세요. 지금 상태 기반 발화를 확인합니다.'}; $('ttsVisemeSmoke').onclick=()=>{$('ttsText').value='aiueo'}; $('localeSelect').onchange=()=>{currentLocale=$('localeSelect').value;initTtsVoices()}; if('speechSynthesis'in window)window.speechSynthesis.onvoiceschanged=initTtsVoices;
-requestAnimationFrame(compose); loadBundleFromName('naia-prebaked.nva').catch(e=>setStatus(e.message,'bad'));
+
+function previewTalking() {
+  const state=currentState(); if(!state)return;
+  bodyVideo.loop=true;bodyVideo.onended=null;
+  previewMode='talking';
+  playVideo(bodyVideo,state.talking_body.path);
+  const source=state.talking_head.source;
+  if(source.media_type?.startsWith('video')) { headImage.removeAttribute('src'); playVideo(headVideo,source.path); }
+  else { playVideo(headVideo,''); headImage.src=assetUrl(source.path); }
+  $('speakStatus').textContent=`${activeStateId} · playback_state=speaking · profile=${state.talking_head.descriptor.profile_ref}`;
+}
+
+function previewGesture() {
+  if(!selected?.startsWith('gesture:'))return;
+  const id=selected.slice(8), gesture=manifest.gestures[id];
+  previewMode='gesture'; playVideo(headVideo,''); headImage.removeAttribute('src'); playVideo(bodyVideo,gesture.clip.path);
+  bodyVideo.loop=false;
+  bodyVideo.onended=()=>{bodyVideo.loop=true;previewIdle();};
+}
+
+function validationText() {
+  const result=manifest?validateManifest(manifest):{ok:false,errors:['Manifest를 불러오세요.'],warnings:[]};
+  return `${result.ok?'VALID':'INVALID'}\n${result.errors.map(v=>`ERROR ${v}`).join('\n')}${result.errors.length?'\n':''}${result.warnings.map(v=>`WARN ${v}`).join('\n')}`.trim();
+}
+
+function refresh() {
+  if(!manifest)return;
+  canvas.width=manifest.canvas.width;canvas.height=manifest.canvas.height;
+  $('metaName').value=manifest.meta?.name||'';$('metaOwner').value=manifest.meta?.owner||'';$('manifestRevision').value=manifest.revision?.id||'';
+  const result=validateManifest(manifest);$('validation').textContent=validationText();$('validation').className=`valid ${result.ok?'ok':'bad'}`;
+  const list=$('stateList');list.innerHTML='';
+  for(const [id,state] of Object.entries(manifest.character_states||{})) {
+    const item=document.createElement('button');item.className=`item ${selected===`state:${id}`?'active':''}`;item.type='button';
+    item.innerHTML=`<span>${esc(state.label||id)} ${manifest.default_character_state_id===id?'<span class="default-mark">default</span>':''}</span><span class="meta">${esc(state.revision?.id||'no revision')}<br>${esc(state.talking_head?.descriptor?.profile_ref||'no profile')}</span>`;
+    item.onclick=()=>selectState(id);list.appendChild(item);
+  }
+  const gestures=$('gestureList');gestures.innerHTML='';
+  for(const [id,gesture] of Object.entries(manifest.gestures||{})) {
+    const item=document.createElement('button');item.className=`item ${selected===`gesture:${id}`?'active':''}`;item.type='button';
+    item.innerHTML=`<span>${esc(gesture.label||id)}</span><span class="meta">${esc(gesture.revision?.id||'')}</span>`;item.onclick=()=>selectGesture(id);gestures.appendChild(item);
+  }
+}
+
+function stateResourceFields(label,role,value,accept) {
+  return `<div class="resource"><div class="resource-head"><strong>${esc(label)}</strong><button type="button" class="small" data-preview-role="${esc(role)}">미리보기</button></div><label>경로</label><input data-resource-path="${esc(role)}" value="${esc(value.path||'')}"><label>Revision</label><input data-resource-revision="${esc(role)}" value="${esc(value.revision?.id||'')}"><label>파일 교체</label><input type="file" data-resource-file="${esc(role)}" accept="${esc(accept)}"></div>`;
+}
+
+function selectState(id) {
+  selected=`state:${id}`;activeStateId=id;
+  const state=manifest.character_states[id], box=state.face_bbox, descriptor=state.talking_head.descriptor;
+  $('editorForm').innerHTML=`
+    <div class="row"><h3 class="state-title">상태: ${esc(id)}</h3><button id="makeDefault" class="small">기본 상태</button><button id="deleteState" class="small danger">삭제</button></div>
+    <label>Label</label><input data-state-field="label" value="${esc(state.label||id)}">
+    <label>State revision</label><input data-state-revision value="${esc(state.revision?.id||'')}">
+    ${stateResourceFields('Idle','idle',state.idle,'video/*,.webm,.mp4')}
+    ${stateResourceFields('Talking body','talking_body',state.talking_body,'video/*,.webm,.mp4')}
+    <div class="resource"><strong>Talking-head descriptor</strong>
+      <label>Head revision</label><input data-head-field="revision" value="${esc(state.talking_head.revision?.id||'')}">
+      <label>Descriptor kind</label><input data-head-field="kind" value="${esc(descriptor.kind||'remote-profile')}">
+      <label>Windows profile_ref</label><input data-head-field="profile_ref" value="${esc(descriptor.profile_ref||'')}">
+      <label>선택 메타데이터(JSON)</label><textarea data-head-field="metadata" rows="4">${esc(JSON.stringify(descriptor.metadata||{},null,2))}</textarea>
+    </div>
+    ${stateResourceFields('Talking-head source','talking_head.source',state.talking_head.source,'image/*,video/*,.png,.jpg,.webp,.webm,.mp4')}
+    <div class="resource"><strong>Face bbox</strong><div class="bbox">${['x','y','width','height'].map(key=>`<div><label>${key}</label><input type="number" step="0.001" min="0" max="1" data-bbox="${key}" value="${esc(box[key])}"></div>`).join('')}</div>
+      <div class="grid2"><div><label>Source width</label><input type="number" min="1" data-bbox="source_width" value="${esc(box.source_width)}"></div><div><label>Source height</label><input type="number" min="1" data-bbox="source_height" value="${esc(box.source_height)}"></div></div>
+      <div class="grid2"><div><label>Confidence (관측값)</label><input type="number" step="0.001" min="0" max="1" data-bbox="confidence" value="${esc(box.confidence)}"></div><div><label>Detector version</label><input data-bbox="detector_version" value="${esc(box.detector_version)}"></div></div>
+      <p class="hint">검출 점수는 관측값으로 저장합니다. 에디터가 아직 합의되지 않은 합격 임계값을 임의로 만들지 않습니다.</p>
+    </div>`;
+  bindStateForm(id);refresh();previewIdle();
+}
+
+function bindStateForm(id) {
+  const root=$('editorForm'), state=manifest.character_states[id];
+  root.querySelector('#makeDefault').onclick=()=>{manifest.default_character_state_id=id;touchManifest();refresh();};
+  root.querySelector('#deleteState').onclick=()=>{if(Object.keys(manifest.character_states).length<=1)return alert('상태는 최소 1개 필요합니다.');delete manifest.character_states[id];for(const gesture of Object.values(manifest.gestures||{}))gesture.allowed_character_state_ids=(gesture.allowed_character_state_ids||[]).filter(stateId=>stateId!==id);if(manifest.default_character_state_id===id)manifest.default_character_state_id=Object.keys(manifest.character_states)[0];selected=null;activeStateId=manifest.default_character_state_id;touchManifest();$('editorForm').innerHTML='<p class="hint">상태를 선택하세요.</p>';refresh();previewIdle();};
+  root.querySelector('[data-state-field]').onchange=e=>{state[e.target.dataset.stateField]=e.target.value;touchManifest();refresh();};
+  root.querySelector('[data-state-revision]').onchange=e=>{state.revision.id=e.target.value;touchManifest();refresh();};
+  root.querySelectorAll('[data-resource-path]').forEach(input=>input.onchange=()=>{const role=input.dataset.resourcePath,target=role==='talking_head.source'?state.talking_head.source:state[role];target.path=input.value;target.revision={id:nextRevision(`${id}-${role}-r`)};if(role==='talking_head.source')state.talking_head.revision={id:nextRevision(`${id}-head-r`)};state.revision={id:nextRevision(`${id}-state-r`)};touchManifest();refresh();});
+  root.querySelectorAll('[data-resource-revision]').forEach(input=>input.onchange=()=>{const role=input.dataset.resourceRevision,target=role==='talking_head.source'?state.talking_head.source:state[role];target.revision.id=input.value;if(role==='talking_head.source')state.talking_head.revision={id:nextRevision(`${id}-head-r`)};state.revision={id:nextRevision(`${id}-state-r`)};touchManifest();refresh();});
+  root.querySelectorAll('[data-resource-file]').forEach(input=>input.onchange=()=>{const file=input.files[0];if(!file)return;const role=input.dataset.resourceFile,target=role==='talking_head.source'?state.talking_head.source:state[role];const folder=role==='talking_head.source'?'heads':'clips';const path=`${folder}/${id}-${role.replaceAll('.','-')}-${file.name.replace(/[^a-z0-9._-]/gi,'-')}`;blobs[path]={url:URL.createObjectURL(file),blob:file};target.path=path;target.media_type=file.type||(/\.mp4$/i.test(file.name)?'video/mp4':/\.webm$/i.test(file.name)?'video/webm':'image/png');target.revision={id:nextRevision(`${id}-${role}-r`)};if(role==='talking_head.source')state.talking_head.revision={id:nextRevision(`${id}-head-r`)};state.revision={id:nextRevision(`${id}-state-r`)};touchManifest();selectState(id);});
+  root.querySelectorAll('[data-head-field]').forEach(input=>input.onchange=()=>{const key=input.dataset.headField;if(key==='revision')state.talking_head.revision.id=input.value;else if(key==='metadata'){try{state.talking_head.descriptor.metadata=JSON.parse(input.value||'{}');input.setCustomValidity('');}catch{input.setCustomValidity('JSON 형식이 아닙니다.');input.reportValidity();return;}}else state.talking_head.descriptor[key]=input.value;if(key!=='revision')state.talking_head.revision={id:nextRevision(`${id}-head-r`)};state.revision={id:nextRevision(`${id}-state-r`)};touchManifest();refresh();});
+  root.querySelectorAll('[data-bbox]').forEach(input=>input.onchange=()=>{const key=input.dataset.bbox;state.face_bbox[key]=key==='detector_version'?input.value:Number(input.value);state.revision={id:nextRevision(`${id}-state-r`)};touchManifest();refresh();});
+  root.querySelectorAll('[data-preview-role]').forEach(button=>button.onclick=()=>{const role=button.dataset.previewRole;if(role==='idle')previewIdle();else previewTalking();});
+}
+
+function selectGesture(id) {
+  selected=`gesture:${id}`;const gesture=manifest.gestures[id];
+  $('editorForm').innerHTML=`<div class="row"><h3 class="state-title">동작: ${esc(id)}</h3><button id="deleteGesture" class="small danger">삭제</button></div><label>Label</label><input data-gesture="label" value="${esc(gesture.label||id)}"><label>Revision</label><input data-gesture="revision" value="${esc(gesture.revision?.id||'')}">${stateResourceFields('Clip','clip',gesture.clip,'video/*,.webm,.mp4')}<p class="hint">동작 종료 후에는 실행 전 character_state_id의 idle로 복귀합니다.</p>`;
+  const root=$('editorForm');root.querySelector('#deleteGesture').onclick=()=>{delete manifest.gestures[id];selected=null;touchManifest();root.innerHTML='<p class="hint">상태나 동작을 선택하세요.</p>';refresh();};
+  root.querySelector('[data-gesture="label"]').onchange=e=>{gesture.label=e.target.value;touchManifest();refresh();};
+  root.querySelector('[data-gesture="revision"]').onchange=e=>{gesture.revision.id=e.target.value;touchManifest();refresh();};
+  root.querySelector('[data-resource-path]').onchange=e=>{gesture.clip.path=e.target.value;touchManifest();refresh();};
+  root.querySelector('[data-resource-revision]').onchange=e=>{gesture.clip.revision.id=e.target.value;touchManifest();refresh();};
+  root.querySelector('[data-resource-file]').onchange=e=>{const file=e.target.files[0];if(!file)return;const path=`clips/gesture-${id}-${file.name.replace(/[^a-z0-9._-]/gi,'-')}`;blobs[path]={url:URL.createObjectURL(file),blob:file};gesture.clip={path,media_type:file.type||'video/webm',revision:{id:nextRevision(`${id}-clip-r`)}};gesture.revision={id:nextRevision(`${id}-r`)};touchManifest();selectGesture(id);};
+  root.querySelector('[data-preview-role]').onclick=previewGesture;refresh();
+}
+
+function defaultState(id) {
+  const revision=(role)=>({id:`${id}-${role}-draft-r1`});
+  return {label:id,revision:revision('state'),idle:{path:'',revision:revision('idle')},talking_body:{path:'',revision:revision('body')},talking_head:{revision:revision('head'),source:{path:'',media_type:'image/png',revision:revision('head-source')},descriptor:{schema_version:'1.0',kind:'remote-profile',profile_ref:'windows-default',metadata:{}}},face_bbox:{schema_version:'1.0',source_width:manifest.canvas.width,source_height:manifest.canvas.height,coordinate_space:'normalized_0_1',x:.35,y:.05,width:.3,height:.3,anchor_frame:0,confidence:0,detector_version:'not-measured',drift_report:{max_normalized_displacement:0}}};
+}
+
+function cleanId(value,fallback) { const id=String(value||fallback).trim().toLowerCase().replace(/[^a-z0-9._+-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,128);return id||fallback; }
+
+async function loadManifest(input, sourceBase='', sourceBlobs=null) {
+  if(!['0.1','0.2',NVA_VERSION].includes(input?.nva_version))throw new Error(`지원하지 않는 NVA 버전: ${input?.nva_version||'missing'}`);
+  const migrated=migrateToV03(input);const result=validateManifest(migrated,sourceBlobs?{assetFiles:Object.keys(sourceBlobs)}:{});if(!result.ok)throw new Error(result.errors.join('\n'));
+  manifest=migrated;baseUrl=sourceBase;blobs=sourceBlobs||{};selected=null;activeStateId=manifest.default_character_state_id;editCounter=0;refresh();selectState(activeStateId);setStatus(input.nva_version===NVA_VERSION?'0.3 로드':'0.3으로 마이그레이션','ok');
+}
+
+async function loadBundle(name) {
+  const base=`../../examples/${name}`;const response=await fetch(`${base}/manifest.json`);if(!response.ok)throw new Error(`${name} manifest ${response.status}`);await loadManifest(await response.json(),base);
+}
+
+async function buildNvaZip() {
+  if(!manifest)throw new Error('Manifest를 먼저 불러오세요.');
+  const result=validateManifest(manifest);if(!result.ok)throw new Error(result.errors.join('\n'));
+  if(!globalThis.JSZip)throw new Error('JSZip을 불러오지 못했습니다.');
+  const zip=new JSZip();zip.file('manifest.json',JSON.stringify(manifest,null,2));
+  const seen=new Set();
+  for(const {path} of listStateAssets(manifest)) {
+    if(seen.has(path))continue;seen.add(path);if(!isPortableAssetPath(path))throw new Error(`안전하지 않은 자산 경로: ${path}`);
+    if(blobs[path]?.blob)zip.file(path,blobs[path].blob);else{const response=await fetch(assetUrl(path));if(!response.ok)throw new Error(`자산을 읽지 못했습니다: ${path} (${response.status})`);zip.file(path,await response.blob());}
+  }
+  return zip.generateAsync({type:'blob',compression:'DEFLATE'});
+}
+
+async function cascadeRequest(path,options={}) {
+  const url=endpoint();if(!/^https?:\/\//i.test(url))throw new Error('Cascade endpoint는 http(s) URL이어야 합니다.');
+  const response=await fetch(`${url}${path}`,options);const contentType=response.headers.get('content-type')||'';
+  if(!response.ok){const detail=contentType.includes('json')?JSON.stringify(await response.json()):await response.text();throw new Error(`${response.status} ${detail}`);}
+  return response;
+}
+
+$('metaName').onchange=e=>{manifest.meta=manifest.meta||{};manifest.meta.name=e.target.value;touchManifest();refresh();};
+$('metaOwner').onchange=e=>{manifest.meta=manifest.meta||{};manifest.meta.owner=e.target.value;touchManifest();refresh();};
+$('manifestRevision').onchange=e=>{manifest.revision.id=e.target.value;refresh();};
+$('cascadeEndpoint').value=localStorage.getItem('nva-cascade-endpoint')||'http://127.0.0.1:8910';
+$('cascadeEndpoint').onchange=()=>localStorage.setItem('nva-cascade-endpoint',endpoint());
+$('loadDemo').onclick=()=>loadBundle('demo.nva').catch(error=>setStatus(error.message,'bad'));
+$('loadNaia').onclick=()=>loadBundle('naia.nva').catch(error=>setStatus(error.message,'bad'));
+$('loadOsarang').onclick=()=>loadBundle('osarang-prebaked.nva').catch(error=>setStatus(error.message,'bad'));
+$('openNvaBtn').onclick=()=>$('openNva').click();
+$('openNva').onchange=async event=>{try{const file=event.target.files[0];if(!file)return;const zip=await JSZip.loadAsync(file);const manifestFile=zip.file('manifest.json');if(!manifestFile)throw new Error('manifest.json이 없습니다.');const sourceBlobs={};for(const [path,entry] of Object.entries(zip.files)){if(entry.dir||path==='manifest.json')continue;if(!isPortableAssetPath(path))throw new Error(`안전하지 않은 zip 경로: ${path}`);const blob=await entry.async('blob');sourceBlobs[path]={blob,url:URL.createObjectURL(blob)};}await loadManifest(JSON.parse(await manifestFile.async('string')),'',sourceBlobs);setStatus(`${file.name} 로드`,'ok');}catch(error){setStatus(error.message,'bad');}};
+$('exportBtn').onclick=async()=>{try{const blob=await buildNvaZip();const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`${cleanId(manifest.meta?.name,'character')}.nva`;link.click();setStatus('내보내기 완료','ok');}catch(error){setStatus(error.message,'bad');}};
+$('addState').onclick=()=>{if(!manifest)return;const raw=prompt('새 상태 ID','happy');if(raw===null)return;const id=cleanId(raw,'state');if(manifest.character_states[id])return alert('이미 존재하는 상태입니다.');manifest.character_states[id]=defaultState(id);for(const gesture of Object.values(manifest.gestures||{}))gesture.allowed_character_state_ids=[...new Set([...(gesture.allowed_character_state_ids||[]),id])];touchManifest();selectState(id);};
+$('addGesture').onclick=()=>{if(!manifest)return;const raw=prompt('새 동작 ID','wave');if(raw===null)return;const id=cleanId(raw,'gesture');if(manifest.gestures[id])return alert('이미 존재하는 동작입니다.');manifest.gestures[id]={label:id,revision:{id:nextRevision(`${id}-r`)},clip:{path:'',revision:{id:nextRevision(`${id}-clip-r`)}},allowed_character_state_ids:Object.keys(manifest.character_states),return_policy:'same-character-state'};touchManifest();selectGesture(id);};
+$('previewIdle').onclick=previewIdle;$('previewTalking').onclick=previewTalking;$('previewGesture').onclick=previewGesture;
+$('cascadeHealth').onclick=async()=>{try{const response=await cascadeRequest('/health');const result=await response.json();$('cascadeStatus').textContent=`연결됨 · ${JSON.stringify(result)}`;setStatus('Cascade 연결','ok');}catch(error){$('cascadeStatus').textContent=error.message;setStatus('Cascade 오류','bad');}};
+$('cascadeUpload').onclick=async()=>{try{const zip=await buildNvaZip();const response=await cascadeRequest('/upload_nva',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:zip});$('cascadeStatus').textContent=`업로드됨 · ${JSON.stringify(await response.json())}`;setStatus('Cascade 업로드','ok');}catch(error){$('cascadeStatus').textContent=error.message;setStatus('업로드 오류','bad');}};
+$('remoteSpeak').onclick=async()=>{try{const routed=routeProsodyState(manifest,$('speakText').value,activeStateId);activeStateId=routed.character_state_id||activeStateId;selectState(activeStateId);$('speakStatus').textContent=`${activeStateId} 렌더 대기 중`;const response=await cascadeRequest('/stream_text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:routed.cleanText||$('speakText').value,character_state_id:activeStateId})});const blob=await response.blob();const video=$('remoteResult');video.src=URL.createObjectURL(blob);video.style.display='block';await video.play().catch(()=>{});video.onended=previewIdle;$('speakStatus').textContent=`${activeStateId} 원격 렌더 완료`; }catch(error){$('speakStatus').textContent=error.message;setStatus('원격 발화 오류','bad');previewIdle();}};
+$('remoteIdle').onclick=async()=>{try{const response=await cascadeRequest(`/idle?character_state_id=${encodeURIComponent(activeStateId)}`);const blob=await response.blob();const video=$('remoteResult');video.src=URL.createObjectURL(blob);video.style.display='block';await video.play().catch(()=>{});$('speakStatus').textContent=`${activeStateId} idle 응답`;}catch(error){$('speakStatus').textContent=error.message;}};
+
+window.__nvaEditorTest={
+  getManifest:()=>cloneForTest(manifest),
+  loadManifest:(value)=>loadManifest(value,'',{}),
+  validate:()=>validateManifest(manifest),
+  buildNvaZip,
+  selectState,
+  selectGesture,
+  selectedState:()=>activeStateId,
+  preview:()=>({mode:previewMode,body_src:bodyVideo.getAttribute('src')||'',body_loop:bodyVideo.loop}),
+  endpoint:(value)=>{if(value!==undefined)$('cascadeEndpoint').value=value;return endpoint();},
+};
+function cloneForTest(value){return value==null?value:JSON.parse(JSON.stringify(value));}
+
+loadBundle('demo.nva').catch(error=>setStatus(error.message,'bad'));
 </script>
 </body>
 </html>

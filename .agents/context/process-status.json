@@ -1,4 +1,4 @@
-﻿{
+{
   "schema_version": "1.0",
   "description": "Process status SoT. Keep .users/context/process-status.md mirrored after updates.",
   "refs": {
@@ -7,24 +7,24 @@
     "issue_docs_dir": "docs/progress/99.dev-comm/"
   },
   "current_work": {
-    "issue": "nva-state-engine-validation",
-    "title": "NVA state-based speech-engine validation prototype",
+    "issue": "nva-v03-state-resource-editor",
+    "title": "NVA 0.3 state-resource contract and Windows editor",
     "issue_doc": null,
-    "github_issue": null,
-    "started": "2026-06-21",
-    "last_updated": "2026-07-13",
-    "status": "held",
-    "note": "Canonical resource hierarchy remains state-based: each state binds idle video, talking-body video, cropped face preview, face bbox, and a talking-head video set. The sil/a/i/u/e/o six-clip implementation is preserved only as a verified prototype, not the final continuity contract. Directional mouth-shape transitions may require up to n^2 clips; interpolation or another transition strategy remains possible. Resume after RTX 3090 cascade benchmarking selects the talking-head transition contract. Gestures remain separate single clips."
+    "github_issue": "nextain/naia-video-avatar#7",
+    "started": "2026-07-14",
+    "last_updated": "2026-07-14",
+    "status": "done",
+    "note": "NVA 0.3 is the current portable contract. Each character state owns revisioned idle, talking-body, an extensible versioned talking-head source/descriptor, and an object face bbox. Windows configures profile_ref; the remote Cascade endpoint remains local editor configuration. Legacy 0.1/0.2 manifests migrate explicitly. The historical sil/a/i/u/e/o implementation remains experiment evidence only; transition keys, interpolation, codec, and composition location remain held for RTX 3090 evidence rather than blocking the portable state-resource contract."
   },
   "sdlc_gates": {
-    "P01": { "status": "done", "name": "user_scenarios", "deliverable": "docs/progress/02.user-scenarios/INDEX.md", "ref": "UC-001..UC-004, UC-VM-001..UC-VM-006, UC-RES-001..UC-RES-005" },
-    "P02": { "status": "done", "name": "test_scenarios", "deliverable": "docs/progress/03.uc-tests/INDEX.md", "ref": "TEST-S-001..TEST-S-005, UCT-VM-001..UCT-VM-006, UCT-RES-001..UCT-RES-005" },
-    "P03": { "status": "done", "name": "requirements", "deliverable": "docs/progress/01.requirements/INDEX.md", "ref": "REQ-001..REQ-008, REQ-VM-001..REQ-VM-008, REQ-RES-001..REQ-RES-005" },
-    "P04": { "status": "held", "name": "integration_test", "deliverable": "The held prototype Playwright suite passes 14/14 and builder smoke evidence is recorded. Current nva-core validation still fails the v0.1 migration case because the migrated manifest has no state_engine. Transition-contract tests require revision after the RTX 3090 benchmark.", "ref": "TEST-F-001..TEST-F-006, FT-VM-001..FT-VM-007, FT-RES-001..FT-RES-005" },
-    "P05": { "status": "held", "name": "requirements_complete", "deliverable": "The six-clip state-engine prototype evidence is retained, but final completion is held until RTX 3090 cascade benchmarking selects and validates the talking-head transition contract.", "ref": "REQ-VM-001..REQ-VM-008, REQ-RES-001..REQ-RES-005, UCT-VM-001..UCT-VM-006, UCT-RES-001..UCT-RES-005, FE-VM-001..FE-VM-007, FE-RES-001..FE-RES-005, FT-VM-001..FT-VM-007, FT-RES-001..FT-RES-005" }
+    "P01": { "status": "done", "name": "user_scenarios", "deliverable": "docs/progress/02.user-scenarios/INDEX.md", "ref": "UC-AV-002, UC-AV-003, UC-AV-005, UC-AV-007" },
+    "P02": { "status": "done", "name": "test_scenarios", "deliverable": "docs/progress/03.uc-tests/INDEX.md", "ref": "UCT-AV-002, UCT-AV-003, UCT-AV-005, UCT-AV-007" },
+    "P03": { "status": "done", "name": "requirements", "deliverable": "docs/progress/01.requirements/INDEX.md", "ref": "REQ-ARCH-001..005, REQ-EXP-002, REQ-NVA-001..002" },
+    "P04": { "status": "done", "name": "integration_test", "deliverable": "Core, JSON Schema, Playwright remote-call, export/reopen, legacy migration, traversal, future-version, state-isolation, and referenced-asset completeness checks pass.", "ref": "FT-AV-001..004" },
+    "P05": { "status": "done", "name": "requirements_complete", "deliverable": "Development and test stages each reached two consecutive clean adversarial reviews. Cascade state-map implementation and 3090 evidence remain a separate consumer phase.", "ref": ".agents/reviews/nva-v03-review-pass-2026-07-14.md" }
   },
   "resource_registry": {
-    "last_enforce_run": "2026-07-12",
+    "last_enforce_run": "2026-07-14",
     "violations": []
   },
   "_usage": {

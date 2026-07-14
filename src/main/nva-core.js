@@ -1,518 +1,563 @@
-// nva-core ??naia video clip avatar ?袁⑤뾼???β돦裕뉐퐲?(??곗뒧???? + node ??얜???ESM) ??**nva v0.2**
-//
-// ?????嶺뚯쉳?닷퐲?IP: ???ч?????逾???熬곣뫀鍮??"???????熬곣뫚?꾢ㅇ???⑥쥓?鸚??戮?맋" = animations ?? + scenario ?잙갭梨???
-// ??琉돠?0 (??戮?빢 JS). ???ｅ젆源놁??????椰꾨뗀竊?嶺뚯빘鍮볡뵳寃쇱쾸? ??ㅻ쾴????濡ル츎 NVA ??ｌ뫒??
-//
-// v0.2 嶺뚮ㅄ維??(states/transitions ?????:
-//  - animations{}: ??筌???. ?????爰?= clip + entry/exit_pose + loop + can_talk + face_bbox.
-//    ??リ턁筌?kind)???熬곣뫀援→뤆?쎛 ?熬곣뫀鍮??**?브퀗?ч뜮????????ル봾利?*:
-//      嶺뚮씭???臾?= loop & can_talk / ???リ옇肄쏁뙴紐껉도??= loop & !can_talk / ??戮?츩嶺?= ????off
-//      ?熬곥굦??  = entry_pose != exit_pose
-//  - scenario{nodes,edges}: ?筌뤾퍓援??잙갭梨??? nodes[k]={type:"start"|"scene", animation, label, dwell_ms},
-//    edges=[{from,to}]. start ?筌뤾퍓援→뤆?쎛 ?띠럾??洹먮뿪???嶺?scene = idle 嶺뚯쉳????
-//  - ?꾩룇裕?? state_engine ?????깅さ嶺???⑤객臾띄솻?idle/body/head-viseme ???깅턄???餓???諛댁뎽 ??繹??類ｋ펲.
-//    sentence-level speech clips are not canonical; state_engine drives speech.
+// Portable NVA state-resource contract. Browser and Node ESM compatible.
 
-export const NVA_VERSION = "0.2";
+export const NVA_VERSION = "0.3";
+export const NVA_CONTRACT = "nva-state-resource";
 export const PRIMARY_GENERATED_STATES = ["neutral", "happy", "sad", "angry", "surprised", "thinking"];
-// Held prototype only. The final talking-head transition keys are selected after RTX 3090 cascade benchmarking.
+// Historical v0.2 prototype keys. They are accepted only inside a migrated descriptor.
 export const PROTOTYPE_HEAD_KEYS = ["sil", "a", "i", "u", "e", "o"];
 
-// ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-// 0. ???臾??잙?裕??????
-// ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-export function isTransition(a) {
-  return (a?.entry_pose || "") !== (a?.exit_pose || "");
+const clone = (value) => globalThis.structuredClone
+  ? globalThis.structuredClone(value)
+  : JSON.parse(JSON.stringify(value));
+const object = (value) => value && typeof value === "object" && !Array.isArray(value);
+const idPattern = /^[a-z0-9][a-z0-9._+-]{0,127}$/i;
+
+export function isPortableAssetPath(value) {
+  if (typeof value !== "string" || !value || value.includes("\0") || value.includes("\\")) return false;
+  if (/^(?:[a-z][a-z0-9+.-]*:|\/|~)/i.test(value)) return false;
+  const parts = value.split("/");
+  return parts.every((part) => part && part !== "." && part !== "..");
 }
 
-// ?브퀗?ч뜮? ????リ턁筌???怨뚮낵 (UI ??蹂β뵛??.
-export function animKind(a) {
-  if (isTransition(a)) return "transition";
-  if (a.loop && a.can_talk) return "talking";
-  if (a.loop) return "idle";
+export function isTransition(animation) {
+  return (animation?.entry_pose || "") !== (animation?.exit_pose || "");
+}
+
+export function animKind(animation) {
+  if (isTransition(animation)) return "transition";
+  if (animation?.loop && animation?.can_talk) return "talking";
+  if (animation?.loop) return "idle";
   return "gesture";
 }
 
-// scenario start ??嶺?scene ??ル봾鍮?(idle 嶺뚯쉳??????ルㅎ臾???⑥ろ맖??戮곕쭊).
-export function scenarioStartAnim(m) {
-  const nodes = m.scenario?.nodes || {};
-  const edges = m.scenario?.edges || [];
-  const sk = Object.keys(nodes).find((k) => nodes[k].type === "start");
-  if (!sk) return null;
-  const nx = edges.find((e) => e.from === sk)?.to;
-  return nx && nodes[nx] ? nodes[nx].animation : null;
+export function scenarioStartAnim(manifest) {
+  const nodes = manifest?.scenario?.nodes || {};
+  const edges = manifest?.scenario?.edges || [];
+  const start = Object.keys(nodes).find((key) => nodes[key]?.type === "start");
+  const next = start && edges.find((edge) => edge.from === start)?.to;
+  return next && nodes[next] ? nodes[next].animation || null : null;
 }
 
-// ??뚮뿭援??β돦裕???筌뤿굞?????臾??熬곣뫀援?idle/talking/listening/events).
-export function derive(m) {
-  const anims = m.animations || {};
-  const stateEngine = buildDefaultStatePlan(m);
-  const isBase = (a) => a.loop && !isTransition(a);
-  const start = scenarioStartAnim(m);
-  const pick = (pred) => {
-    if (start && anims[start] && pred(anims[start])) return start;
-    return Object.keys(anims).find((k) => pred(anims[k])) || null;
-  };
-  const idleKey = pick((a) => isBase(a) && !a.can_talk);
-  const talkKey = pick((a) => isBase(a) && a.can_talk);
-  const events = Object.fromEntries(
-    Object.entries(anims)
-      .filter(([, a]) => !a.loop || isTransition(a))
-      .map(([k, a]) => [k, a.clip]),
-  );
+function stateMap(manifest) {
+  return manifest?.character_states || {};
+}
+
+function resource(path, revisionId) {
+  return { path: path || "", revision: { id: revisionId } };
+}
+
+function bboxObject(value, canvas, detector = "legacy-import") {
+  if (object(value)) return clone(value);
+  const [x = 0, y = 0, width = 0, height = width] = Array.isArray(value) ? value : [];
   return {
-    idleKey,
-    talkKey,
-    listeningKey: idleKey, // v0.2 ???곌랙?х뙴?listening ?띠룇裕????怨몃쾳 ??idle ??亦??
-    events,
-    idle: anims[idleKey],
-    talking: anims[talkKey],
-    stateEngine,
+    schema_version: "1.0",
+    source_width: Number(canvas?.width) || 1,
+    source_height: Number(canvas?.height) || 1,
+    coordinate_space: "normalized_0_1",
+    x, y, width, height,
+    anchor_frame: 0,
+    confidence: 0,
+    detector_version: detector,
+    drift_report: { max_normalized_displacement: 0 },
   };
 }
 
-export function buildDefaultStatePlan(m, stateKey = null) {
-  const engine = m?.state_engine;
-  const states = engine?.states || {};
-  const key = stateKey && states[stateKey] ? stateKey : engine?.default_state;
-  if (!key || !states[key]) return null;
-  const state = states[key];
+export function buildDefaultStatePlan(manifest, requestedStateId = null) {
+  const states = stateMap(manifest);
+  if (requestedStateId && !states[requestedStateId]) return null;
+  const characterStateId = requestedStateId || manifest?.default_character_state_id;
+  const state = states[characterStateId];
+  if (!characterStateId || !state) return null;
   return {
-    state: key,
-    idle: state.idle || "",
-    talking_body: state.talking_body || "",
-    face_bbox: state.face_bbox || null,
-    face_preview: state.face_preview || "",
-    talking_head_crop: !!state.talking_head_crop,
-    talking_heads: { ...(state.talking_heads || {}) },
-    sync: state.sync || engine.sync || {},
-    visemes: Array.isArray(engine.visemes) && engine.visemes.length ? engine.visemes : Object.keys(state.talking_heads || {}),
+    character_state_id: characterStateId,
+    playback_state: "idle",
+    state_revision: clone(state.revision),
+    idle: clone(state.idle),
+    talking_body: clone(state.talking_body),
+    talking_head_source: clone(state.talking_head?.source),
+    talking_head_descriptor: clone(state.talking_head?.descriptor),
+    talking_head_revision: clone(state.talking_head?.revision),
+    face_bbox: clone(state.face_bbox),
   };
 }
 
-export function listStateEngineAssets(m) {
-  const out = [];
-  const states = m?.state_engine?.states || {};
-  for (const [stateKey, state] of Object.entries(states)) {
-    if (state.idle) out.push({ role: `state_engine.${stateKey}.idle`, path: state.idle });
-    if (state.talking_body) out.push({ role: `state_engine.${stateKey}.talking_body`, path: state.talking_body });
-    if (state.face_preview) out.push({ role: `state_engine.${stateKey}.face_preview`, path: state.face_preview });
-    for (const [viseme, path] of Object.entries(state.talking_heads || {})) {
-      if (path) out.push({ role: `state_engine.${stateKey}.talking_heads.${viseme}`, path });
+export function listStateAssets(manifest) {
+  const assets = [];
+  for (const [stateId, state] of Object.entries(stateMap(manifest))) {
+    for (const role of ["idle", "talking_body"]) {
+      if (state?.[role]?.path) assets.push({ role: `character_states.${stateId}.${role}`, path: state[role].path });
+    }
+    if (state?.talking_head?.source?.path) {
+      assets.push({ role: `character_states.${stateId}.talking_head.source`, path: state.talking_head.source.path });
     }
   }
-  return out;
+  for (const [gestureId, gesture] of Object.entries(manifest?.gestures || {})) {
+    if (gesture?.clip?.path) assets.push({ role: `gestures.${gestureId}.clip`, path: gesture.clip.path });
+  }
+  if (manifest?.background?.src) assets.push({ role: "background.src", path: manifest.background.src });
+  for (const [animationId, animation] of Object.entries(manifest?.animations || {})) {
+    if (animation?.clip) assets.push({ role: `animations.${animationId}.clip`, path: animation.clip });
+  }
+  return assets;
 }
 
-export function buildStateSpeechPlan(m, text = "", stateKey = null, timelineInput = {}) {
-  const plan = buildDefaultStatePlan(m, stateKey);
-  if (!plan || !plan.talking_body) return null;
-  const required = plan.visemes.length ? plan.visemes : Object.keys(plan.talking_heads || {});
-  if (!required.length) return null;
-  const syncHeads = plan.sync?.heads || {};
-  const missing = required.filter((v) => !plan.talking_heads[v] || !syncHeads[v]);
-  if (missing.length) return null;
-  const timeline = buildTtsVisemeTimeline({ ...timelineInput, text, visemes: required, sync: plan.sync });
-  const sequence = timeline.map((item) => item.viseme);
-  return { ...plan, text, sequence: sequence.length ? sequence : required, timeline };
+// Compatibility alias for older consumers. The returned roles are always v0.3 roles.
+export const listStateEngineAssets = listStateAssets;
+
+export function buildStateSpeechPlan(manifest, text = "", requestedStateId = null) {
+  const plan = buildDefaultStatePlan(manifest, requestedStateId);
+  if (!plan?.talking_body?.path || !plan?.talking_head_source?.path || !plan?.talking_head_descriptor) return null;
+  return { ...plan, playback_state: "speaking", text: String(text || "") };
 }
 
 export function extractProsodyTags(text = "") {
-  const out = [];
-  const re = /\[([a-z][a-z0-9_-]*)\]/gi;
-  let m;
-  while ((m = re.exec(String(text || "")))) {
-    out.push({ tag: m[1].toLowerCase(), index: m.index, raw: m[0] });
+  const tags = [];
+  const pattern = /\[([a-z][a-z0-9_-]*)\]/gi;
+  let match;
+  while ((match = pattern.exec(String(text || "")))) {
+    tags.push({ tag: match[1].toLowerCase(), index: match.index, raw: match[0] });
   }
-  return out;
+  return tags;
 }
 
 export function stripProsodyTags(text = "") {
   return String(text || "").replace(/\[[a-z][a-z0-9_-]*\]/gi, "").replace(/\s+/g, " ").trim();
 }
 
-export function routeProsodyState(manifest, text = "", fallbackState = null) {
-  const states = manifest?.state_engine?.states || {};
-  const defaultState = fallbackState && states[fallbackState] ? fallbackState : manifest?.state_engine?.default_state;
-  const cleanText = stripProsodyTags(text);
+export function routeProsodyState(manifest, text = "", fallbackStateId = null) {
+  const states = stateMap(manifest);
+  const fallback = fallbackStateId && states[fallbackStateId]
+    ? fallbackStateId
+    : manifest?.default_character_state_id;
   for (const item of extractProsodyTags(text)) {
     const route = manifest?.prosody_map?.[item.tag];
+    if (route?.character_state_id && states[route.character_state_id]) {
+      return { character_state_id: route.character_state_id, state: route.character_state_id, tag: item.tag, route, cleanText: stripProsodyTags(text) };
+    }
+    // v0.2 authoring compatibility.
     if (route?.state && states[route.state]) {
-      return { state: route.state, tag: item.tag, route, cleanText };
+      return { character_state_id: route.state, state: route.state, tag: item.tag, route, cleanText: stripProsodyTags(text) };
     }
   }
-  return { state: defaultState && states[defaultState] ? defaultState : Object.keys(states)[0] || null, tag: null, route: null, cleanText };
+  const state = fallback && states[fallback] ? fallback : Object.keys(states)[0] || null;
+  return { character_state_id: state, state, tag: null, route: null, cleanText: stripProsodyTags(text) };
 }
 
-export function textToViseme(ch, visemes) {
-  const available = new Set(visemes || []);
-  const map = {
-    a: "a", i: "i", u: "u", e: "e", o: "o",
-    "\uC544": "a", "\uC774": "i", "\uC6B0": "u", "\uC73C": "u",
-    "\uC5D0": "e", "\uC560": "e", "\uC624": "o", "\uC5B4": "o",
-  };
-  const v = map[String(ch || "").toLowerCase()];
-  if (v && available.has(v)) return v;
-  return available.has("sil") ? "sil" : [...available][0] || "sil";
+// Historical helpers retained for reading v0.2 evidence. v0.3 does not call them.
+export function textToViseme(character, visemes = PROTOTYPE_HEAD_KEYS) {
+  const available = new Set(visemes);
+  const mapped = ({ a: "a", i: "i", u: "u", e: "e", o: "o", 아: "a", 이: "i", 우: "u", 으: "u", 에: "e", 애: "e", 오: "o", 어: "o" })[String(character || "").toLowerCase()];
+  return mapped && available.has(mapped) ? mapped : available.has("sil") ? "sil" : [...available][0] || "sil";
 }
 
 export function buildTtsVisemeTimeline(input = {}) {
-  const text = String(input.text || "");
-  const visemes = Array.isArray(input.visemes) && input.visemes.length ? input.visemes : ["sil", "a", "i", "u", "e", "o"];
-  const sync = input.sync || {};
-  const defaultHold = Number(sync.default_hold_ms || 160);
-  const timeline = [];
-  if (Array.isArray(input.phonemes) && input.phonemes.length) {
-    for (const p of input.phonemes) {
-      const t = Number(p.t_ms ?? p.time_ms ?? p.start_ms ?? 0);
-      const v = p.viseme || textToViseme(p.phoneme || p.value || "", visemes);
-      if (visemes.includes(v)) timeline.push({ t_ms: Math.max(0, t), viseme: v, source: "phoneme" });
-    }
-  } else if (Array.isArray(input.boundaries) && input.boundaries.length) {
-    for (const b of input.boundaries) {
-      const index = Number(b.charIndex ?? b.char_index ?? b.index ?? 0);
-      const t = Number(b.elapsedTimeMs ?? b.elapsed_ms ?? b.t_ms ?? (Number(b.elapsedTime || 0) * 1000));
-      timeline.push({ t_ms: Math.max(0, t), viseme: textToViseme(text.charAt(index), visemes), source: "boundary" });
-    }
-  } else {
-    let t = 0;
-    if (visemes.includes("sil")) timeline.push({ t_ms: 0, viseme: "sil", source: "text" });
-    t += defaultHold;
-    for (const ch of text) {
-      const v = textToViseme(ch, visemes);
-      if (v !== "sil" || !timeline.length) {
-        timeline.push({ t_ms: t, viseme: v, source: "text" });
-        t += defaultHold;
-      }
-    }
-    if (timeline.length < 3) {
-      for (const v of visemes.filter((x) => x !== "sil").slice(0, 5)) {
-        timeline.push({ t_ms: t, viseme: v, source: "fallback" });
-        t += defaultHold;
-      }
-    }
-    if (visemes.includes("sil")) timeline.push({ t_ms: t, viseme: "sil", source: "text" });
-  }
-  timeline.sort((a, b) => a.t_ms - b.t_ms);
-  return timeline.length ? timeline : [{ t_ms: 0, viseme: visemes[0] || "sil", source: "fallback" }];
+  const visemes = input.visemes?.length ? input.visemes : PROTOTYPE_HEAD_KEYS;
+  const hold = Number(input.sync?.default_hold_ms || 160);
+  return [...String(input.text || "")].map((character, index) => ({
+    t_ms: index * hold,
+    viseme: textToViseme(character, visemes),
+    source: "legacy-text",
+  }));
 }
 
 export function visemeAtTime(timeline, elapsedMs) {
-  const list = Array.isArray(timeline) ? timeline : [];
-  let cur = list[0]?.viseme || "sil";
-  for (const item of list) {
+  let value = timeline?.[0]?.viseme || "sil";
+  for (const item of timeline || []) {
     if (Number(item.t_ms || 0) > elapsedMs) break;
-    cur = item.viseme || cur;
+    value = item.viseme || value;
   }
-  return cur;
+  return value;
 }
-// ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-// 1. v0.1 ??v0.2 ???吏?嶺뚮씭??議용돥筌뤾퍔???怨력?(??.nva ??????筌뤿굞??
-// ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-export function migrateToV02(m) {
-  if (!m || m.nva_version === "0.2") return m;
-  if (m.nva_version !== "0.1") return m; // ???????⑸츎 ?뺢퀗???? ?잙갭梨???
 
+export function derive(manifest) {
+  const animations = manifest?.animations || {};
+  const start = scenarioStartAnim(manifest);
+  const pick = (predicate) => {
+    if (start && animations[start] && predicate(animations[start])) return start;
+    return Object.keys(animations).find((key) => predicate(animations[key])) || null;
+  };
+  const idleKey = pick((item) => item.loop && !isTransition(item) && !item.can_talk);
+  const talkKey = pick((item) => item.loop && !isTransition(item) && item.can_talk);
+  const events = Object.fromEntries(Object.entries(animations)
+    .filter(([, item]) => !item.loop || isTransition(item))
+    .map(([key, item]) => [key, item.clip]));
+  return {
+    idleKey,
+    talkKey,
+    listeningKey: idleKey,
+    events,
+    idle: animations[idleKey],
+    talking: animations[talkKey],
+    stateEngine: buildDefaultStatePlan(manifest),
+    characterState: buildDefaultStatePlan(manifest),
+  };
+}
+
+export function migrateToV02(manifest) {
+  if (!manifest || manifest.nva_version === "0.2") return manifest;
+  if (manifest.nva_version !== "0.1") return manifest;
   const animations = {};
-  for (const [k, s] of Object.entries(m.states || {})) {
-    animations[k] = {
-      clip: s.clip,
-      entry_pose: s.entry_pose,
-      exit_pose: s.exit_pose,
-      loop: !!s.loop,
-      can_talk: !!s.can_talk,
-      // face_bbox = [x,y,w,h] 嶺뚯쉳??쾮?μ쾸?雅?굝??? ?誘⑹굡????⑤챶?? ???裕?[x,y,l] ?筌먦끆?€뤆???瑜곷쭊?筌뤿굞?? ???잙갭梨????곌랜???
-      ...(Array.isArray(s.face_bbox) ? { face_bbox: s.face_bbox } : {}),
-      label: s.label || k,
+  for (const [key, state] of Object.entries(manifest.states || {})) {
+    animations[key] = {
+      clip: state.clip,
+      entry_pose: state.entry_pose,
+      exit_pose: state.exit_pose,
+      loop: !!state.loop,
+      can_talk: !!state.can_talk,
+      ...(Array.isArray(state.face_bbox) ? { face_bbox: state.face_bbox } : {}),
+      label: state.label || key,
     };
   }
-  for (const [k, t] of Object.entries(m.transitions || {})) {
-    animations[k] = {
-      clip: t.clip,
-      entry_pose: t.entry_pose,
-      exit_pose: t.exit_pose,
-      loop: false,
-      can_talk: false,
-      label: t.label || k,
-    };
+  for (const [key, transition] of Object.entries(manifest.transitions || {})) {
+    animations[key] = { ...transition, loop: false, can_talk: false, label: transition.label || key };
   }
-
-  // scenarios(steps) ??scenario(nodes/edges): 嶺???類?룎?洹먮봿沅????ル쪇援??잙갭梨??熬곣뫁夷?
   const nodes = { start: { type: "start", label: "start" } };
   const edges = [];
-  const firstScn = Object.values(m.scenarios || {})[0];
-  let prev = "start";
-  let i = 0;
-  if (firstScn) {
-    for (const st of firstScn.steps || []) {
-      const anim = st.goto || st.event;
-      if (!anim) continue;
-      const nid = "n" + i++;
-      nodes[nid] = {
-        type: "scene",
-        animation: anim,
-        label: st.say || anim,
-        ...(st.dwell_ms ? { dwell_ms: st.dwell_ms } : {}),
-      };
-      edges.push({ from: prev, to: nid });
-      prev = nid;
-    }
-  } else if (m.initial) {
-    nodes["n0"] = { type: "scene", animation: m.initial, label: "idle" };
+  const scenario = Object.values(manifest.scenarios || {})[0];
+  let previous = "start";
+  let index = 0;
+  for (const step of scenario?.steps || []) {
+    const animation = step.goto || step.event;
+    if (!animation) continue;
+    const id = `n${index++}`;
+    nodes[id] = { type: "scene", animation, label: step.say || animation, ...(step.dwell_ms ? { dwell_ms: step.dwell_ms } : {}) };
+    edges.push({ from: previous, to: id });
+    previous = id;
+  }
+  if (index === 0 && manifest.initial) {
+    nodes.n0 = { type: "scene", animation: manifest.initial, label: "idle" };
     edges.push({ from: "start", to: "n0" });
   }
-
-  const out = {
+  return {
     nva_version: "0.2",
-    meta: m.meta || {},
-    canvas: m.canvas || { width: 720, height: 1280, fps: 25 },
-    background: m.background || { type: "transparent" },
-    poses: m.poses || [],
+    meta: clone(manifest.meta || {}),
+    canvas: clone(manifest.canvas || { width: 720, height: 1280, fps: 25 }),
+    background: clone(manifest.background || { type: "transparent" }),
+    poses: clone(manifest.poses || []),
     animations,
     scenario: { nodes, edges },
+    ...(manifest.chroma_key ? { chroma_key: manifest.chroma_key } : {}),
   };
-  if (m.chroma_key) out.chroma_key = m.chroma_key;
-  return out;
 }
 
-// ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-// 2. ?롪틵?嶺?(validator)
-// ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-export function validateManifest(m, opts = {}) {
+export function migrateToV03(input) {
+  if (!object(input)) return input;
+  if (input.nva_version === NVA_VERSION) return clone(input);
+  const legacy = input.nva_version === "0.1" ? migrateToV02(input) : input;
+  if (legacy?.nva_version !== "0.2") return clone(input);
+
+  const canvas = clone(legacy.canvas || { width: 720, height: 1280, fps: 25 });
+  const animations = clone(legacy.animations || {});
+  const idleAnimation = Object.entries(animations).find(([, item]) => item.loop && !item.can_talk && !isTransition(item));
+  const talkAnimation = Object.entries(animations).find(([, item]) => item.loop && item.can_talk && !isTransition(item));
+  const legacyStates = legacy.state_engine?.states || {
+    neutral: {
+      label: "neutral",
+      idle: idleAnimation?.[1]?.clip || talkAnimation?.[1]?.clip || "",
+      talking_body: talkAnimation?.[1]?.clip || idleAnimation?.[1]?.clip || "",
+      face_preview: talkAnimation?.[1]?.head_image || "",
+      face_bbox: talkAnimation?.[1]?.face_bbox || [0, 0, 1, 1],
+      talking_heads: {},
+      sync: {},
+    },
+  };
+  const characterStates = {};
+  for (const [stateId, state] of Object.entries(legacyStates)) {
+    const safeId = idPattern.test(stateId) ? stateId : `state-${Object.keys(characterStates).length + 1}`;
+    const sourcePath = state.face_preview
+      || state.talking_head_source
+      || Object.values(state.talking_heads || {}).find(Boolean)
+      || talkAnimation?.[1]?.head_image
+      || state.talking_body
+      || talkAnimation?.[1]?.clip
+      || "";
+    characterStates[safeId] = {
+      label: state.label || safeId,
+      revision: { id: `legacy-${safeId}-state-r1` },
+      idle: resource(state.idle || idleAnimation?.[1]?.clip || "", `legacy-${safeId}-idle-r1`),
+      talking_body: resource(state.talking_body || talkAnimation?.[1]?.clip || "", `legacy-${safeId}-talking-r1`),
+      talking_head: {
+        revision: { id: `legacy-${safeId}-head-r1` },
+        source: {
+          ...resource(sourcePath, `legacy-${safeId}-head-source-r1`),
+          media_type: /\.mp4$/i.test(sourcePath) ? "video/mp4" : /\.webm$/i.test(sourcePath) ? "video/webm" : "image/png",
+        },
+        descriptor: {
+          schema_version: "1.0",
+          kind: "legacy-v0.2-prototype",
+          profile_ref: "legacy-default",
+          legacy_prototype: {
+            talking_heads: clone(state.talking_heads || {}),
+            sync: clone(state.sync || {}),
+            talking_head_crop: !!state.talking_head_crop,
+          },
+        },
+      },
+      face_bbox: bboxObject(state.face_bbox || talkAnimation?.[1]?.face_bbox, canvas),
+    };
+  }
+  const defaultId = legacy.state_engine?.default_state;
+  const defaultCharacterStateId = defaultId && characterStates[defaultId] ? defaultId : Object.keys(characterStates)[0];
+  const gestures = {};
+  for (const [gestureId, animation] of Object.entries(animations)) {
+    if (animation.loop || isTransition(animation)) continue;
+    gestures[gestureId] = {
+      label: animation.label || gestureId,
+      revision: { id: `legacy-gesture-${gestureId}-r1` },
+      clip: resource(animation.clip || "", `legacy-gesture-${gestureId}-clip-r1`),
+      allowed_character_state_ids: Object.keys(characterStates),
+      return_policy: "same-character-state",
+    };
+  }
+  return {
+    nva_version: NVA_VERSION,
+    contract: { name: NVA_CONTRACT, version: "1.0" },
+    revision: { id: "legacy-import-r1" },
+    meta: clone(legacy.meta || {}),
+    canvas,
+    background: clone(legacy.background || { type: "transparent" }),
+    ...(legacy.chroma_key ? { chroma_key: legacy.chroma_key } : {}),
+    default_character_state_id: defaultCharacterStateId,
+    character_states: characterStates,
+    gestures,
+    legacy: { source_version: legacy.nva_version },
+  };
+}
+
+function validateRevision(value, where, errors, revisionIds) {
+  if (!object(value) || !idPattern.test(value.id || "")) {
+    errors.push(`${where}.revision.id required`);
+    return;
+  }
+  if (revisionIds.has(value.id)) errors.push(`${where}.revision.id duplicate: ${value.id}`);
+  revisionIds.add(value.id);
+}
+
+function validateResource(value, where, errors, revisionIds, assetPaths) {
+  if (!object(value)) {
+    errors.push(`${where} resource required`);
+    return;
+  }
+  if (!isPortableAssetPath(value.path)) errors.push(`${where}.path must be a portable relative asset path`);
+  else if (assetPaths && !assetPaths.has(value.path)) errors.push(`${where}.path missing asset: ${value.path}`);
+  validateRevision(value.revision, where, errors, revisionIds);
+}
+
+function validateFaceBbox(value, where, errors) {
+  if (!object(value)) return errors.push(`${where} object required`);
+  if (value.schema_version !== "1.0") errors.push(`${where}.schema_version must be 1.0`);
+  if (value.coordinate_space !== "normalized_0_1") errors.push(`${where}.coordinate_space must be normalized_0_1`);
+  for (const key of ["source_width", "source_height"]) if (!Number.isInteger(value[key]) || value[key] <= 0) errors.push(`${where}.${key} must be a positive integer`);
+  for (const key of ["x", "y", "width", "height"]) if (!Number.isFinite(value[key]) || value[key] < 0 || value[key] > 1 || ((key === "width" || key === "height") && value[key] === 0)) errors.push(`${where}.${key} must be within normalized bounds`);
+  if (Number.isFinite(value.x) && Number.isFinite(value.width) && value.x + value.width > 1) errors.push(`${where} exceeds horizontal bounds`);
+  if (Number.isFinite(value.y) && Number.isFinite(value.height) && value.y + value.height > 1) errors.push(`${where} exceeds vertical bounds`);
+  if (!Number.isInteger(value.anchor_frame) || value.anchor_frame < 0) errors.push(`${where}.anchor_frame must be a non-negative integer`);
+  if (!Number.isFinite(value.confidence) || value.confidence < 0 || value.confidence > 1) errors.push(`${where}.confidence must be 0..1`);
+  if (typeof value.detector_version !== "string" || !value.detector_version) errors.push(`${where}.detector_version required`);
+  if (!object(value.drift_report) || !Number.isFinite(value.drift_report.max_normalized_displacement) || value.drift_report.max_normalized_displacement < 0) errors.push(`${where}.drift_report.max_normalized_displacement required`);
+}
+
+export function validateManifest(manifest, options = {}) {
   const errors = [];
   const warnings = [];
-  const assetPaths = new Set(opts.clipFiles || opts.assetFiles || []);
-  const E = (s) => errors.push(s);
-  const W = (s) => warnings.push(s);
+  const revisionIds = new Set();
+  const assetPaths = options.assetFiles || options.clipFiles ? new Set(options.assetFiles || options.clipFiles) : null;
+  if (!object(manifest)) return { ok: false, errors: ["manifest must be an object"], warnings };
+  if (manifest.nva_version !== NVA_VERSION) errors.push(`unsupported nva_version ${manifest.nva_version ?? "missing"}; current reader supports ${NVA_VERSION}`);
+  if (manifest.contract?.name !== NVA_CONTRACT || manifest.contract?.version !== "1.0") errors.push(`contract must be ${NVA_CONTRACT} 1.0`);
+  validateRevision(manifest.revision, "manifest", errors, revisionIds);
+  if (!object(manifest.canvas) || !Number.isInteger(manifest.canvas.width) || manifest.canvas.width <= 0 || !Number.isInteger(manifest.canvas.height) || manifest.canvas.height <= 0) errors.push("canvas.width/height must be positive integers");
+  if (manifest.canvas?.fps !== undefined && (!Number.isFinite(manifest.canvas.fps) || manifest.canvas.fps <= 0)) errors.push("canvas.fps must be a positive number");
+  if (manifest.state_engine) errors.push("state_engine is a historical v0.2 field; migrate it to character_states");
+  for (const forbidden of ["viseme_clips", "prebaked_speech", "audio_path"]) if (forbidden in manifest) errors.push(`${forbidden} is not portable NVA state data`);
+  for (const forbidden of ["endpoint", "cascade_endpoint", "cascade_url", "remote_endpoint"]) if (forbidden in manifest) errors.push(`${forbidden} is local runtime configuration and must not be stored in NVA`);
 
-  if (!m || typeof m !== "object") return { ok: false, errors: ["manifest must be an object"], warnings };
-  if (m.nva_version !== "0.2") E(`nva_version must be 0.2 (current: ${m.nva_version})`);
-  if (!m.canvas || !(m.canvas.width > 0) || !(m.canvas.height > 0)) E("canvas.width/height required");
-
-  const anims = m.animations || {};
-  const animKeys = Object.keys(anims);
-  if (animKeys.length === 0) E("animations required");
-  const poses = new Set(m.poses || []);
-  const useVocab = poses.size > 0;
-  const checkPose = (where, p) => {
-    if (!p) return;
-    if (useVocab && !poses.has(p)) W(`${where}: pose '${p}' not in poses`);
-  };
-  for (const [k, a] of Object.entries(anims)) {
-    if (!a.clip) E(`animation ${k}: clip required`);
-    if (a.entry_pose) checkPose(`animation ${k}.entry_pose`, a.entry_pose);
-    if (a.exit_pose) checkPose(`animation ${k}.exit_pose`, a.exit_pose);
-    if (a.can_talk) {
-      if (!Array.isArray(a.face_bbox) || (a.face_bbox.length !== 3 && a.face_bbox.length !== 4)) E(`animation ${k}: face_bbox required when can_talk=true`);
-      else if (a.face_bbox.some((v) => v < 0 || v > 1)) E(`animation ${k}: face_bbox must be 0..1`);
-    }
-    if (assetPaths.size && a.clip && !assetPaths.has(a.clip)) E(`animation ${k}: missing asset ${a.clip}`);
-  }
-  const seenLabels = new Map();
-  for (const [k, a] of Object.entries(anims)) {
-    const lb = (a.label || "").trim();
-    if (!lb) continue;
-    if (seenLabels.has(lb)) E(`animation ${k}: duplicate label '${lb}' with ${seenLabels.get(lb)}`);
-    else seenLabels.set(lb, k);
-  }
-  const hasIdle = Object.values(anims).some((a) => a.loop && !isTransition(a) && !a.can_talk);
-  const hasTalk = Object.values(anims).some((a) => a.loop && !isTransition(a) && a.can_talk);
-
-  if (animKeys.length && !hasIdle) W("legacy idle loop missing");
-  if (animKeys.length && !hasTalk && !m.state_engine) W("legacy talking loop missing");
-
-  if (m["prebaked" + "_speech"]) E("sentence-level speech cache is not allowed in portable NVA");
-  if (m.vrm_slots?.["speech"]) E("legacy speech slot map is not allowed in portable NVA");
-  if (m["viseme" + "_clips"]) E("top-level viseme clip map is not allowed in portable NVA");
-  if (m["audio" + "_path"]) E("cached audio path is not allowed in portable NVA");
-
-  const slots = m.vrm_slots;
-  if (slots) {
-    const allowedSlotKeys = new Set(["idle", "talk", "listening", "events", "profile", "expressions", "motions"]);
-    for (const key of Object.keys(slots)) if (!allowedSlotKeys.has(key)) E(`vrm_slots.${key} is not allowed in portable NVA`);
-    const expressions = slots.expressions || {};
-    const motions = slots.motions || {};
-    const profile = slots.profile || {};
-    const availableLocales = new Set(profile.available_locales || profile.locales || []);
-    if (profile.default_expression && !expressions[profile.default_expression]) E(`vrm_slots.profile.default_expression missing: ${profile.default_expression}`);
-    if (profile.default_motion && !motions[profile.default_motion]) E(`vrm_slots.profile.default_motion missing: ${profile.default_motion}`);
-    if (profile.default_locale && availableLocales.size && !availableLocales.has(profile.default_locale)) E(`vrm_slots.profile.default_locale not available: ${profile.default_locale}`);
-    for (const [k, v] of Object.entries(expressions)) if (v.animation && !anims[v.animation]) E(`vrm_slots.expressions.${k}: animation missing ${v.animation}`);
-    if (slots["visemes"]) E("legacy viseme slot map is not allowed in portable NVA; use state_engine pronunciation heads");
-  }
-
-  const engine = m.state_engine;
-  if (!engine) {
-    E("state_engine required");
-  } else {
-    const states = engine.states || {};
-    const visemes = PROTOTYPE_HEAD_KEYS;
-    const defaultState = engine.default_state || Object.keys(states)[0];
-    const generatedPrimarySet = !!m.asset_quality || m.vrm_slots?.profile?.generation_mode === "state_engine_pronunciation_video_cache" || opts.requirePrimaryStateSet;
-    if (!defaultState || !states[defaultState]) E(`state_engine.default_state missing: ${defaultState}`);
-    if (!Array.isArray(engine.visemes) || PROTOTYPE_HEAD_KEYS.some((v) => !engine.visemes.includes(v))) E(`held prototype state_engine.visemes must include: ${PROTOTYPE_HEAD_KEYS.join("/")}`);
-    if (generatedPrimarySet) {
-      const actualStates = Object.keys(states).sort();
-      const expectedStates = [...PRIMARY_GENERATED_STATES].sort();
-      for (const stateKey of expectedStates) if (!states[stateKey]) E(`state_engine.states.${stateKey}: primary generated state required`);
-      for (const stateKey of actualStates) if (!PRIMARY_GENERATED_STATES.includes(stateKey)) E(`state_engine.states.${stateKey}: not allowed in primary generated state set`);
-    }
-    for (const [stateKey, state] of Object.entries(states)) {
-      if (!state.idle) E(`state_engine.states.${stateKey}: idle required`);
-      if (!state.talking_body) E(`state_engine.states.${stateKey}: talking_body required`);
-      if (!state.face_preview) E(`state_engine.states.${stateKey}: face_preview required`);
-      if (!state.talking_heads || typeof state.talking_heads !== "object") E(`state_engine.states.${stateKey}: talking_heads required`);
-      else for (const viseme of visemes) if (!state.talking_heads[viseme]) E(`state_engine.states.${stateKey}.talking_heads.${viseme}: clip required`);
-      if (!state.sync || typeof state.sync !== "object") E(`state_engine.states.${stateKey}: sync required`);
+  const states = stateMap(manifest);
+  const stateIds = Object.keys(states);
+  if (!object(manifest.character_states) || stateIds.length === 0) errors.push("character_states requires at least one state");
+  if (!manifest.default_character_state_id || !states[manifest.default_character_state_id]) errors.push("default_character_state_id must reference character_states");
+  for (const [stateId, state] of Object.entries(states)) {
+    const where = `character_states.${stateId}`;
+    if (!idPattern.test(stateId)) errors.push(`${where}: invalid state id`);
+    if (!object(state)) { errors.push(`${where} object required`); continue; }
+    validateRevision(state.revision, where, errors, revisionIds);
+    validateResource(state.idle, `${where}.idle`, errors, revisionIds, assetPaths);
+    validateResource(state.talking_body, `${where}.talking_body`, errors, revisionIds, assetPaths);
+    if (!object(state.talking_head)) errors.push(`${where}.talking_head required`);
+    else {
+      validateRevision(state.talking_head.revision, `${where}.talking_head`, errors, revisionIds);
+      validateResource(state.talking_head.source, `${where}.talking_head.source`, errors, revisionIds, assetPaths);
+      const descriptor = state.talking_head.descriptor;
+      if (!object(descriptor)) errors.push(`${where}.talking_head.descriptor required`);
       else {
-        if (!(Number(state.sync.default_hold_ms) > 0)) E(`state_engine.states.${stateKey}.sync.default_hold_ms required`);
-        const heads = state.sync.heads || {};
-        for (const viseme of visemes) {
-          const meta = heads[viseme];
-          if (!meta || typeof meta !== "object") E(`state_engine.states.${stateKey}.sync.heads.${viseme} required`);
-          else {
-            if (!(Number(meta.fps) > 0)) E(`state_engine.states.${stateKey}.sync.heads.${viseme}.fps required`);
-            if (!(Number(meta.duration_ms) > 0)) E(`state_engine.states.${stateKey}.sync.heads.${viseme}.duration_ms required`);
-            if (typeof meta.loopable !== "boolean") E(`state_engine.states.${stateKey}.sync.heads.${viseme}.loopable required`);
-          }
-        }
-      }
-      if (!Array.isArray(state.face_bbox) || state.face_bbox.length !== 4) E(`state_engine.states.${stateKey}: face_bbox [x,y,w,h] required`);
-      else if (state.face_bbox.some((v) => v < 0 || v > 1)) E(`state_engine.states.${stateKey}: face_bbox must be 0..1`);
-      if (opts.requireStateSpecificAssets && state.idle === state.talking_body) E(`state_engine.states.${stateKey}: idle and talking_body must be separate assets`);
-    }
-    if (assetPaths.size) {
-      for (const asset of listStateEngineAssets(m)) if (asset.path && !assetPaths.has(asset.path)) E(`${asset.role}: missing asset ${asset.path}`);
-    }
-  }
-  for (const [tag, route] of Object.entries(m.prosody_map || {})) {
-    if (!route || typeof route !== "object") E(`prosody_map.${tag}: route object required`);
-    else if (route.state && !m.state_engine?.states?.[route.state]) E(`prosody_map.${tag}: state missing ${route.state}`);
-  }
-
-  const scen = m.scenario || {};
-  const nodes = scen.nodes || {};
-  const nodeKeys = Object.keys(nodes);
-  if (nodeKeys.length) {
-    let starts = 0;
-    for (const [k, n] of Object.entries(nodes)) {
-      if (n.type === "start") starts++;
-      else if (!n.animation) E(`scenario node ${k}: animation required`);
-      else if (!anims[n.animation]) E(`scenario node ${k}: animation missing ${n.animation}`);
-    }
-    if (starts === 0) W("scenario start node missing");
-    if (starts > 1) E("scenario must have at most one start node");
-    for (const e of scen.edges || []) {
-      if (!e.from || !e.to) E("scenario edge from/to required");
-      else {
-        if (!nodes[e.from]) E(`scenario edge from missing ${e.from}`);
-        if (!nodes[e.to]) E(`scenario edge to missing ${e.to}`);
+        if (descriptor.schema_version !== "1.0") errors.push(`${where}.talking_head.descriptor.schema_version must be 1.0`);
+        if (typeof descriptor.kind !== "string" || !descriptor.kind.trim()) errors.push(`${where}.talking_head.descriptor.kind required`);
+        if (typeof descriptor.profile_ref !== "string" || !descriptor.profile_ref.trim()) errors.push(`${where}.talking_head.descriptor.profile_ref required`);
       }
     }
+    validateFaceBbox(state.face_bbox, `${where}.face_bbox`, errors);
+  }
+  for (const [gestureId, gesture] of Object.entries(manifest.gestures || {})) {
+    const where = `gestures.${gestureId}`;
+    if (!idPattern.test(gestureId)) errors.push(`${where}: invalid gesture id`);
+    validateRevision(gesture?.revision, where, errors, revisionIds);
+    validateResource(gesture?.clip, `${where}.clip`, errors, revisionIds, assetPaths);
+    if (!Array.isArray(gesture?.allowed_character_state_ids)) errors.push(`${where}.allowed_character_state_ids must be an array`);
+    else for (const stateId of gesture.allowed_character_state_ids) if (!states[stateId]) errors.push(`${where}: unknown allowed character state ${stateId}`);
+    if (gesture?.return_policy !== "same-character-state") errors.push(`${where}.return_policy must be same-character-state`);
+  }
+  for (const [tag, route] of Object.entries(manifest.prosody_map || {})) {
+    const stateId = route?.character_state_id || route?.state;
+    if (!stateId || !states[stateId]) errors.push(`prosody_map.${tag}: unknown character state ${stateId || "missing"}`);
+  }
+  const animations = manifest.animations || {};
+  if (manifest.background?.src) {
+    if (!isPortableAssetPath(manifest.background.src)) errors.push("background.src must be a portable relative asset path");
+    else if (assetPaths && !assetPaths.has(manifest.background.src)) errors.push(`background.src missing asset: ${manifest.background.src}`);
+  }
+  for (const [animationId, animation] of Object.entries(animations)) {
+    if (!object(animation) || !isPortableAssetPath(animation.clip)) errors.push(`animations.${animationId}.clip must be a portable relative asset path`);
+    else if (assetPaths && !assetPaths.has(animation.clip)) errors.push(`animations.${animationId}.clip missing asset: ${animation.clip}`);
+    if (animation?.can_talk && (!Array.isArray(animation.face_bbox) || ![3, 4].includes(animation.face_bbox.length))) errors.push(`animations.${animationId}.face_bbox required when can_talk=true`);
+  }
+  const nodes = manifest.scenario?.nodes || {};
+  let starts = 0;
+  for (const [nodeId, node] of Object.entries(nodes)) {
+    if (node?.type === "start") starts += 1;
+    else if (!node?.animation || !animations[node.animation]) errors.push(`scenario node ${nodeId}: animation missing ${node?.animation || ""}`);
+  }
+  if (starts > 1) errors.push("scenario must have at most one start node");
+  for (const edge of manifest.scenario?.edges || []) {
+    if (!nodes[edge?.from] || !nodes[edge?.to]) errors.push(`scenario edge references a missing node: ${edge?.from || ""}->${edge?.to || ""}`);
   }
   return { ok: errors.length === 0, errors, warnings };
 }
-export function listScenarios(m) {
-  const scen = m.scenario;
-  if (!scen || !scen.nodes) return [];
-  const scenes = Object.values(scen.nodes).filter((n) => n.type !== "start").length;
-  return [{ id: "scenario", label: "scenario", steps: scenes }];
+
+export function replaceStateResource(manifest, stateId, role, nextResource) {
+  if (!stateMap(manifest)[stateId]) throw new Error(`unknown character state: ${stateId}`);
+  if (!new Set(["idle", "talking_body", "talking_head"]).has(role)) throw new Error(`unsupported state resource role: ${role}`);
+  const revisionId = nextResource?.revision?.id;
+  if (!revisionId) throw new Error(`${role} revision required`);
+  if (role !== "talking_head" && !isPortableAssetPath(nextResource?.path)) throw new Error(`${role} portable asset path required`);
+  if (role === "talking_head" && (!isPortableAssetPath(nextResource?.source?.path) || !nextResource?.descriptor)) throw new Error("talking_head source and descriptor required");
+  const next = clone(manifest);
+  next.character_states[stateId][role] = clone(nextResource);
+  const previous = next.character_states[stateId].revision?.id || `${stateId}-state`;
+  const stateRevisionId = `${previous}+${revisionId}`.replace(/[^a-z0-9._+-]/gi, "-").slice(0, 128);
+  next.character_states[stateId].revision = { id: stateRevisionId };
+  return next;
 }
 
-// scenario ?잙갭梨??熬? start ?遊붋??edge ??⑤벡逾???ル쪇援??꾩렮維뽪룇 ??戮?맋????轅명돦??(亦껋꼶梨?怨?돦??⒱뵛 ??繹??.
-export function scenarioPlayOrder(m) {
-  const nodes = m.scenario?.nodes || {};
-  const edges = m.scenario?.edges || [];
-  const start = Object.keys(nodes).find((k) => nodes[k].type === "start");
-  if (!start) return [];
+export class NvaCharacterStateRuntime {
+  constructor(manifest) {
+    const result = validateManifest(manifest);
+    if (!result.ok) throw new Error(`invalid NVA manifest: ${result.errors.join("; ")}`);
+    this.manifest = manifest;
+    this.character_state_id = manifest.default_character_state_id;
+    this.playback_state = "idle";
+  }
+
+  selectCharacterState(stateId) {
+    if (!stateMap(this.manifest)[stateId]) throw new Error(`unknown character state: ${stateId}`);
+    this.character_state_id = stateId;
+    this.playback_state = "idle";
+    return this.snapshot();
+  }
+
+  startSpeaking() {
+    const plan = buildStateSpeechPlan(this.manifest, "", this.character_state_id);
+    if (!plan) throw new Error(`character state is not speakable: ${this.character_state_id}`);
+    this.playback_state = "speaking";
+    return { ...plan, playback_state: this.playback_state };
+  }
+
+  finishSpeaking(outcome = "completed") {
+    if (!new Set(["completed", "cancelled", "error", "barge-in"]).has(outcome)) throw new Error(`unknown speech outcome: ${outcome}`);
+    this.playback_state = "idle";
+    return { ...this.snapshot(), outcome };
+  }
+
+  startGesture(gestureId) {
+    const gesture = this.manifest.gestures?.[gestureId];
+    if (!gesture) throw new Error(`unknown gesture: ${gestureId}`);
+    if (gesture.allowed_character_state_ids?.length && !gesture.allowed_character_state_ids.includes(this.character_state_id)) throw new Error(`gesture ${gestureId} not allowed from ${this.character_state_id}`);
+    this.playback_state = "gesture";
+    return { gesture_id: gestureId, character_state_id: this.character_state_id, playback_state: this.playback_state, clip: clone(gesture.clip) };
+  }
+
+  finishGesture() {
+    this.playback_state = "idle";
+    return this.snapshot();
+  }
+
+  snapshot() {
+    return { ...buildDefaultStatePlan(this.manifest, this.character_state_id), playback_state: this.playback_state };
+  }
+}
+
+export function listScenarios(manifest) {
+  const nodes = manifest?.scenario?.nodes;
+  if (!nodes) return [];
+  return [{ id: "scenario", label: "scenario", steps: Object.values(nodes).filter((node) => node.type !== "start").length }];
+}
+
+export function scenarioPlayOrder(manifest) {
+  const nodes = manifest?.scenario?.nodes || {};
+  const edges = manifest?.scenario?.edges || [];
+  let current = Object.keys(nodes).find((key) => nodes[key]?.type === "start");
   const order = [];
   const seen = new Set();
-  let cur = start;
-  while (cur && !seen.has(cur)) {
-    seen.add(cur);
-    const n = nodes[cur];
-    if (n && n.type !== "start" && n.animation)
-      order.push({ animation: n.animation, say: n.label, dwell_ms: n.dwell_ms });
-    cur = edges.find((e) => e.from === cur)?.to;
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    const node = nodes[current];
+    if (node?.type !== "start" && node?.animation) order.push({ animation: node.animation, say: node.label, dwell_ms: node.dwell_ms });
+    current = edges.find((edge) => edge.from === current)?.to;
   }
   return order;
 }
 
-// ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-// 4. ??繹????궰?????嶺뚮ㅄ維싷쭗???ル봾鍮띶슖??띠럾????熬곥굦?????吏?????엷 (??藥???⑥リ틭??.
-// ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-
-// entry/exit pose ???熬곥굦????ル봾鍮?is_transition) ??BFS. fromPose ??toPose 嶺뚣끉裕???????궰???
-export function findTransitionPath(m, fromPose, toPose) {
+export function findTransitionPath(manifest, fromPose, toPose) {
   if (fromPose === toPose) return [];
-  const trans = Object.entries(m.animations || {}).filter(([, a]) => isTransition(a));
+  const transitions = Object.entries(manifest?.animations || {}).filter(([, animation]) => isTransition(animation));
   const queue = [[fromPose, []]];
   const seen = new Set([fromPose]);
   while (queue.length) {
     const [pose, path] = queue.shift();
-    for (const [key, a] of trans) {
-      if (a.entry_pose !== pose || seen.has(a.exit_pose)) continue;
+    for (const [key, animation] of transitions) {
+      if (animation.entry_pose !== pose || seen.has(animation.exit_pose)) continue;
       const next = [...path, key];
-      if (a.exit_pose === toPose) return next;
-      seen.add(a.exit_pose);
-      queue.push([a.exit_pose, next]);
+      if (animation.exit_pose === toPose) return next;
+      seen.add(animation.exit_pose);
+      queue.push([animation.exit_pose, next]);
     }
   }
   return null;
 }
 
-// ???????⑤객臾?誘⑹굣?????熬곣뫗????ル봾鍮??exit_pose ?????嶺뚮ㅄ維싷쭗???ル봾鍮??entry_pose ???熬곥굦????ｌ뫓??
 export class NvaRuntime {
   constructor(manifest) {
     this.m = manifest;
-    const d = derive(manifest);
-    this.current = d.idleKey || Object.keys(manifest.animations || {})[0] || null;
+    const derived = derive(manifest);
+    this.current = derived.idleKey || Object.keys(manifest.animations || {})[0] || null;
   }
-
-  anim(key = this.current) {
-    return this.m.animations?.[key];
-  }
-
-  // 嶺뚮ㅄ維싷쭗???ル봾鍮띶슖??띠럾?????ｌ뫓?? { transitions:[key...], target }. ?釉띾쐝?嶺?null.
+  anim(key = this.current) { return this.m.animations?.[key]; }
   plan(targetKey) {
-    const cur = this.anim(this.current);
-    const tgt = this.anim(targetKey);
-    if (!tgt) return null;
-    const path = findTransitionPath(this.m, cur?.exit_pose ?? tgt.entry_pose, tgt.entry_pose);
-    if (path === null) return null;
-    return { transitions: path, target: targetKey };
+    const current = this.anim();
+    const target = this.anim(targetKey);
+    if (!target) return null;
+    const path = findTransitionPath(this.m, current?.exit_pose ?? target.entry_pose, target.entry_pose);
+    return path === null ? null : { transitions: path, target: targetKey };
   }
-
-  commit(targetKey) {
-    this.current = targetKey;
-  }
+  commit(targetKey) { this.current = targetKey; }
 }
 
-// ??ｌ뫓????(????? loop, can_talk, face_bbox) ???궰??? player ?띠럾? ?잙갭梨?????繹?
-export function buildPlaybackSequence(m, plan) {
-  const seq = [];
-  for (const tk of plan.transitions) {
-    const a = m.animations[tk];
-    seq.push({ key: tk, clip: a.clip, loop: false, can_talk: false, face_bbox: null });
-  }
-  const a = m.animations[plan.target];
-  seq.push({
-    key: plan.target,
-    clip: a.clip,
-    loop: !!a.loop,
-    can_talk: !!a.can_talk,
-    face_bbox: a.face_bbox || null,
-  });
-  return seq;
+export function buildPlaybackSequence(manifest, plan) {
+  const sequence = (plan?.transitions || []).map((key) => ({ key, clip: manifest.animations[key].clip, loop: false, can_talk: false, face_bbox: null }));
+  const target = manifest.animations?.[plan?.target];
+  if (target) sequence.push({ key: plan.target, clip: target.clip, loop: !!target.loop, can_talk: !!target.can_talk, face_bbox: target.face_bbox || null });
+  return sequence;
 }
 
-// ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-// 5. CLI ??븐슜??
-// ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 export function summarize(result) {
-  const lines = [];
-  lines.push(result.ok ? "VALID" : "INVALID");
-  for (const e of result.errors) lines.push("  ERROR  " + e);
-  for (const w of result.warnings) lines.push("  WARN   " + w);
-  return lines.join("\n");
+  return [result.ok ? "VALID" : "INVALID", ...result.errors.map((item) => `  ERROR  ${item}`), ...result.warnings.map((item) => `  WARN   ${item}`)].join("\n");
 }
