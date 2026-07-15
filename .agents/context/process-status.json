@@ -16,14 +16,14 @@
     "started": "2026-06-21",
     "last_updated": "2026-07-15",
     "status": "active",
-    "note": "v0.2 편집기에서 720×1280 캔버스, 무리사이즈 512×512 Ditto 입력 영역, 얼굴 가이드 분리, 클립 미리보기, 원본 영상 크로마키 스포이드를 구현·검증했다. 2026-07-15 http://localhost:8099 에디터→http://localhost:8910 cascade 연결·기본 ref·숫자 발화(H.264+AAC)를 Playwright로 검증하고 절대 ref URL zip 오해석 404를 수정했다. :8913은 별도 검증 인스턴스다. origin/main은 2026-07-11 공통조상 없는 공개 스냅샷으로 강제 교체된 사실을 확인했으며, 사용자 결정으로 검증된 로컬 이력을 main 정본으로 복구한다. 개인 Alpha 번들은 공개 저장소 밖의 비공개 naia-settings에서 관리한다."
+    "note": "v0.2 편집기에서 720×1280 캔버스, 무리사이즈 512×512 Ditto 입력 영역, 얼굴 가이드 분리, 클립 미리보기, 원본 영상 크로마키 스포이드를 구현·검증했다. 2026-07-15 NVA와 TTS 음성을 독립 축으로 분리했다. 에디터는 /ref/voices의 기본 또는 선택 음색을 PUT /voice로 설정하고 NVA에는 voice_ref를 기록하지 않는다. 별도 :8914 실측에서 음성 설정→NVA 재로드 후 음성 유지→/stream_text H.264 720×1280 + AAC 48kHz 발화를 확인했다. :8910 운영 인스턴스는 재시작하지 않았다. origin/main은 2026-07-11 공통조상 없는 공개 스냅샷으로 강제 교체된 사실을 확인했으며, 사용자 결정으로 검증된 로컬 이력을 main 정본으로 복구한다. 개인 Alpha 번들은 공개 저장소 밖의 비공개 naia-settings에서 관리한다."
   },
 
   "sdlc_gates": {
     "P01": { "status": "done", "name": "user_scenarios", "deliverable": "docs/progress/02.user-scenarios/INDEX.md", "ref": "UC-001..UC-008" },
     "P02": { "status": "done", "name": "test_scenarios", "deliverable": "docs/progress/03.uc-tests/INDEX.md", "ref": "TEST-S-001..TEST-S-009" },
     "P03": { "status": "done", "name": "requirements", "deliverable": "docs/progress/01.requirements/INDEX.md", "ref": "REQ-001..REQ-012, NFR-001..NFR-004" },
-    "P04": { "status": "done", "name": "integration_test", "deliverable": "node 계약 테스트 + Playwright 8099→8910 연결/ref/발화 실측 + export unzip", "ref": "TEST-F-001..TEST-F-010" },
+    "P04": { "status": "done", "name": "integration_test", "deliverable": "node 계약 테스트 + HTTP 계약 테스트 + :8914 실제 VoxCPM2/Ditto 음성 독립성·H.264/AAC 실측", "ref": "TEST-F-001..TEST-F-010" },
     "P05": { "status": "partial", "name": "requirements_complete", "deliverable": "포맷·뷰어·에디터·export = Done / cascade 연결 + kiosk-v3 배포 = 잔여(GPU·VM 외부 의존)", "ref": null }
   },
 

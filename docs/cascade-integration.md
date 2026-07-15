@@ -35,9 +35,10 @@ cascade가 nva 번들을 소비하려면 nva manifest → `CharacterBundle`(naia
 | `states.<animation>.clip`, `transitions.*.clip` | `event_clips{}` | idle break / 전환 |
 | speaking 구동 정지 프레임 | `source_frame_path` | Ditto 입력(필수) |
 | `states.<talking>.face_bbox` | (Ditto crop 영역) | 헤드토킹 위치 |
-| `meta.voice_ref` | `voice_ref` (VoiceRef) | 음색 클론 |
 | `matte` (알파) | `matte_path` | 투명 합성 |
 | `canvas` | `RenderConfig` | 해상도/fps |
+
+TTS 레퍼런스 음성은 NVA 매핑 대상이 아니다. 에디터가 `/ref/voices`에서 기본값 또는 사용자 선택값을 얻어 `PUT /voice`로 별도 설정한다. NVA 업로드·캐릭터 전환은 활성 음성을 변경하지 않는다.
 
 > 이 로더(`nva → CharacterBundle`)는 **naia-omni-cascade 측 구현 대상**(이 repo 범위 밖).
 > nva가 표준 입력 포맷이 되고, cascade가 소비자.
@@ -95,10 +96,11 @@ server {
 
 - 제작 표면: `http://localhost:8099/src/main/editor.html`
 - 실제 연결 정본: `http://localhost:8910` (`:8913`은 별도 검증 인스턴스이므로 상태 판정에 섞지 않음)
-- 성공 기준: 에디터 기본 URL 8910 → 현재 nva `/upload_nva` → `/ref/voices` 기본 음색 → `/stream_text` → 위 플레이어가 음성 포함 MP4를 재생. cascade `/health`는 `ok:true, tts:true, avatar:true`여야 한다.
-- ref 경로 계약: 에디터의 `meta.voice_ref.audio_path`가 `http(s)://.../ref/audio/...`이면 외부 참조로 manifest에 유지하고 `.nva` zip 파일 목록에는 넣지 않는다. 상대/로컬 ref 파일만 zip에 포함한다.
+- 성공 기준: 에디터 기본 URL 8910 → 현재 NVA `/upload_nva` → `/ref/voices` 기본 음색 선택 → `PUT /voice` → `/stream_text` → 위 플레이어가 음성 포함 MP4를 재생. cascade `/health`는 `ok:true, tts:true, avatar:true`여야 한다.
+- ref 경로 계약: 선택한 `audio_path`는 `PUT /voice`로 전달한다. NVA manifest와 `.nva` zip에는 음성 경로·파일을 기록하지 않는다.
+- 독립성 계약: NVA 재업로드 및 캐릭터 전환 후에도 활성 음성이 유지되어야 한다.
 - cascade가 호스트이고 TTS가 컨테이너이면 최종 `audio_path`는 TTS 컨테이너에서도 읽을 수 있어야 한다. 호스트 전용 절대경로 전달은 `/health`가 정상이어도 발화 단계에서 실패한다.
-- 2026-07-15 실측: 숫자 문장 발화 HTTP 200, 결과 H.264 video + AAC audio. Playwright에서 연결·기본 ref·발화 재생 성공. 최초 검사에서 절대 ref URL을 `${baseUrl}/${url}`로 잘못 요청한 404를 발견해 외부 URL zip 제외 규칙으로 수정했다.
+- 2026-07-15 실측: 숫자 문장 발화 HTTP 200, 결과 H.264 video + AAC audio. 이후 NVA와 음성의 잘못된 결합을 제거해 기본/선택 ref는 별도 `/voice` 계약으로 설정한다.
 
 ## 8. `main` 이력 정본 복구 (2026-07-15)
 

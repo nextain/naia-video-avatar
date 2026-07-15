@@ -58,4 +58,4 @@ character.nva/
 
 ## 7. 권리
 
-포맷 명세 + 뷰어/에디터 = naia(nextain) 자산(과도기 오픈 표준). 번들에 담기는 캐릭터(클립·음색) = 각 제작자 자산(`meta.owner`). 상세 = `.agents/progress/talkingkiosk-pulse9-ip-meeting-2026-06-21.md`(alpha-adk).
+포맷 명세 + 뷰어/에디터 = naia(nextain) 자산(과도기 오픈 표준). 번들에는 캐릭터 클립만 담으며, TTS 레퍼런스 음성은 NVA 밖의 독립 런타임 설정이다. 캐릭터 자산 소유자는 `meta.owner`. 상세 = `.agents/progress/talkingkiosk-pulse9-ip-meeting-2026-06-21.md`(alpha-adk).

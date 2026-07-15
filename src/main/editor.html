@@ -126,8 +126,8 @@
 </div>
 
 <script type="module">
-import { validateManifest, migrateToV02, animKind, shouldBundleVoiceRef } from "./nva-core.js?v=20260715m";
-const BUILD="20260715m";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
+import { validateManifest, migrateToV02, animKind } from "./nva-core.js?v=20260715n";
+const BUILD="20260715n";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
 
 // ─────────────────────────────────────────────────────────────
 //  i18n — 한국어/English. 고유명사(naia·cascade·Ditto·nva·VP9·TTS·URL·AI·LLM·webm)만
@@ -196,7 +196,7 @@ const I18N = {
     "ref.optAfterConnect":"([연결] 후 목록 불러옴)",
     "ref.optAfterConnect2":"([연결] 후 목록 불러옴 / URL 직접)",
     "ref.count":"{n}개 음색", "ref.empty":"음색 목록 비어있음 (REF_DIR)", "ref.loadFail":"목록 불러오기 실패",
-    "ref.set":"음색 URL 설정됨 (연결/말하기 시 반영)", "ref.cleared":"음색 해제 (TTS 기본)",
+    "ref.set":"활성 음색 설정됨 (NVA와 별도 · 연결/말하기 시 반영)", "ref.cleared":"기본 음색 선택됨",
     "ref.noUrl":"URL 없음", "ref.playing":"▶ 재생 중", "ref.playFail":"듣기 실패 (URL 확인)", "ref.playFailMsg":"듣기 실패: {msg}",
     "alert.loadFirst":"먼저 불러오세요", "alert.exportBlocked":"내보내기 차단 — {msg}",
     "err.validation":"유효성 오류:\n{errs}",
@@ -265,7 +265,7 @@ const I18N = {
     "ref.optAfterConnect":"(list loads after [Connect])",
     "ref.optAfterConnect2":"(list loads after [Connect] / enter URL)",
     "ref.count":"{n} voices", "ref.empty":"Voice list empty (REF_DIR)", "ref.loadFail":"List load failed",
-    "ref.set":"Voice URL set (applied on connect/speak)", "ref.cleared":"Voice cleared (TTS default)",
+    "ref.set":"Active voice set separately from NVA (applied on connect/speak)", "ref.cleared":"Default voice selected",
     "ref.noUrl":"No URL", "ref.playing":"▶ Playing", "ref.playFail":"Play failed (check URL)", "ref.playFailMsg":"Play failed: {msg}",
     "alert.loadFirst":"Load first", "alert.exportBlocked":"Export blocked — {msg}",
     "err.validation":"Validation errors:\n{errs}",
@@ -566,12 +566,13 @@ $("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const 
 // nva(manifest + clips)를 zip blob 으로 — 내보내기·cascade 업로드 공용.
 async function buildNvaZip(){
   const r=validateManifest(M); if(!r.ok) throw new Error(t("err.validation",{errs:r.errors.join("\n")}));
-  const zip=new JSZip(); zip.file("manifest.json", JSON.stringify(M,null,2));
+  const manifest=JSON.parse(JSON.stringify(M));
+  // 음성은 Cascade 런타임 설정이다. 구형 NVA를 열어도 다시 번들에 기록하지 않는다.
+  if(manifest.meta) delete manifest.meta.voice_ref;
+  delete manifest.voice_ref;
+  const zip=new JSZip(); zip.file("manifest.json", JSON.stringify(manifest,null,2));
   const clips=new Set(Object.values(M.animations||{}).map(a=>a.clip).filter(Boolean));
   for(const a of Object.values(M.animations||{})){ if(a.head_image) clips.add(a.head_image); }  // 헤드 PNG도 번들에
-  // cascade /ref/audio URL은 외부 참조로 manifest에만 유지한다. baseUrl 아래 상대
-  // 번들 파일처럼 다시 fetch하면 .../nva/http://... 404가 나므로 로컬 경로만 zip에 담는다.
-  const vr=M.meta?.voice_ref?.audio_path; if(shouldBundleVoiceRef(vr)) clips.add(vr);
   for(const c of clips){ try{ if(blobMap[c]) zip.file(c,blobMap[c].blob); else if(baseUrl){ const b=await (await fetch(`${baseUrl}/${c}`)).blob(); zip.file(c,b); } }catch(e){} }
   return await zip.generateAsync({type:"blob"});
 }
@@ -593,6 +594,13 @@ async function casUpload(){
   if(!r.ok||!j.ok) throw new Error(j.detail||j.error||("HTTP "+r.status));
   casLoaded=true; nvaDirty=false; return j.bundle_id;
 }
+async function casSetVoice(){
+  if(!selectedVoiceUrl) throw new Error("reference voice is not selected");
+  const r=await fetch(casUrl()+"/voice",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({audio_path:selectedVoiceUrl,sample_rate:48000})});
+  let j={}; try{ j=await r.json(); }catch(e){}
+  if(!r.ok||!j.ok) throw new Error(j.detail||j.error||("HTTP "+r.status));
+  voiceDirty=false; return j;
+}
 // 연결 = 현재 nva 를 cascade 에 전송·로딩(/upload_nva) + 모든 편집 lock. 다시 누르면 해제(편집 가능).
 $("casConnect").onclick=async()=>{
   if(document.body.classList.contains("cas-connected")){   // 이미 연결됨 → 해제(편집 복귀)
@@ -602,7 +610,7 @@ $("casConnect").onclick=async()=>{
   $("casStatus").textContent=t("cas.connecting");
   try{ await (await fetch(casUrl()+"/health")).json();
     await loadRefVoices();   // ref 음색 URL 목록 로드
-    const id=await casUpload(); setConnectedUI(true);       // 편집 lock
+    const id=await casUpload(); await casSetVoice(); setConnectedUI(true); // 캐릭터와 음성을 각각 설정
     const spk=Object.keys(M.animations||{}).find(k=>M.animations[k].loop&&M.animations[k].can_talk);  // 연결 즉시 speak 로
     if(spk){ selected=spk; goto(spk); renderStruct(); }
     $("casStatus").textContent=t("cas.connected",{id}); }
@@ -629,20 +637,25 @@ function updateSpeakUI(){
   if(on && !talking && st) st.textContent=t("cas.lockedNoTalk");
 }
 
-// 레퍼런스 음색 = URL 지정. cascade 가 /ref/voices 로 음색 URL 목록(오사랑 제외) 제공, /ref/audio/{name} 서빙.
-// 선택 URL → nva meta.voice_ref.audio_path 저장 → cascade 가 URL→로컬경로 해석 → TTS 발화. 커스텀 URL 도 가능.
+// 레퍼런스 음색 = NVA와 독립된 Cascade 런타임 설정.
+// /ref/voices 목록에서 기본/선택 URL을 얻고 PUT /voice로 설정한다. 커스텀 URL도 가능.
+let selectedVoiceUrl="", defaultVoiceUrl="", voiceDirty=true;
 const voiceLabel=v=>t("ref.voiceLabel",{g:t("gender."+(v.gender||"female")),i:v.idx||1,l:t("vlang."+(v.lang||"ko"))});
 async function loadRefVoices(){ const sel=$("refVoice"); if(!sel) return;
   try{ const j=await (await fetch(casUrl()+"/ref/voices")).json(); const vs=j.voices||[];
     sel.innerHTML=`<option value="">${t("ref.optDefault")}</option>`+vs.map(v=>`<option value="${v.url}">${voiceLabel(v)}</option>`).join("");
     $("refStatus").textContent=vs.length?t("ref.count",{n:vs.length}):t("ref.empty");
-    if(!M?.meta?.voice_ref?.audio_path){ const def=vs.find(v=>v.default)||vs[0]; if(def) setRefVoice(def.url); }  // 기본 음색(ref_ko_485)
+    const def=vs.find(v=>v.default)||vs[0]; defaultVoiceUrl=def?.url||"";
+    // 8910↔9449처럼 Cascade 주소를 바꾸면 팔레트 ref URL도 새 origin으로 맞춘다.
+    if(selectedVoiceUrl.includes("/ref/audio/")){
+      const name=selectedVoiceUrl.split("/").pop(); const same=vs.find(v=>v.url.split("/").pop()===name);
+      selectedVoiceUrl=same?.url||defaultVoiceUrl;
+    }
+    if(!selectedVoiceUrl && defaultVoiceUrl) setRefVoice(defaultVoiceUrl); // 에디터 연결 기본 음색
     syncRefVoice(); }
   catch(e){ sel.innerHTML=`<option value="">${t("ref.optAfterConnect")}</option>`; $("refStatus").textContent=t("ref.loadFail"); } }
-function setRefVoice(url){ if(!M) return; M.meta=M.meta||{};
-  if(url){ M.meta.voice_ref={audio_path:url, sample_rate:48000}; $("refStatus").textContent=t("ref.set"); }
-  else { delete M.meta.voice_ref; $("refStatus").textContent=t("ref.cleared"); }
-  refresh(); }
+function setRefVoice(url){ selectedVoiceUrl=(url||defaultVoiceUrl||"").trim(); voiceDirty=true;
+  $("refStatus").textContent=selectedVoiceUrl?t("ref.set"):t("ref.cleared"); syncRefVoice(); }
 let _refAudio=null;
 function previewRef(url){ if(!url){ $("refStatus").textContent=t("ref.noUrl"); return; }
   try{ if(_refAudio){ _refAudio.pause(); } _refAudio=new Audio(url);
@@ -657,12 +670,13 @@ function previewRef(url){ if(!url){ $("refStatus").textContent=t("ref.noUrl"); r
   const pv=$("refPreview"); if(pv) pv.onclick=()=>previewRef($("refVoice").value);
   const pvu=$("refPreviewUrl"); if(pvu) pvu.onclick=()=>previewRef(($("refUrl").value||"").trim());
 })();
-function syncRefVoice(){ const u=M?.meta?.voice_ref?.audio_path||""; if($("refUrl")) $("refUrl").value=u;
+function syncRefVoice(){ const u=selectedVoiceUrl; if($("refUrl")) $("refUrl").value=u;
   const sel=$("refVoice"); if(sel) sel.value=[...sel.options].some(o=>o.value===u)?u:""; }
 $("casSpeak").onclick=async()=>{ const text=$("casText").value.trim(); if(!text) return;
   try{
     if(!casLoaded){ $("casStatus").textContent=t("cas.speakFirst"); return; }
     if(nvaDirty){ $("casStatus").textContent=t("cas.resetting"); await casUpload(); }  // 파일 변경 있으면 재업로드
+    if(voiceDirty) await casSetVoice();
     $("casStatus").textContent=t("cas.rendering");
     const r=await fetch(casUrl()+"/stream_text",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
     if(!r.ok) throw new Error("HTTP "+r.status); const b=await r.blob(); casPlay(b,false,false,t("cas.playing"));
