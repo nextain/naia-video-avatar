@@ -17,3 +17,4 @@
 | TEST-F-007 | SPEC-007 | 클립 미리보기 제어·다국어 라벨·선택 애니메이션 재생 결선 계약 + 실제 브라우저 클릭 | src/test/editor-clip-preview.test.mjs + Playwright 실측 | Done |
 | TEST-F-008 | SPEC-008 | 신규 표준값은 720×1280 + `[104,0,512,512]`이며 Ditto 영역은 정수 좌표·정확히 512×512·캔버스 내부이고 얼굴 bbox와 별도 보존됨을 검증 | src/test/nva-core.test.mjs + Playwright 실측 | Done |
 | TEST-F-009 | SPEC-009 | 스포이드 버튼·다국어 안내·원본 video drawImage/getImageData·좌표 변환·`chroma_key` 저장 결선과 실제 배경 픽셀 클릭을 검증 | src/test/editor-chroma-eyedropper.test.mjs + Playwright 실측 | Done |
+| TEST-F-010 | SPEC-010 | 절대 cascade ref URL은 manifest에 남고 zip 파일 목록에서는 제외됨을 계약 검사하고, 8099→8910 연결·ref 선택·발화 재생 및 브라우저 4xx 0건을 Playwright로 검증 | src/test/editor-ref-url.test.mjs + Playwright E2E(2026-07-15) | Done |
