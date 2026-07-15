@@ -14,9 +14,9 @@
     "issue_doc": null,
     "github_issue": null,
     "started": "2026-06-21",
-    "last_updated": "2026-07-15",
+    "last_updated": "2026-07-16",
     "status": "active",
-    "note": "v0.2 편집기에서 720×1280 캔버스, 무리사이즈 512×512 Ditto 입력 영역, 얼굴 가이드 분리, 클립 미리보기, 원본 영상 크로마키 스포이드를 구현·검증했다. 2026-07-15 NVA와 TTS 음성을 독립 축으로 분리했다. 에디터는 /ref/voices의 기본 또는 선택 음색을 PUT /voice로 설정하고 NVA에는 voice_ref를 기록하지 않는다. 별도 :8914 실측에서 음성 설정→NVA 재로드 후 음성 유지→/stream_text H.264 720×1280 + AAC 48kHz 발화를 확인했다. :8910 운영 인스턴스는 재시작하지 않았다. origin/main은 2026-07-11 공통조상 없는 공개 스냅샷으로 강제 교체된 사실을 확인했으며, 사용자 결정으로 검증된 로컬 이력을 main 정본으로 복구한다. 개인 Alpha 번들은 공개 저장소 밖의 비공개 naia-settings에서 관리한다."
+    "note": "v0.2 편집기에서 720×1280 캔버스, 무리사이즈 512×512 Ditto 입력 영역, 얼굴 가이드 분리, 클립 미리보기, 원본 영상 크로마키 스포이드를 구현·검증했다. 2026-07-15 NVA와 TTS 음성을 독립 축으로 분리했다. 에디터는 /ref/voices의 기본 또는 선택 음색을 PUT /voice로 설정하고 NVA에는 voice_ref를 기록하지 않는다. 2026-07-16 'Naia 불러오기' 정본을 사용자가 확정한 Naia 기본 캐릭터 NVA 자산(720×1280, 명시적 speak_head.png, ditto_region 512×512)으로 교체하고 박스 데모 UI를 제거했다. examples/demo.nva는 코어 계약 테스트 fixture로만 유지한다. 개인 Alpha 번들은 공개 저장소 밖의 비공개 naia-settings에서 관리한다."
   },
 
   "sdlc_gates": {

@@ -38,7 +38,7 @@
   #guide code{ background:#0c1118; padding:1px 6px; border-radius:4px; } #guide .close{ float:right; } #guide .tag{ color:#8b98a9; font-size:12px; }
 /* cascade 연결 시 = 모든 편집 lock (애니 선택·재생은 유지). 해제하면 편집 복귀. */
 .cas-connected #struct input, .cas-connected #struct select, .cas-connected #addAnim,
-.cas-connected #exportBtn, .cas-connected #loadDemo, .cas-connected #openNvaBtn,
+.cas-connected #exportBtn, .cas-connected #openNvaBtn,
 .cas-connected #loadNaia { pointer-events:none; opacity:.5; }
 .cas-connected #playCtrls{ pointer-events:auto; opacity:1; }   /* 재생 라벨(태그)은 연결 중에도 활성 */
 .cas-connected #formBody{ display:none; }                      /* 연결 = 애니 편집 폼 숨김(플레이어 모드) */
@@ -55,7 +55,6 @@
 <header>
   <h1>nva <span data-i18n="app.editor">에디터</span> <span class="pill" data-i18n="app.pill">v0.2 · 제작 도구</span></h1>
   <button id="loadNaia" data-i18n="btn.loadNaia">Naia 불러오기</button>
-  <button id="loadDemo" data-i18n="btn.loadDemo">박스 데모</button>
   <label class="sm" style="display:inline-block"><input type="file" id="openNva" accept=".nva,.zip" style="display:none">
     <button class="sm" id="openNvaBtn" onclick="document.getElementById('openNva').click()" data-i18n="btn.openNva">.nva 열기</button></label>
   <button id="exportBtn" class="go" data-i18n="btn.export">⬇ .nva 내보내기</button>
@@ -126,8 +125,8 @@
 </div>
 
 <script type="module">
-import { validateManifest, migrateToV02, animKind } from "./nva-core.js?v=20260715n";
-const BUILD="20260715n";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
+import { validateManifest, migrateToV02, animKind } from "./nva-core.js?v=20260716c";
+const BUILD="20260716c";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
 
 // ─────────────────────────────────────────────────────────────
 //  i18n — 한국어/English. 고유명사(naia·cascade·Ditto·nva·VP9·TTS·URL·AI·LLM·webm)만
@@ -137,14 +136,13 @@ const I18N = {
   ko: {
     "doc.title":"nva 에디터",
     "app.editor":"에디터", "app.pill":"v0.2 · 제작 도구",
-    "btn.loadNaia":"Naia 불러오기", "btn.loadDemo":"박스 데모", "btn.openNva":".nva 열기",
+    "btn.loadNaia":"Naia 불러오기", "btn.openNva":".nva 열기",
     "btn.export":"⬇ .nva 내보내기", "btn.help":"❔ 사용법", "btn.close":"✕ 닫기",
     "btn.clear":"지움", "btn.addAnim":"+ 동작 추가", "btn.connect":"연결",
     "btn.speak":"🎙 말하기", "btn.listen":"▶ 듣기", "btn.apply":"적용", "btn.del":"삭제",
     "lang.toggle":"English",
     "status.loading":"로딩…",
     "status.loadNaia":"Naia 기본 캐릭터(액체 고양이) 불러옴",
-    "status.loadDemo":"박스 데모 불러옴",
     "status.opened":"{name} 불러옴",
     "status.exported":"내보내기 완료 (.nva v0.2)",
     "sec.meta":"메타 정보", "sec.bg":"배경 / 레이어", "sec.anim":"애니메이션",
@@ -206,14 +204,13 @@ const I18N = {
   en: {
     "doc.title":"nva editor",
     "app.editor":"editor", "app.pill":"v0.2 · authoring tool",
-    "btn.loadNaia":"Load Naia", "btn.loadDemo":"Box demo", "btn.openNva":"Open .nva",
+    "btn.loadNaia":"Load Naia", "btn.openNva":"Open .nva",
     "btn.export":"⬇ Export .nva", "btn.help":"❔ Help", "btn.close":"✕ Close",
     "btn.clear":"Clear", "btn.addAnim":"+ Add gesture", "btn.connect":"Connect",
     "btn.speak":"🎙 Speak", "btn.listen":"▶ Play", "btn.apply":"Apply", "btn.del":"Delete",
     "lang.toggle":"한국어",
     "status.loading":"Loading…",
     "status.loadNaia":"Naia default character (liquid cat) loaded",
-    "status.loadDemo":"Box demo loaded",
     "status.opened":"{name} loaded",
     "status.exported":"Exported (.nva v0.2)",
     "sec.meta":"Meta", "sec.bg":"Background / Layer", "sec.anim":"Animations",
@@ -559,7 +556,6 @@ async function loadManifest(m,base){ M=migrateToV02(m); ensureBase(); baseUrl=ba
   const idle=Object.keys(M.animations||{}).find(k=>M.animations[k].loop&&!M.animations[k].can_talk)||Object.keys(M.animations||{})[0]; if(idle) goto(idle); }
 async function loadNaiaBundle(){ const base="../../examples/naia.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent=t("status.loadNaia"); }
 $("loadNaia").onclick=loadNaiaBundle;
-$("loadDemo").onclick=async()=>{ const base="../../examples/demo.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent=t("status.loadDemo"); };
 $("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const zip=await JSZip.loadAsync(f);
   const mf=await zip.file("manifest.json").async("string"); blobMap={}; baseUrl="";
   for(const [path,zf] of Object.entries(zip.files)){ if(/\.(webm|mp4|jpg|png|wav)$/.test(path)){ const blob=await zf.async("blob"); blobMap[path]={url:URL.createObjectURL(blob),blob}; } }

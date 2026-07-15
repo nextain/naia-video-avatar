@@ -29,7 +29,8 @@
     "fps": 25
   },
   "background": {
-    "type": "transparent"
+    "type": "transparent",
+    "color": "#cad8cc"
   },
   "animations": {
     "idle": {
@@ -62,7 +63,8 @@
         0.211
       ],
       "label": "말하기",
-      "description": "사용자에게 말할 때 — 얼굴 수평 중심, 어깨선에서 위로 잡은 512×512 영역을 Ditto에 무리사이즈 전달"
+      "description": "사용자에게 말할 때 — 얼굴 수평 중심, 어깨선에서 위로 잡은 512×512 영역을 Ditto에 무리사이즈 전달",
+      "head_image": "clips/speak_head.png"
     },
     "gesture-2": {
       "clip": "clips/heart.webm",

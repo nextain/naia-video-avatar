@@ -35,6 +35,11 @@
 이력을 확인했으며, 사용자 결정에 따라 검증된 로컬 이력을 main 정본으로 복구한다. 개인 Alpha
 번들은 공개 저장소 밖의 비공개 `naia-settings`에서 관리한다.
 
+2026-07-16 갱신: 에디터의 **Naia 불러오기** 정본을 사용자가 확정한
+Naia 기본 캐릭터 NVA 자산(720×1280, 명시적 `speak_head.png`, 512×512
+`ditto_region`)으로 교체했다. 박스 데모 버튼은 제거했으며 `examples/demo.nva`는 코어 계약
+테스트 fixture로만 유지한다.
+
 ---
 
 ## SDLC 게이트
@@ -47,7 +52,7 @@
 | P04 통합테스트 | done | node 계약 + HTTP 계약 + :8914 실제 VoxCPM2/Ditto 음성 독립성·H.264/AAC 실측 (TEST-F-001~010) |
 | P05 완료 | partial | 포맷·뷰어·에디터·export = Done / cascade·kiosk-v3 = 잔여(GPU·VM 외부) |
 
-마지막 업데이트: 2026-07-15
+마지막 업데이트: 2026-07-16
 
 ---
 
