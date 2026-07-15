@@ -10,20 +10,12 @@
     "nva_version": { "type": "string", "const": "0.2" },
     "meta": {
       "type": "object",
-      "description": "이름/저작권/음색 참조 등 자유 메타.",
+      "description": "이름/저작권 등 자유 메타. TTS 음성은 NVA와 독립된 런타임 설정이다.",
       "properties": {
         "name": { "type": "string" },
         "author": { "type": "string" },
         "owner": { "type": "string" },
-        "license": { "type": "string" },
-        "voice_ref": {
-          "type": "object",
-          "description": "음성 클로닝 참조(TTS). audio_path(번들 내 상대경로) + sample_rate.",
-          "properties": {
-            "audio_path": { "type": "string" },
-            "sample_rate": { "type": "integer", "minimum": 1 }
-          }
-        }
+        "license": { "type": "string" }
       }
     },
     "canvas": {

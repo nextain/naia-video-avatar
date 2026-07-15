@@ -71,4 +71,4 @@ ffmpeg 8.1 libvpx 알파가 이 환경에서 미동작(yuv420p 드롭) → 더�
 ## 권리 / 라이선스
 
 - 포맷 명세 + 코어/에디터/데모 = **naia(nextain) 자산**. 명세=CC-BY-4.0 / 구현=Apache-2.0. (향후 오픈소스 배포)
-- nva 번들에 담기는 캐릭터(클립·음색) = 각 제작자 자산(manifest `meta.owner`).
+- nva 번들에 담기는 캐릭터 클립 = 각 제작자 자산(manifest `meta.owner`). TTS 레퍼런스 음성은 NVA 밖의 독립 런타임 설정이다.
