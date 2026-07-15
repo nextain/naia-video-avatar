@@ -10,7 +10,8 @@
 //      전환   = entry_pose != exit_pose
 //  - scenario{nodes,edges}: 노드 그래프. nodes[k]={type:"start"|"scene", animation, label, dwell_ms},
 //    edges=[{from,to}]. start 노드가 가리키는 첫 scene = idle 진입점.
-//  - 헤드토킹: can_talk 애니의 face_bbox 영역만 Ditto 로 렌더해 재생 클립 위에 오버레이.
+//  - 헤드토킹: ditto_region(픽셀 512²)을 무리사이즈 입력/출력 슬롯으로 쓰고,
+//    face_bbox(정규화)는 그 안의 실제 얼굴 landmark 가이드로 별도 유지한다.
 
 export const NVA_VERSION = "0.2";
 
@@ -175,6 +176,20 @@ export function validateManifest(m, opts = {}) {
         E(`animation ${k}: can_talk=true면 face_bbox 필수 — [x,y,w,h] 직사각(머리 영역) 또는 [x,y,l] 정사각`);
       else if (a.face_bbox.some((v) => v < 0 || v > 1))
         E(`animation ${k}: face_bbox 값은 0~1 범위`);
+      if (a.ditto_region !== undefined) {
+        const r = a.ditto_region;
+        if (!Array.isArray(r) || r.length !== 4 || r.some((v) => !Number.isInteger(v)))
+          E(`animation ${k}: ditto_region은 정수 픽셀 [x,y,512,512]`);
+        else {
+          const [x, y, w, h] = r;
+          if (w !== 512 || h !== 512)
+            E(`animation ${k}: Ditto 입력 영역은 정확히 512x512여야 함`);
+          if (x < 0 || y < 0 || x + w > m.canvas.width || y + h > m.canvas.height)
+            E(`animation ${k}: ditto_region이 canvas 범위를 벗어남`);
+        }
+      } else {
+        W(`animation ${k}: ditto_region 없음 — legacy face_bbox 합성 사용`);
+      }
     }
   }
 

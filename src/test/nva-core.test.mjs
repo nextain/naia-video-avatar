@@ -9,6 +9,7 @@ import {
 let fail = 0;
 const ok = (c, m) => { if (c) console.log("  ✓", m); else { console.error("  ✗", m); fail = 1; } };
 const demo = JSON.parse(readFileSync(new URL("../../examples/demo.nva/manifest.json", import.meta.url)));
+const naia = JSON.parse(readFileSync(new URL("../../examples/naia.nva/manifest.json", import.meta.url)));
 
 console.log("[validateManifest v0.2]");
 const r = validateManifest(demo);
@@ -17,6 +18,14 @@ ok(demo.nva_version === "0.2", "demo 는 v0.2");
 ok(!validateManifest({ nva_version: "0.2", canvas: { width: 1, height: 1 }, animations: {} }).ok, "빈 animations → INVALID");
 ok(!validateManifest({ nva_version: "0.2", canvas: { width: 1, height: 1 }, animations: { a: { clip: "c", entry_pose: "p", exit_pose: "p", loop: true, can_talk: true } } }).ok, "can_talk인데 face_bbox 없음 → INVALID");
 ok(!validateManifest({ nva_version: "0.1", canvas: { width: 1, height: 1 }, animations: { a: { clip: "c", entry_pose: "p", exit_pose: "p" } } }).ok, "nva_version 0.1 → INVALID");
+ok(validateManifest(naia).ok, "naia.nva 512 Ditto 고정영역 = VALID");
+const badDittoSize = structuredClone(naia); badDittoSize.animations.speak.ditto_region = [0, 0, 400, 400];
+ok(!validateManifest(badDittoSize).ok, "Ditto 400x400 영역 → INVALID");
+const badDittoBounds = structuredClone(naia); badDittoBounds.animations.speak.ditto_region = [1, 1025, 512, 512];
+ok(!validateManifest(badDittoBounds).ok, "Ditto 영역 canvas 이탈 → INVALID");
+const badDittoFloat = structuredClone(naia); badDittoFloat.animations.speak.ditto_region = [0, 805.5, 512, 512];
+ok(!validateManifest(badDittoFloat).ok, "Ditto 영역 소수 좌표 → INVALID");
+ok(naia.animations.speak.face_bbox !== naia.animations.speak.ditto_region, "face_bbox와 ditto_region 독립 계약");
 
 console.log("[종류 유도(조합)]");
 ok(animKind({ loop: true, can_talk: true, entry_pose: "s", exit_pose: "s" }) === "talking", "loop+can_talk = talking");

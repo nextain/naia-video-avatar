@@ -22,3 +22,6 @@ scripts/check-traceability.mjs 가 이 표를 파싱한다.
 | NFR-003 | alpha | 캐릭터 레이어는 알파(VP9) / 크로마키 둘 다 수용 | Done | — | — | TEST-S-003 |
 | NFR-004 | deps | nva-core 런타임 의존 0 (순수 JS) | Done | — | — | TEST-F-001 |
 | REQ-008 | scenario | 연출 시나리오(상태/이벤트/대사 시퀀스) 자동 재생 + 검증 | Done | UC-003 | SPEC-005 | TEST-S-002 |
+| REQ-009 | editor | 애니메이션 클립 입력 옆에 현재 미디어를 중앙 플레이어에서 즉시 재생하는 명시적 미리보기 제어를 제공 | Done | UC-005 | SPEC-007 | TEST-S-006 |
+| REQ-010 | compositing | 표준 720×1280 영상의 중앙 상단 `[104,0,512,512]`를 Ditto 발화 영역으로 사용하고, 정확한 512×512 픽셀 영역과 실제 얼굴 가이드를 분리 | Done | UC-006 | SPEC-008 | TEST-S-007 |
+| REQ-011 | editor | 크로마키 지움 색을 중앙 원본 영상 프레임에서 스포이드로 채취하고 manifest `chroma_key`에 즉시 저장 | Done | UC-007 | SPEC-009 | TEST-S-008 |
