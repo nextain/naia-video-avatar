@@ -29,8 +29,12 @@
 > 자세히 = alpha-adk `.agents/progress/nva-osarang-rebuild-2026-06-23.md`
 
 2026-07-15 갱신: 720×1280 캔버스와 무리사이즈 512×512 Ditto 입력 영역, 얼굴 가이드
-분리, 클립 미리보기, 원본 영상 크로마키 스포이드를 구현·검증했다. 개인 Alpha 번들은
-공개 저장소 밖의 비공개 `naia-settings`에서 관리하며, Cascade 연결·배포는 별도 트랙이다.
+분리, 클립 미리보기, 원본 영상 크로마키 스포이드를 구현·검증했다. 같은 날
+`http://localhost:8099` 에디터에서 `http://localhost:8910` cascade 연결·기본 ref·숫자 발화
+(H.264+AAC)를 Playwright로 검증하고 절대 ref URL을 zip 상대 파일로 오해석하던 404를 수정했다.
+`:8913`은 별도 검증 인스턴스다. `origin/main`이 공통조상 없는 공개 스냅샷으로 강제 교체된
+이력을 확인했으며, 사용자 결정에 따라 검증된 로컬 이력을 main 정본으로 복구한다. 개인 Alpha
+번들은 공개 저장소 밖의 비공개 `naia-settings`에서 관리한다.
 
 ---
 
@@ -38,10 +42,10 @@
 
 | 게이트 | 상태 | 산출물(deliverable) |
 |--------|:----:|---------------------|
-| P01 사용자시나리오 | done | docs/progress/02.user-scenarios/INDEX.md (UC-001~007) |
-| P02 테스트시나리오 | done | docs/progress/03.uc-tests/INDEX.md (TEST-S-001~008) |
-| P03 요구사항 | done | docs/progress/01.requirements/INDEX.md (REQ-001~011, NFR-001~004) |
-| P04 통합테스트 | done | node 계약 테스트 + Playwright 편집기 실측 + export unzip (TEST-F-001~009) |
+| P01 사용자시나리오 | done | docs/progress/02.user-scenarios/INDEX.md (UC-001~008) |
+| P02 테스트시나리오 | done | docs/progress/03.uc-tests/INDEX.md (TEST-S-001~009) |
+| P03 요구사항 | done | docs/progress/01.requirements/INDEX.md (REQ-001~012, NFR-001~004) |
+| P04 통합테스트 | done | node 계약 테스트 + Playwright 8099→8910 연결/ref/발화 실측 + export unzip (TEST-F-001~010) |
 | P05 완료 | partial | 포맷·뷰어·에디터·export = Done / cascade·kiosk-v3 = 잔여(GPU·VM 외부) |
 
 마지막 업데이트: 2026-07-15

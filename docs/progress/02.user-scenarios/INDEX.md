@@ -16,3 +16,4 @@ NFR(비기능)은 UC로 안 내려가고 REQ→TEST-S 직결한다.
 | UC-005 | authoring | 제작자가 선택한 애니메이션의 클립 입력 옆에서 현재 미디어를 즉시 재생해 교체 전후 품질을 확인한다 | REQ-009 | Done | TEST-S-006 |
 | UC-006 | authoring | 제작자가 표준 720×1280 영상의 중앙 상단 512×512 Ditto 입력 영역과 그 안의 실제 얼굴 위치를 독립 지정해 무리사이즈 합성을 보장한다 | REQ-010 | Done | TEST-S-007 |
 | UC-007 | authoring | 제작자가 크로마키 색을 추측하거나 색상 입력기에 다시 입력하지 않고 원본 영상 프레임을 스포이드로 클릭해 지울 색을 지정한다 | REQ-011 | Done | TEST-S-008 |
+| UC-008 | integration | 제작자가 `http://localhost:8099/src/main/editor.html`에서 `http://localhost:8910` cascade에 연결해 기본 ref 음색을 선택하고 숫자 문장을 음성 포함 영상으로 직접 확인한다 | REQ-012 | Done | TEST-S-009 |

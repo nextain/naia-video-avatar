@@ -90,3 +90,18 @@ server {
 | GPU 기동 + VM 배포 + 강남구 nva 등록 | ⏳ visualxlab/루크 (물리 인프라) |
 
 → 코드/설정/매핑은 준비됨. **실배포·GPU 렌더·시연만 외부 인프라 대기.**
+
+## 7. 로컬 에디터 검증 정본 (2026-07-15)
+
+- 제작 표면: `http://localhost:8099/src/main/editor.html`
+- 실제 연결 정본: `http://localhost:8910` (`:8913`은 별도 검증 인스턴스이므로 상태 판정에 섞지 않음)
+- 성공 기준: 에디터 기본 URL 8910 → 현재 nva `/upload_nva` → `/ref/voices` 기본 음색 → `/stream_text` → 위 플레이어가 음성 포함 MP4를 재생. cascade `/health`는 `ok:true, tts:true, avatar:true`여야 한다.
+- ref 경로 계약: 에디터의 `meta.voice_ref.audio_path`가 `http(s)://.../ref/audio/...`이면 외부 참조로 manifest에 유지하고 `.nva` zip 파일 목록에는 넣지 않는다. 상대/로컬 ref 파일만 zip에 포함한다.
+- cascade가 호스트이고 TTS가 컨테이너이면 최종 `audio_path`는 TTS 컨테이너에서도 읽을 수 있어야 한다. 호스트 전용 절대경로 전달은 `/health`가 정상이어도 발화 단계에서 실패한다.
+- 2026-07-15 실측: 숫자 문장 발화 HTTP 200, 결과 H.264 video + AAC audio. Playwright에서 연결·기본 ref·발화 재생 성공. 최초 검사에서 절대 ref URL을 `${baseUrl}/${url}`로 잘못 요청한 404를 발견해 외부 URL zip 제외 규칙으로 수정했다.
+
+## 8. `main` 이력 정본 복구 (2026-07-15)
+
+- 로컬 검증 이력의 루트는 `66b5852`(2026-06-21)이며 2026-07-03 `f04b342`까지 당시 `origin/main`에 push된 기록이 있다.
+- 원격 `main`은 2026-07-07 별도 공개 스냅샷 루트 `240acfe`로 다시 초기화됐고, 2026-07-11 fetch에서 `589e1f0`으로 강제 갱신된 것이 확인됐다. 두 이력은 공통 조상이 없다.
+- 검증된 에디터 이력은 로컬 `main` 및 `origin/feat/editor-720x1280-ditto-chroma-20260715`에 보존돼 있다. 사용자 결정에 따라 이 검증 이력을 정본 `main`으로 복구하며, 무관한 공개 스냅샷 두 커밋은 병합하지 않는다.

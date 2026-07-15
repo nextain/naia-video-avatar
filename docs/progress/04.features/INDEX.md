@@ -17,3 +17,4 @@
 | SPEC-007 | UC-005 | editor: 클립 경로 입력 옆 미리보기 버튼이 선택 애니메이션을 중앙 플레이어에서 재생 | src/main/editor.html | Done | TEST-F-007 |
 | SPEC-008 | UC-006 | nva-core/editor: 720×1280 신규 표준과 `ditto_region=[104,0,512,512]` 기본값, 픽셀 계약 검증·가이드 표시, `face_bbox` 독립 편집 | src/main/nva-core.js + src/main/editor.html | Done | TEST-F-008 |
 | SPEC-009 | UC-007 | editor: 스포이드 모드에서 중앙 캔버스 좌표를 원본 video 프레임 픽셀로 변환해 RGB를 읽고 `chroma_key`와 색상 입력기에 반영 | src/main/editor.html | Done | TEST-F-009 |
+| SPEC-010 | UC-008 | editor: `/health`→`/ref/voices`→`/upload_nva`→`/stream_text` 연결 흐름과 절대 ref URL의 외부 참조 유지(번들에는 상대/로컬 ref만 포함) | src/main/editor.html | Done | TEST-F-010 |

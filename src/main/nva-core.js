@@ -15,6 +15,12 @@
 
 export const NVA_VERSION = "0.2";
 
+// Cascade가 제공한 HTTP(S) ref는 manifest의 외부 참조다. .nva zip에는
+// 사용자가 올린 상대/로컬 파일만 포함해 base URL과의 잘못된 재결합을 막는다.
+export function shouldBundleVoiceRef(audioPath) {
+  return Boolean(audioPath) && !/^https?:\/\//i.test(audioPath);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 0. 파생 규칙 헬퍼 (cascade nva_loader.py 와 동일 규칙)
 // ─────────────────────────────────────────────────────────────────────────────

@@ -126,8 +126,8 @@
 </div>
 
 <script type="module">
-import { validateManifest, migrateToV02, animKind } from "./nva-core.js?v=20260703l";
-const BUILD="20260703l";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
+import { validateManifest, migrateToV02, animKind, shouldBundleVoiceRef } from "./nva-core.js?v=20260715m";
+const BUILD="20260715m";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
 
 // ─────────────────────────────────────────────────────────────
 //  i18n — 한국어/English. 고유명사(naia·cascade·Ditto·nva·VP9·TTS·URL·AI·LLM·webm)만
@@ -569,7 +569,9 @@ async function buildNvaZip(){
   const zip=new JSZip(); zip.file("manifest.json", JSON.stringify(M,null,2));
   const clips=new Set(Object.values(M.animations||{}).map(a=>a.clip).filter(Boolean));
   for(const a of Object.values(M.animations||{})){ if(a.head_image) clips.add(a.head_image); }  // 헤드 PNG도 번들에
-  const vr=M.meta?.voice_ref?.audio_path; if(vr) clips.add(vr);
+  // cascade /ref/audio URL은 외부 참조로 manifest에만 유지한다. baseUrl 아래 상대
+  // 번들 파일처럼 다시 fetch하면 .../nva/http://... 404가 나므로 로컬 경로만 zip에 담는다.
+  const vr=M.meta?.voice_ref?.audio_path; if(shouldBundleVoiceRef(vr)) clips.add(vr);
   for(const c of clips){ try{ if(blobMap[c]) zip.file(c,blobMap[c].blob); else if(baseUrl){ const b=await (await fetch(`${baseUrl}/${c}`)).blob(); zip.file(c,b); } }catch(e){} }
   return await zip.generateAsync({type:"blob"});
 }
