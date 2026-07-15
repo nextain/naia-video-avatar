@@ -14,3 +14,6 @@
 | TEST-F-004 | SPEC-004 | editor export → unzip = manifest.json + clips ×7 (9 entries) | /tmp/cap2.mjs (playwright) | Done |
 | TEST-F-005 | SPEC-002, SPEC-005 | nva-core 단위(검증·포즈·상태머신·시나리오) 18 assert ALL PASS | src/test/nva-core.test.mjs | Done |
 | TEST-F-006 | SPEC-006 | kiosk-v3 강남구 데모 헤드리스 캡쳐 (오사랑 발화 + 자막) | playwright headless | Done |
+| TEST-F-007 | SPEC-007 | 클립 미리보기 제어·다국어 라벨·선택 애니메이션 재생 결선 계약 + 실제 브라우저 클릭 | src/test/editor-clip-preview.test.mjs + Playwright 실측 | Done |
+| TEST-F-008 | SPEC-008 | 신규 표준값은 720×1280 + `[104,0,512,512]`이며 Ditto 영역은 정수 좌표·정확히 512×512·캔버스 내부이고 얼굴 bbox와 별도 보존됨을 검증 | src/test/nva-core.test.mjs + Playwright 실측 | Done |
+| TEST-F-009 | SPEC-009 | 스포이드 버튼·다국어 안내·원본 video drawImage/getImageData·좌표 변환·`chroma_key` 저장 결선과 실제 배경 픽셀 클릭을 검증 | src/test/editor-chroma-eyedropper.test.mjs + Playwright 실측 | Done |
