@@ -40,16 +40,20 @@ Naia 기본 캐릭터 NVA 자산(720×1280, 명시적 `speak_head.png`, 512×512
 `ditto_region`)으로 교체했다. 박스 데모 버튼은 제거했으며 `examples/demo.nva`는 코어 계약
 테스트 fixture로만 유지한다.
 
+같은 날 manifest 캔버스 폭·높이 편집, 실제 종횡비 기반 반응형 미리보기,
+`ditto_region`의 정확한 512×512 헤드 캡처를 구현·검증했다. 명시적 `head_image`가 있어도
+`ditto_region`은 전체 캔버스의 합성 위치이므로 계속 편집할 수 있다.
+
 ---
 
 ## SDLC 게이트
 
 | 게이트 | 상태 | 산출물(deliverable) |
 |--------|:----:|---------------------|
-| P01 사용자시나리오 | done | docs/progress/02.user-scenarios/INDEX.md (UC-001~008) |
-| P02 테스트시나리오 | done | docs/progress/03.uc-tests/INDEX.md (TEST-S-001~009) |
-| P03 요구사항 | done | docs/progress/01.requirements/INDEX.md (REQ-001~012, NFR-001~004) |
-| P04 통합테스트 | done | node 계약 + HTTP 계약 + :8914 실제 VoxCPM2/Ditto 음성 독립성·H.264/AAC 실측 (TEST-F-001~010) |
+| P01 사용자시나리오 | done | docs/progress/02.user-scenarios/INDEX.md (UC-001~009) |
+| P02 테스트시나리오 | done | docs/progress/03.uc-tests/INDEX.md (TEST-S-001~010) |
+| P03 요구사항 | done | docs/progress/01.requirements/INDEX.md (REQ-001~013, NFR-001~004) |
+| P04 통합테스트 | done | node 계약 + HTTP 계약 + :8914 실제 VoxCPM2/Ditto 음성 독립성·H.264/AAC 실측 (TEST-F-001~011) |
 | P05 완료 | partial | 포맷·뷰어·에디터·export = Done / cascade·kiosk-v3 = 잔여(GPU·VM 외부) |
 
 마지막 업데이트: 2026-07-16

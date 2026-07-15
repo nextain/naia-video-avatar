@@ -18,3 +18,4 @@
 | SPEC-008 | UC-006 | nva-core/editor: 720×1280 신규 표준과 `ditto_region=[104,0,512,512]` 기본값, 픽셀 계약 검증·가이드 표시, `face_bbox` 독립 편집 | src/main/nva-core.js + src/main/editor.html | Done | TEST-F-008 |
 | SPEC-009 | UC-007 | editor: 스포이드 모드에서 중앙 캔버스 좌표를 원본 video 프레임 픽셀로 변환해 RGB를 읽고 `chroma_key`와 색상 입력기에 반영 | src/main/editor.html | Done | TEST-F-009 |
 | SPEC-010 | UC-008 | editor: `/health`→`/ref/voices`→`/upload_nva`→`/stream_text` 연결 흐름과 절대 ref URL의 외부 참조 유지(번들에는 상대/로컬 ref만 포함) | src/main/editor.html | Done | TEST-F-010 |
+| SPEC-011 | UC-009 | editor: manifest canvas 폭·높이 편집, 실제 종횡비 기반 반응형 미리보기, 영상의 `ditto_region`을 정확히 캡처한 512×512 `head_image` 생성 | src/main/editor.html + src/main/nva-core.js | Done | TEST-F-011 |

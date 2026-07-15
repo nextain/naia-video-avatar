@@ -187,7 +187,7 @@ export function validateManifest(m, opts = {}) {
           if (x < 0 || y < 0 || x + w > m.canvas.width || y + h > m.canvas.height)
             E(`animation ${k}: ditto_region이 canvas 범위를 벗어남`);
         }
-      } else {
+      } else if (!a.head_image) {
         W(`animation ${k}: ditto_region 없음 — legacy face_bbox 합성 사용`);
       }
     }

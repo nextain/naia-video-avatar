@@ -19,7 +19,7 @@
   #wrap{ display:flex; height:calc(100vh - 50px); }
   aside{ width:320px; overflow:auto; padding:12px; } #struct{ border-right:1px solid #222c3a; } #form{ border-left:1px solid #222c3a; }
   main{ flex:1; display:flex; flex-direction:column; align-items:center; padding:14px; overflow:auto; }
-  #player{ width:340px; max-width:92%; }
+  #player{ width:var(--player-width,340px); max-width:92%; }
   canvas{ background:#000; border-radius:10px; width:100%; height:auto; display:block; }
   h2{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#8b98a9; margin:14px 0 6px; display:flex; justify-content:space-between; align-items:center; }
   .item{ display:flex; justify-content:space-between; align-items:center; padding:5px 8px; border-radius:6px; cursor:pointer; font-size:13px; margin:2px 0; background:#161d28; }
@@ -73,6 +73,11 @@
     <h2 data-i18n="sec.meta">메타 정보</h2>
     <label class="f" data-i18n="meta.name">이름</label><input id="m_name">
     <label class="f" data-i18n="meta.owner">제작자 / 소유자</label><input id="m_owner">
+    <label class="f" data-i18n="meta.canvas">캔버스 크기</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div><div class="muted" data-i18n="meta.canvasWidth">폭</div><input id="m_canvas_w" type="number" min="512" step="2"></div>
+      <div><div class="muted" data-i18n="meta.canvasHeight">높이</div><input id="m_canvas_h" type="number" min="512" step="2"></div>
+    </div>
     <h2 data-i18n="sec.bg">배경 / 레이어</h2>
     <label class="f" data-i18n="bg.type">배경 종류</label>
     <select id="m_bgtype"><option value="transparent" data-i18n="bg.transparent">투명 (알파 — 소비자가 합성)</option><option value="color" data-i18n="bg.color">단색</option></select>
@@ -125,8 +130,8 @@
 </div>
 
 <script type="module">
-import { validateManifest, migrateToV02, animKind } from "./nva-core.js?v=20260716c";
-const BUILD="20260716c";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
+import { validateManifest, migrateToV02, animKind } from "./nva-core.js?v=20260716d";
+const BUILD="20260716d";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
 
 // ─────────────────────────────────────────────────────────────
 //  i18n — 한국어/English. 고유명사(naia·cascade·Ditto·nva·VP9·TTS·URL·AI·LLM·webm)만
@@ -146,6 +151,7 @@ const I18N = {
     "status.opened":"{name} 불러옴",
     "status.exported":"내보내기 완료 (.nva v0.2)",
     "sec.meta":"메타 정보", "sec.bg":"배경 / 레이어", "sec.anim":"애니메이션",
+    "meta.canvas":"캔버스 크기", "meta.canvasWidth":"폭", "meta.canvasHeight":"높이",
     "sec.player":"플레이어 (미리보기 · cascade)", "sec.valid":"검사",
     "meta.name":"이름", "meta.owner":"제작자 / 소유자",
     "bg.type":"배경 종류",
@@ -216,6 +222,7 @@ const I18N = {
     "sec.meta":"Meta", "sec.bg":"Background / Layer", "sec.anim":"Animations",
     "sec.player":"Player (preview · cascade)", "sec.valid":"Validation",
     "meta.name":"Name", "meta.owner":"Author / Owner",
+    "meta.canvas":"Canvas size", "meta.canvasWidth":"Width", "meta.canvasHeight":"Height",
     "bg.type":"Background type",
     "bg.transparent":"transparent (alpha — composited downstream)", "bg.color":"solid color",
     "bg.preview":"Preview background color", "bg.previewNote":"(shown behind transparent clips too)",
@@ -348,7 +355,7 @@ function compose(ts){
     }
     const bb=curA.face_bbox, x=bb[0], y=bb[1];
     const px=x*cv.width, py=y*cv.height, bw=(bb[2]||0)*cv.width, bh=(bb.length>=4?bb[3]:bb[2]||0)*cv.height;
-    if(curA.head_image){ ensureHeadImg(curA.head_image); if(_headImg) ctx.drawImage(_headImg, px,py,bw,bh); }  // 헤드 PNG를 face_bbox에 얹음(Live2D식)
+    if(curA.head_image) ensureHeadImg(curA.head_image); // 512 헤드 PNG는 Ditto 입력 문맥이며 body 미리보기에 직접 합성하지 않는다.
     ctx.save();
     ctx.shadowColor="rgba(0,0,0,.65)"; ctx.shadowBlur=2;   // 어떤 배경색에도 보이게 대비 그림자
     ctx.strokeStyle=bboxColor; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.strokeRect(px,py,bw,bh); ctx.setLineDash([]);
@@ -372,6 +379,7 @@ function goto(key){ const a=M?.animations?.[key]; if(!a||busy) return; busy=true
 // ── 좌측 구조 + 플레이 버튼 ──
 function renderStruct(){
   $("m_name").value=M.meta?.name||""; $("m_owner").value=M.meta?.owner||M.meta?.author||"";
+  $("m_canvas_w").value=M.canvas?.width||720; $("m_canvas_h").value=M.canvas?.height||1280;
   $("m_bgtype").value=M.background?.type||"transparent";
   $("m_bg").value=(M.background?.color)||"#fff2d6"; $("m_chroma").value=M.chroma_key||"#00b140";
   const al=$("animList"); al.innerHTML="";
@@ -514,12 +522,25 @@ function refresh(){
   $("valid").textContent=(r.ok?t("valid.valid")+"\n":t("valid.invalid")+"\n")+r.errors.map(e=>t("valid.err")+e).join("\n")+(r.errors.length?"\n":"")+r.warnings.map(w=>t("valid.warn")+w).join("\n")+(r.warnings.length?"":t("valid.noWarn"));
   $("vdot").className="dot "+(r.ok?"ok":"bad");
   cv.width=M.canvas?.width||720; cv.height=M.canvas?.height||1280;
+  const main=document.querySelector("main"), ratio=cv.width/cv.height;
+  const maxW=Math.max(220,Math.min(560,(main?.clientWidth||560)-28));
+  const maxH=Math.max(320,window.innerHeight-190);
+  $("player").style.setProperty("--player-width",Math.round(Math.min(maxW,maxH*ratio))+"px");
+  cv.style.aspectRatio=`${cv.width} / ${cv.height}`;
   renderStruct();
 }
 
 // 메타 입력
 $("m_name").onchange=e=>{ (M.meta=M.meta||{}).name=e.target.value; refresh(); };
 $("m_owner").onchange=e=>{ (M.meta=M.meta||{}).owner=e.target.value; M.meta.author=e.target.value; refresh(); };
+function setCanvasDimension(key,value){
+  const n=Math.max(512,Math.round(Number(value)||0));
+  (M.canvas=M.canvas||{width:720,height:1280,fps:24})[key]=n%2?n+1:n;
+  refresh();
+}
+$("m_canvas_w").onchange=e=>setCanvasDimension("width",e.target.value);
+$("m_canvas_h").onchange=e=>setCanvasDimension("height",e.target.value);
+window.addEventListener("resize",()=>{ if(M) refresh(); });
 $("m_bgtype").onchange=e=>{ (M.background=M.background||{}).type=e.target.value; if(e.target.value==="color"&&!M.background.color) M.background.color=$("m_bg").value; refresh(); };
 $("m_bg").onchange=e=>{ (M.background=M.background||{type:"color"}).color=e.target.value; };
 $("m_chroma").onchange=e=>{ M.chroma_key=e.target.value; };

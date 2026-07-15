@@ -17,3 +17,4 @@
 | TEST-S-007 | UC-006 | 720×1280 표준 영상에서 `[104,0,512,512]` 영역을 표시·검증하고 실제 얼굴 가이드를 별도 유지 | 단위+브라우저 | src/test/nva-core.test.mjs + Playwright 실측 | Done |
 | TEST-S-008 | UC-007 | 에디터에서 스포이드 활성화 → 중앙 원본 영상의 배경 픽셀 클릭 → 해당 RGB가 `chroma_key`와 색상 입력기에 반영되고 즉시 미리보기에 적용 | 브라우저+계약(node) | src/test/editor-chroma-eyedropper.test.mjs + Playwright 실측 (`#267d35`) | Done |
 | TEST-S-009 | UC-008 | 8099 에디터 로드 → 기본 URL 8910 연결 → ref 목록/기본 URL 확인 → `강남구청 1층 3번 창구입니다.` 발화 → 플레이어에 음성 포함 MP4 수신, 잘못된 `.../http://...` ref 요청 0건 | 브라우저+계약(node) | src/test/editor-ref-url.test.mjs + Playwright E2E(2026-07-15) | Done |
+| TEST-S-010 | UC-009 | 720×1280과 다른 비율의 manifest를 각각 로드해 캔버스 비율·좌표가 유지되고, 영상 프레임에서 생성한 헤드 PNG가 manifest의 `ditto_region`과 동일한 512×512인지 확인 | 브라우저+계약(node) | src/test/editor-responsive-canvas.test.mjs + Playwright (`tmp/nva-editor-responsive-canvas.png`) | Done |
