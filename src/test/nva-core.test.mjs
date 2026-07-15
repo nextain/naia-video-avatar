@@ -26,6 +26,11 @@ ok(!validateManifest(badDittoBounds).ok, "Ditto 영역 canvas 이탈 → INVALID
 const badDittoFloat = structuredClone(naia); badDittoFloat.animations.speak.ditto_region = [0, 805.5, 512, 512];
 ok(!validateManifest(badDittoFloat).ok, "Ditto 영역 소수 좌표 → INVALID");
 ok(naia.animations.speak.face_bbox !== naia.animations.speak.ditto_region, "face_bbox와 ditto_region 독립 계약");
+const headImageManifest = structuredClone(naia);
+delete headImageManifest.animations.speak.ditto_region;
+headImageManifest.animations.speak.head_image = "heads/speak_head_512.png";
+const headImageResult = validateManifest(headImageManifest);
+ok(headImageResult.ok && !headImageResult.warnings.some((w) => w.includes("ditto_region 없음")), "512 head_image는 ditto_region 없이 VALID");
 
 console.log("[종류 유도(조합)]");
 ok(animKind({ loop: true, can_talk: true, entry_pose: "s", exit_pose: "s" }) === "talking", "loop+can_talk = talking");

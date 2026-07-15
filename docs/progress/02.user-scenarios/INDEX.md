@@ -17,3 +17,4 @@ NFR(비기능)은 UC로 안 내려가고 REQ→TEST-S 직결한다.
 | UC-006 | authoring | 제작자가 표준 720×1280 영상의 중앙 상단 512×512 Ditto 입력 영역과 그 안의 실제 얼굴 위치를 독립 지정해 무리사이즈 합성을 보장한다 | REQ-010 | Done | TEST-S-007 |
 | UC-007 | authoring | 제작자가 크로마키 색을 추측하거나 색상 입력기에 다시 입력하지 않고 원본 영상 프레임을 스포이드로 클릭해 지울 색을 지정한다 | REQ-011 | Done | TEST-S-008 |
 | UC-008 | integration | 제작자가 `http://localhost:8099/src/main/editor.html`에서 `http://localhost:8910` cascade에 연결해 기본 ref 음색을 선택하고 숫자 문장을 음성 포함 영상으로 직접 확인한다 | REQ-012 | Done | TEST-S-009 |
+| UC-009 | authoring | 제작자가 영상 비율이 다른 NVA의 캔버스를 왜곡 없이 편집하고, 선택한 고정 512×512 Ditto 영역을 같은 크기의 헤드 소스로 만든다 | REQ-013 | Done | TEST-S-010 |

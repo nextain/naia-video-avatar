@@ -26,3 +26,4 @@ scripts/check-traceability.mjs 가 이 표를 파싱한다.
 | REQ-010 | compositing | 표준 720×1280 영상의 중앙 상단 `[104,0,512,512]`를 Ditto 발화 영역으로 사용하고, 정확한 512×512 픽셀 영역과 실제 얼굴 가이드를 분리 | Done | UC-006 | SPEC-008 | TEST-S-007 |
 | REQ-011 | editor | 크로마키 지움 색을 중앙 원본 영상 프레임에서 스포이드로 채취하고 manifest `chroma_key`에 즉시 저장 | Done | UC-007 | SPEC-009 | TEST-S-008 |
 | REQ-012 | cascade | `:8099` 에디터가 명시한 cascade URL(로컬 정본 `:8910`)에 현재 nva와 ref URL을 전송하고, 절대 ref URL을 zip 상대 파일로 재해석하지 않은 채 음성 포함 발화를 재생 | Done | UC-008 | SPEC-010 | TEST-S-009 |
+| REQ-013 | editor | manifest의 캔버스 폭·높이를 편집하고 실제 비율로 미리보며, 말하기용 `head_image`를 manifest의 `ditto_region`과 동일한 512×512 PNG로 생성 | Done | UC-009 | SPEC-011 | TEST-S-010 |
