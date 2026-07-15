@@ -457,9 +457,9 @@ let _headImg=null, _headKey=null;
 function ensureHeadImg(key){ const url=key?clipUrl(key):null; if(url===_headKey) return; _headKey=url; _headImg=null;
   if(url){ const im=new Image(); im.onload=()=>{ if(_headKey===url) _headImg=im; }; im.src=url; } }
 function setHeadStatus(msg){ const el=$("headStatus"); if(el) el.textContent=msg; }
-// 영상(body 클립)의 지정 위치(처음/중간/끝/직접시간) face_bbox 영역을 잘라 투명 PNG 헤드로 생성(알파 보존).
-async function genHeadFromVideo(pos){ const a=M.animations[selected]; const bb=a&&a.face_bbox;
-  if(!a||!a.clip||!Array.isArray(bb)||bb.length<4){ setHeadStatus(t("head.genFail")); return; }
+// 시간은 처음/중간/끝/직접값 중에서 고르되, 공간 crop은 manifest의 고정 512 Ditto ROI를 그대로 쓴다.
+async function genHeadFromVideo(pos){ const a=M.animations[selected]; const dr=a&&a.ditto_region;
+  if(!a||!a.clip||!Array.isArray(dr)||dr.length!==4||dr[2]!==512||dr[3]!==512){ setHeadStatus(t("head.genFail")); return; }
   try{
     const v=document.createElement("video"); v.muted=true; v.playsInline=true; v.crossOrigin="anonymous"; v.src=clipUrl(a.clip);
     await new Promise((res,rej)=>{ v.onloadeddata=res; v.onerror=()=>rej(new Error("load")); });
@@ -470,11 +470,12 @@ async function genHeadFromVideo(pos){ const a=M.animations[selected]; const bb=a
     a.head_time=time;
     await new Promise(res=>{ v.onseeked=res; v.currentTime=time; setTimeout(res,500); });
     const vw=v.videoWidth||360, vh=v.videoHeight||640;
-    const sx=Math.max(0,bb[0]*vw), sy=Math.max(0,bb[1]*vh), sw=bb[2]*vw, sh=bb[3]*vh;
-    const c=document.createElement("canvas"); c.width=Math.max(2,Math.round(sw)); c.height=Math.max(2,Math.round(sh));
-    c.getContext("2d").drawImage(v, sx,sy,sw,sh, 0,0,c.width,c.height);   // 알파 webm frame → 알파 보존
+    const cw=M.canvas?.width||vw, ch=M.canvas?.height||vh;
+    const sx=dr[0]*vw/cw, sy=dr[1]*vh/ch, sw=dr[2]*vw/cw, sh=dr[3]*vh/ch;
+    const c=document.createElement("canvas"); c.width=512; c.height=512;
+    c.getContext("2d").drawImage(v, sx,sy,sw,sh, 0,0,512,512);   // 정확한 Ditto ROI + 알파 보존
     const blob=await new Promise(res=>c.toBlob(res,"image/png"));
-    const name="clips/"+selected+"_head.png"; blobMap[name]={url:URL.createObjectURL(blob),blob};
+    const name="heads/"+selected+"_head_512.png"; blobMap[name]={url:URL.createObjectURL(blob),blob};
     a.head_image=name; _headKey=null; renderForm(); refresh();
   }catch(e){ setHeadStatus(t("head.genFail")); } }
 function bindForm(apply){
