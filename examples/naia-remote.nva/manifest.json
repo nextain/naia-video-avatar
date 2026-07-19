@@ -23,7 +23,7 @@
     },
     "note": "구조(v0.2 단일상태): 시작=idle(loop, 말하기 베이스) + 동작 N개(gesture, LLM 트리거). 포즈/전환/시나리오는 다음 버전(멀티 idle 상태). 3개 소스 영상 각각 크롭→RVM 매팅→알파 VP9(yuva420p)+원본 오디오(opus). 몸 유리룩=베이크(배경만 컷아웃). face_bbox=근사치(에디터 조정 가능).",
     "voice_ref": {
-      "audio_path": "voice/cc0-ko-female-01.wav",
+      "audio_path": "//app/ref_audio/여성음색1.wav",
       "sample_rate": 16000
     },
     "voice_ref_note": "VoxCPM2 는 음성 클로닝 TTS 라 참조 음색이 없으면 발화 길이가 폭주한다 (실측 2026-07-14: 같은 38자 문장이 1.1초~29.4초). cascade 는 아예 음성지문 없는 VoxCPM2 사용을 정책으로 차단한다(ValueError). 그래서 음색을 번들에 동봉한다 — nva 는 자기완결적 캐릭터 번들이므로 목소리도 캐릭터와 함께 이동한다. 선정: CC0(공개 부스 시연 라이선스 안전), naia-omni-cascade assets/ref_audio 팔레트 중 여성 음색. 다른 음색으로 교체 가능 — 팔레트는 cascade /ref/voices 참조."
