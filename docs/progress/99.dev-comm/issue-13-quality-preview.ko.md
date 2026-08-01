@@ -23,6 +23,14 @@
 
 [전환 비교 접촉 시트](../../../.agents/work/issue13-quality/pair-cut-probe-v10-context3-core11/contact.png)
 
+### 1-1. 문맥 방식 A/B 비교
+
+- [A — 실제 3단위 문맥](../../../.agents/work/issue13-quality/context-method-comparison/A-real-3unit-context.mp4)
+- [B — 공통 중립 준비 구간 + pair](../../../.agents/work/issue13-quality/context-method-comparison/B-neutral-preroll-pair.mp4)
+- [W/A/B 세 화면 비교](../../../.agents/work/issue13-quality/context-method-comparison/W-vs-context-vs-preroll.mp4)
+
+A는 발화 영역 SSIM 0.7783/PSNR 22.10dB, B는 0.7362/21.03dB다. B는 전환 최대 변화가 0.0572로 A의 0.0710보다 작지만 입 모양 재현력이 낮다. 따라서 실제 3단위 문맥을 품질 우선 후보로 유지한다.
+
 ### 2. 실제 한국어 발화의 접합부 제한 표현
 
 [전체 머리와 접합부 제한 발화층 비교 영상](../../../.agents/work/issue13-quality/jina-ko-W-vs-F.mp4)
@@ -107,3 +115,9 @@ xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/jina-ko-W-vs-F.
 4. Jina가 통과한 뒤 같은 표현 방식과 기준을 Naia 고양이형에 별도 적용한다.
 
 현재 권고는 **11프레임 3단위 문맥 단일층을 주 경로로 채택하고, 하안면 보정층은 폐기하는 것**이다. 사람형 Jina의 다국어 문장 평가가 통과하기 전에는 Naia 고양이형을 제품 근거로 사용하지 않는다.
+
+## 2,197개 품질검사 방법
+
+모든 조각을 사람이 재생하지 않는다. 전체 조각은 디코딩, 프레임 수, FPS, SHA-256, 눈 침범, 영역 밖 알파, 전환 변화량, 접합선 에너지, 머리 이동과 입 운동량을 자동 검사한다. 검사기는 구조적 실패를 닫힌 상태로 차단하고 이상치 점수를 계산한다.
+
+사람은 자동 선정된 최악 50개와 결정론적 무작위 50개를 보고, 별도로 한·영·일·중 실제 문장 조합 영상을 평가한다. 자동검사만 끝난 상태는 `screened`이며 자연스러움 합격으로 표시할 수 없다. 불량 조각은 atlas 전체가 아니라 해당 키만 재생성한다.
