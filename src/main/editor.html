@@ -84,6 +84,13 @@
     <label class="f"><span data-i18n="bg.preview">미리보기 배경색</span> <span class="muted" data-i18n="bg.previewNote">(투명 배경도 이 색 위에 얹어 확인)</span></label><input id="m_bg" type="color">
     <label class="f"><span data-i18n="bg.chroma">크로마키 지움 색</span> <span class="muted" data-i18n="bg.chromaNote">(구형 불투명 클립만 — 알파 webm 이면 비움)</span></label>
     <div style="display:flex;gap:6px;align-items:center"><input id="m_chroma" type="color" style="flex:1"><button class="sm" id="m_chroma_pick" data-i18n="bg.eyedropper">스포이드</button><button class="sm" id="m_chroma_clr" data-i18n="btn.clear">지움</button></div>
+    <h2 data-i18n="sec.speech">발화 자산</h2>
+    <label class="f" data-i18n="speech.server">Naia 생성 서버 (HTTPS)</label><input id="genUrl" placeholder="https://…">
+    <label class="f" data-i18n="speech.token">단기 접근 토큰 (이 세션에서만 사용)</label><input id="genToken" type="password" autocomplete="off">
+    <label class="f" data-i18n="speech.source">얼굴 원본 (일회성 업로드)</label><input id="genSource" type="file" accept="image/png,image/jpeg,image/webp">
+    <div class="ctrls" style="margin-top:6px"><button class="sm go" id="genStart" data-i18n="btn.generate">생성</button><button class="sm" id="genCancel" data-i18n="btn.cancelGeneration" disabled>취소</button></div>
+    <label class="f" data-i18n="speech.import">또는 생성 결과 ZIP 가져오기</label><input id="genBundle" type="file" accept=".zip,application/zip">
+    <p class="muted" id="genStatus" data-i18n="speech.empty">발화 자산 없음</p>
     <h2><span data-i18n="sec.anim">애니메이션</span> <span><button class="sm" id="addAnim" data-i18n="btn.addAnim">+ 동작 추가</button></span></h2>
     <div id="animList"></div>
     <p class="muted" id="animHelp" data-i18n="anim.help">기본 2개 = 대기(idle) · 말하기(speak). 그 아래 동작(gesture-n)을 필요한 만큼 추가.</p>
@@ -130,8 +137,11 @@
 </div>
 
 <script type="module">
-import { validateManifest, migrateToV02, animKind } from "./nva-core.js?v=20260716d";
-const BUILD="20260716d";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
+import { validateManifest, migrateToV02, animKind } from "./nva-core.js?v=20260801a";
+import { GenerationClient } from "./generation-client.js?v=20260801a";
+import { GENERATION_RECEIPT_PATH, speechBundlePaths, speechMotionFromGenerationResult, verifySpeechAtlasAssets } from "./speech-bundle.js?v=20260801a";
+import { assertZipBudget } from "./zip-budget.js?v=20260801a";
+const BUILD="20260801a";  // 헤더 build 태그 — 이 값이 화면에 안 보이면 editor.html 이 캐시된 것(강력 새로고침)
 
 // ─────────────────────────────────────────────────────────────
 //  i18n — 한국어/English. 고유명사(naia·cascade·Ditto·nva·VP9·TTS·URL·AI·LLM·webm)만
@@ -144,13 +154,19 @@ const I18N = {
     "btn.loadNaia":"Naia 불러오기", "btn.openNva":".nva 열기",
     "btn.export":"⬇ .nva 내보내기", "btn.help":"❔ 사용법", "btn.close":"✕ 닫기",
     "btn.clear":"지움", "btn.addAnim":"+ 동작 추가", "btn.connect":"연결",
+    "btn.generate":"생성", "btn.cancelGeneration":"취소",
     "btn.speak":"🎙 말하기", "btn.listen":"▶ 듣기", "btn.apply":"적용", "btn.del":"삭제",
     "lang.toggle":"English",
     "status.loading":"로딩…",
     "status.loadNaia":"Naia 기본 캐릭터(액체 고양이) 불러옴",
     "status.opened":"{name} 불러옴",
     "status.exported":"내보내기 완료 (.nva v0.2)",
-    "sec.meta":"메타 정보", "sec.bg":"배경 / 레이어", "sec.anim":"애니메이션",
+    "sec.meta":"메타 정보", "sec.bg":"배경 / 레이어", "sec.speech":"발화 자산", "sec.anim":"애니메이션",
+    "speech.server":"Naia 생성 서버 (HTTPS)", "speech.token":"단기 접근 토큰 (이 세션에서만 사용)", "speech.source":"얼굴 원본 (일회성 업로드)",
+    "speech.import":"또는 생성 결과 ZIP 가져오기", "speech.empty":"발화 자산 없음",
+    "speech.ready":"검증된 발화 자산 준비됨 ({version})", "speech.uploading":"원본 업로드 중…",
+    "speech.generating":"발화 자산 생성 중… {progress}%", "speech.importing":"생성 결과 검증 중…",
+    "speech.cancelled":"생성이 취소됨", "speech.failed":"생성 실패: {msg}",
     "meta.canvas":"캔버스 크기", "meta.canvasWidth":"폭", "meta.canvasHeight":"높이",
     "sec.player":"플레이어 (미리보기 · cascade)", "sec.valid":"검사",
     "meta.name":"이름", "meta.owner":"제작자 / 소유자",
@@ -213,13 +229,19 @@ const I18N = {
     "btn.loadNaia":"Load Naia", "btn.openNva":"Open .nva",
     "btn.export":"⬇ Export .nva", "btn.help":"❔ Help", "btn.close":"✕ Close",
     "btn.clear":"Clear", "btn.addAnim":"+ Add gesture", "btn.connect":"Connect",
+    "btn.generate":"Generate", "btn.cancelGeneration":"Cancel",
     "btn.speak":"🎙 Speak", "btn.listen":"▶ Play", "btn.apply":"Apply", "btn.del":"Delete",
     "lang.toggle":"한국어",
     "status.loading":"Loading…",
     "status.loadNaia":"Naia default character (liquid cat) loaded",
     "status.opened":"{name} loaded",
     "status.exported":"Exported (.nva v0.2)",
-    "sec.meta":"Meta", "sec.bg":"Background / Layer", "sec.anim":"Animations",
+    "sec.meta":"Meta", "sec.bg":"Background / Layer", "sec.speech":"Speech assets", "sec.anim":"Animations",
+    "speech.server":"Naia generation server (HTTPS)", "speech.token":"Short-lived access token (session only)", "speech.source":"Source face (one-time upload)",
+    "speech.import":"Or import a generated ZIP", "speech.empty":"No speech assets",
+    "speech.ready":"Validated speech assets ready ({version})", "speech.uploading":"Uploading source…",
+    "speech.generating":"Generating speech assets… {progress}%", "speech.importing":"Validating generated assets…",
+    "speech.cancelled":"Generation cancelled", "speech.failed":"Generation failed: {msg}",
     "sec.player":"Player (preview · cascade)", "sec.valid":"Validation",
     "meta.name":"Name", "meta.owner":"Author / Owner",
     "meta.canvas":"Canvas size", "meta.canvasWidth":"Width", "meta.canvasHeight":"Height",
@@ -386,6 +408,7 @@ function renderStruct(){
   for(const[k,a]of Object.entries(M.animations||{})) al.appendChild(itemRow(k,animKind(a)));
   const pc=$("playCtrls"); pc.innerHTML="";
   for(const[k,a]of Object.entries(M.animations||{})){ const b=document.createElement("button"); b.className="sm"; b.textContent=a.label||k; b.onclick=()=>goto(k); pc.appendChild(b); }
+  if(!activeGeneration) $("genStatus").textContent=M.speech_motion?t("speech.ready",{version:M.speech_motion.inventory_version}):t("speech.empty");
 }
 function itemRow(key,tag){ const d=document.createElement("div"); d.className="item"+(selected===key?" sel":"");
   const del = tag==="gesture" ? `<button class="sm" data-del title="${t("btn.del")}" style="padding:0 6px;margin-left:6px;background:#3a2530;border-color:#5a3542;color:#e6a">✕</button>` : "";
@@ -577,9 +600,13 @@ async function loadManifest(m,base){ M=migrateToV02(m); ensureBase(); baseUrl=ba
   const idle=Object.keys(M.animations||{}).find(k=>M.animations[k].loop&&!M.animations[k].can_talk)||Object.keys(M.animations||{})[0]; if(idle) goto(idle); }
 async function loadNaiaBundle(){ const base="../../examples/naia.nva"; const m=await (await fetch(`${base}/manifest.json`)).json(); blobMap={}; loadManifest(m,base); $("status").textContent=t("status.loadNaia"); }
 $("loadNaia").onclick=loadNaiaBundle;
-$("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; const zip=await JSZip.loadAsync(f);
+const MAX_NVA_ZIP_BYTES=100*1024*1024;
+function assertRawZipBytes(blob){
+  if(!blob||!Number.isSafeInteger(blob.size)||blob.size<=0||blob.size>MAX_NVA_ZIP_BYTES) throw new Error("ZIP input must be between 1 byte and 100 MiB");
+}
+$("openNva").onchange=async e=>{ const f=e.target.files[0]; if(!f)return; assertRawZipBytes(f); const zip=await JSZip.loadAsync(f); assertZipBudget(zip);
   const mf=await zip.file("manifest.json").async("string"); blobMap={}; baseUrl="";
-  for(const [path,zf] of Object.entries(zip.files)){ if(/\.(webm|mp4|jpg|png|wav)$/.test(path)){ const blob=await zf.async("blob"); blobMap[path]={url:URL.createObjectURL(blob),blob}; } }
+  for(const [path,zf] of Object.entries(zip.files)){ if(path!=="manifest.json"&&!zf.dir){ const blob=await zf.async("blob"); blobMap[path]={url:URL.createObjectURL(blob),blob}; } }
   loadManifest(JSON.parse(mf),""); $("status").textContent=t("status.opened",{name:f.name}); };
 // nva(manifest + clips)를 zip blob 으로 — 내보내기·cascade 업로드 공용.
 async function buildNvaZip(){
@@ -591,13 +618,78 @@ async function buildNvaZip(){
   const zip=new JSZip(); zip.file("manifest.json", JSON.stringify(manifest,null,2));
   const clips=new Set(Object.values(M.animations||{}).map(a=>a.clip).filter(Boolean));
   for(const a of Object.values(M.animations||{})){ if(a.head_image) clips.add(a.head_image); }  // 헤드 PNG도 번들에
-  for(const c of clips){ try{ if(blobMap[c]) zip.file(c,blobMap[c].blob); else if(baseUrl){ const b=await (await fetch(`${baseUrl}/${c}`)).blob(); zip.file(c,b); } }catch(e){} }
+  for(const path of speechBundlePaths(M.speech_motion)) clips.add(path);
+  for(const c of clips){
+    if(blobMap[c]) zip.file(c,blobMap[c].blob);
+    else if(baseUrl){ const response=await fetch(`${baseUrl}/${c}`); if(!response.ok) throw new Error(`missing bundle asset: ${c}`); zip.file(c,await response.blob()); }
+    else throw new Error(`missing bundle asset: ${c}`);
+  }
   return await zip.generateAsync({type:"blob"});
 }
 $("exportBtn").onclick=async()=>{
   if(!M){ alert(t("alert.loadFirst")); return; }
   try{ const out=await buildNvaZip(); const a=document.createElement("a"); a.href=URL.createObjectURL(out); a.download=(M.meta?.name||"character")+".nva"; a.click(); $("status").textContent=t("status.exported"); }
   catch(e){ alert(t("alert.exportBlocked",{msg:e.message})); }
+};
+
+// ── 공급자 비종속 발화 자산 생성/가져오기 ──
+let activeGeneration=null;
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function sha256Hex(blob){
+  const digest=await crypto.subtle.digest("SHA-256",await blob.arrayBuffer());
+  return [...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,"0")).join("");
+}
+async function importGenerationBundle(bundle){
+  $("genStatus").textContent=t("speech.importing");
+  assertRawZipBytes(bundle); const zip=await JSZip.loadAsync(bundle); assertZipBudget(zip);
+  const receiptFile=zip.file("generation-result.json")||zip.file(GENERATION_RECEIPT_PATH);
+  if(!receiptFile) throw new Error("generation-result.json is missing");
+  const receiptText=await receiptFile.async("string");
+  const result=JSON.parse(receiptText);
+  const speechMotion=speechMotionFromGenerationResult(result);
+  const verified={};
+  for(const asset of result.assets){
+    const file=zip.file(asset.path); if(!file) throw new Error(`generated asset is missing: ${asset.path}`);
+    const blob=await file.async("blob");
+    if(blob.size!==asset.bytes) throw new Error(`generated asset size mismatch: ${asset.path}`);
+    if(await sha256Hex(blob)!==asset.sha256) throw new Error(`generated asset hash mismatch: ${asset.path}`);
+    verified[asset.path]={url:URL.createObjectURL(blob),blob};
+  }
+  const atlasAsset=result.assets.find(asset=>asset.role==="speech_atlas");
+  const indexAsset=result.assets.find(asset=>asset.role==="speech_atlas_index");
+  const atlasIndex=JSON.parse(await verified[indexAsset.path].blob.text());
+  await verifySpeechAtlasAssets(verified[atlasAsset.path].blob,atlasIndex);
+  const receiptBlob=new Blob([JSON.stringify(result,null,2)],{type:"application/json"});
+  verified[GENERATION_RECEIPT_PATH]={url:URL.createObjectURL(receiptBlob),blob:receiptBlob};
+  for(const path of speechBundlePaths(M.speech_motion||{})){ if(blobMap[path]?.url) URL.revokeObjectURL(blobMap[path].url); delete blobMap[path]; }
+  Object.assign(blobMap,verified); M.speech_motion=speechMotion; refresh();
+  $("genStatus").textContent=t("speech.ready",{version:speechMotion.inventory_version});
+}
+$("genBundle").onchange=async event=>{ const file=event.target.files[0]; if(!file)return;
+  try{ await importGenerationBundle(file); }catch(error){ $("genStatus").textContent=t("speech.failed",{msg:error.message}); }
+};
+$("genStart").onclick=async()=>{
+  const source=$("genSource").files[0], endpoint=$("genUrl").value.trim();
+  if(!M||!source||!endpoint){ $("genStatus").textContent=t("speech.failed",{msg:"server and source image are required"}); return; }
+  try{
+    const client=new GenerationClient(endpoint,globalThis.fetch,$("genToken").value.trim()||null); $("genStatus").textContent=t("speech.uploading");
+    const uploaded=await client.uploadSource(source);
+    const created=await client.createJob({version:"1",source_asset_id:uploaded.source_asset_id,representation:"factorized-difference-layer",inventory_version:"1.0.0"});
+    activeGeneration={client,jobId:created.job_id}; $("genCancel").disabled=false;
+    for(;;){
+      const state=await client.getJob(created.job_id); if(!activeGeneration||activeGeneration.jobId!==created.job_id)return;
+      $("genStatus").textContent=t("speech.generating",{progress:Math.round(100*(state.progress||0))});
+      if(state.status==="completed"){
+        await importGenerationBundle(await client.downloadBundle(created.job_id)); break;
+      }
+      if(state.status==="failed"||state.status==="cancelled") throw new Error("generation job did not complete");
+      await wait(1500);
+    }
+  }catch(error){ $("genStatus").textContent=t("speech.failed",{msg:error.message}); }
+  finally{ activeGeneration=null; $("genCancel").disabled=true; }
+};
+$("genCancel").onclick=async()=>{ const running=activeGeneration; if(!running)return;
+  try{ await running.client.cancelJob(running.jobId); }finally{ activeGeneration=null; $("genCancel").disabled=true; $("genStatus").textContent=t("speech.cancelled"); }
 };
 
 // cascade 연결 (실시간 발화 → 위 플레이어 통합)

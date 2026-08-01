@@ -95,6 +95,36 @@
         }
       }
     },
+    "speech_motion": {
+      "type": "object",
+      "description": "선택적 GPU 없는 다국어 발화 확장. 생성 모델이 아닌 언어 비종속 자산 참조만 포함한다.",
+      "required": ["version", "representation", "inventory_version", "inventory", "neutral_head", "atlas", "atlas_index", "validation_report", "quality_report", "provenance"],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "type": "string", "const": "1" },
+        "representation": { "type": "string", "const": "factorized-difference-layer" },
+        "inventory_version": { "type": "string", "const": "1.0.0" },
+        "inventory": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "sil" }, { "const": "closed" }, { "const": "labiodental" },
+            { "const": "dental" }, { "const": "alveolar" }, { "const": "postalveolar" },
+            { "const": "palatal" }, { "const": "velar" }, { "const": "glottal" },
+            { "const": "vowel-open" }, { "const": "vowel-mid" },
+            { "const": "vowel-spread" }, { "const": "vowel-round" }
+          ],
+          "items": false,
+          "minItems": 13,
+          "maxItems": 13
+        },
+        "neutral_head": { "$ref": "#/$defs/bundlePath" },
+        "atlas": { "$ref": "#/$defs/bundlePath" },
+        "atlas_index": { "$ref": "#/$defs/bundlePath" },
+        "validation_report": { "$ref": "#/$defs/bundlePath" },
+        "quality_report": { "$ref": "#/$defs/bundlePath" },
+        "provenance": { "$ref": "#/$defs/bundlePath" }
+      }
+    },
     "expressions": {
       "type": "object",
       "description": "VRM 프리셋 유사 — 표준 감정/의도 키 → animation 키 매핑. 소비 앱(naia-shell) LLM이 감정을 이 키로 내면 해당 animation 재생. 값은 animations 의 키(또는 _note).",
@@ -129,6 +159,13 @@
           }
         }
       }
+    }
+  },
+  "$defs": {
+    "bundlePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z][A-Za-z0-9+.-]*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
     }
   }
 }

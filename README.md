@@ -15,7 +15,8 @@
 | **요구·UC·설계·테스트** (V모델) | [`docs/progress/01~05`](docs/progress/) |
 | **cascade 연결**(데모↔naia-omni) | [`docs/cascade-integration.md`](docs/cascade-integration.md) |
 | **헌장 / 구조 규칙** | [`AGENTS.md`](AGENTS.md), [`docs/project-structure.md`](docs/project-structure.md) |
-| **에디터 사용 안내** | 에디터 화면 우상단 **❔ 의도·사용법·구조** 버튼 |
+| **읽기 전용 Player** | [`src/main/viewer.html`](src/main/viewer.html) |
+| **Studio 사용 안내** | 에디터 화면 우상단 **❔ 의도·사용법·구조** 버튼 |
 
 ## 구조
 
@@ -23,7 +24,9 @@
 src/main/
   nva-schema.json          포맷 JSON Schema (v0.1)
   nva-core.js              검증 + 상태머신 + 포즈 그래프 + 시나리오 (브라우저·node 양용, 정본 로직)
-  editor.html              ★ 제작 도구 — 리소스/구조 편집 + 미리보기 플레이 + .nva export (범용)
+  editor.html              ★ Studio — 메타 편집 + 발화 자산 생성/가져오기 + .nva export
+  viewer.html              ★ Player — .nva + audio + SpeechPlan 읽기 전용 GPU 없는 재생
+  speech-player.js         오디오 시계 기반 몸/중립 머리/투명 발화층 합성
   demo.html                ★ 데모(시연) — nva 시나리오 → cascade 실시간 렌더
   nva-cascade-adapter.js   cascade(/avatar) 연결 어댑터 (데모용)
 examples/
@@ -54,6 +57,8 @@ python3 -m http.server 8099
   → 화면 우상단 **❔ 의도·사용법·구조** 버튼에 안내 내장
 - **시연(데모)**: `http://localhost:8099/src/main/demo.html?nva=../../examples/demo.nva&cascade=<cascade-url>`
   → 시나리오 버튼 → nva 시나리오를 cascade가 실시간 렌더 (cascade 없으면 자막만)
+- **GPU 없는 발화(Player)**: `http://localhost:8099/src/main/viewer.html`
+  → 발화 자산이 든 `.nva`, 오디오, 같은 오디오의 `SpeechPlan v1`을 선택 → 생성 서버나 Ditto 없이 재생. `aligned`와 `approximate` 품질 경로를 구분한다.
 
 라이브: `https://kiosk-v3.xrcloud.app`(강남구 데모) · `.../src/main/editor.html`(제작 도구)
 

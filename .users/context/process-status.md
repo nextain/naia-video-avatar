@@ -18,31 +18,21 @@
 
 ## 현재 작업
 
-**이슈**: nva-poc
-**제목**: nva 포맷 v0.2 + 웹 뷰어/에디터(노드그래프·cascade 연결) + 실시간 발화(알파)
+**이슈**: [#13](https://github.com/nextain/naia-video-avatar/issues/13)
+**제목**: 다국어 사전 생성 발화 엔진 — 공개 NVA Studio/Player + 비공개 Naia Ditto 생성 서비스
 **상태**: active
-**시작**: 2026-06-21
+**시작**: 2026-08-01
 
 > v0.1→v0.2 전환(animations/scenario 그래프, cascade 정합). editor = 알파 webm 렌더 +
 > scenario SVG 노드그래프(드래그·연결·양방향) + cascade 연결 패널(실시간 발화 뷰잉, 상단 플레이어
 > 통합, 미리보기 배경색). cascade `enable_alpha=1` 로 발화도 투명(정적 matte).
 > 자세히 = alpha-adk `.agents/progress/nva-osarang-rebuild-2026-06-23.md`
 
-2026-07-15 갱신: NVA와 TTS 음성을 독립 축으로 분리했다. 에디터는 `/ref/voices`의 기본 또는
-선택 음색을 `PUT /voice`로 설정하고 NVA에는 `voice_ref`를 기록하지 않는다. 별도 `:8914`
-실측에서 음성 설정→NVA 재로드 후 음성 유지→`/stream_text` H.264 720×1280 + AAC 48kHz
-발화를 확인했다. `:8910` 운영 인스턴스는 재시작하지 않았다. `origin/main`이 공통조상 없는 공개 스냅샷으로 강제 교체된
-이력을 확인했으며, 사용자 결정에 따라 검증된 로컬 이력을 main 정본으로 복구한다. 개인 Alpha
-번들은 공개 저장소 밖의 비공개 `naia-settings`에서 관리한다.
-
-2026-07-16 갱신: 에디터의 **Naia 불러오기** 정본을 사용자가 확정한
-Naia 기본 캐릭터 NVA 자산(720×1280, 명시적 `speak_head.png`, 512×512
-`ditto_region`)으로 교체했다. 박스 데모 버튼은 제거했으며 `examples/demo.nva`는 코어 계약
-테스트 fixture로만 유지한다.
-
-같은 날 manifest 캔버스 폭·높이 편집, 실제 종횡비 기반 반응형 미리보기,
-`ditto_region`의 정확한 512×512 헤드 캡처를 구현·검증했다. 명시적 `head_image`가 있어도
-`ditto_region`은 전체 캔버스의 합성 위치이므로 계속 편집할 수 있다.
+2026-08-01 갱신: 공개 제품은 NVA 규격·검증기·GPU 없는 Player와 생성 자산을 편집·패키징하는
+NVA Studio다. Ditto 생성·품질 분석은 비공개 Naia 서버가 소유한다. 인간형 Jina에서 중립
+머리+support 제한 투명 발화층을 먼저 검증하고, 통과 뒤 큰 고양이 머리 Naia를 별도 H2로
+검증한다. `sil/a/i/u/e/o` 6개 클립은 비교 기준이고 공통 조음 전이/문맥 자산이 네 언어 미지
+발화에 일반화되는지 판정한다.
 
 ---
 
@@ -50,13 +40,13 @@ Naia 기본 캐릭터 NVA 자산(720×1280, 명시적 `speak_head.png`, 512×512
 
 | 게이트 | 상태 | 산출물(deliverable) |
 |--------|:----:|---------------------|
-| P01 사용자시나리오 | done | docs/progress/02.user-scenarios/INDEX.md (UC-001~009) |
-| P02 테스트시나리오 | done | docs/progress/03.uc-tests/INDEX.md (TEST-S-001~010) |
-| P03 요구사항 | done | docs/progress/01.requirements/INDEX.md (REQ-001~013, NFR-001~004) |
-| P04 통합테스트 | done | node 계약 + HTTP 계약 + :8914 실제 VoxCPM2/Ditto 음성 독립성·H.264/AAC 실측 (TEST-F-001~011) |
-| P05 완료 | partial | 포맷·뷰어·에디터·export = Done / cascade·kiosk-v3 = 잔여(GPU·VM 외부) |
+| P01 사용자시나리오 | done | docs/progress/02.user-scenarios/INDEX.md (UC-010~012) |
+| P02 테스트시나리오 | done | docs/progress/03.uc-tests/INDEX.md (TEST-S-011~013) |
+| P03 요구사항 | done | docs/progress/01.requirements/INDEX.md (REQ-014~017, NFR-005~008) |
+| P04 통합테스트 | pending | TEST-F-012~016 + Jina 4개 언어 타당성·Studio/Player/Naia 서버/cascade 통합 증거; 통과 뒤 Naia H2 |
+| P05 완료 | pending | 타당성 통과와 요구사항 Done, 또는 근거 있는 비실현 판정 |
 
-마지막 업데이트: 2026-07-16
+마지막 업데이트: 2026-08-01
 
 ---
 

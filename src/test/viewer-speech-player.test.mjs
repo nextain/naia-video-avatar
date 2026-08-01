@@ -1,0 +1,19 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const html = await readFile(new URL("../main/viewer.html", import.meta.url), "utf8");
+
+test("public viewer takes an NVA, audio, and SpeechPlan without a generation endpoint", () => {
+  assert.match(html, /id="nvaFile"/);
+  assert.match(html, /id="audioFile"/);
+  assert.match(html, /id="planFile"/);
+  assert.match(html, /new SpeechPlayer/);
+  assert.doesNotMatch(html, /GenerationClient|genUrl|generation endpoint/i);
+});
+
+test("viewer exposes aligned versus approximate quality and cancellation", () => {
+  assert.match(html, /aligned quality path/);
+  assert.match(html, /approximate preview/);
+  assert.match(html, /player\?\.stop\("cancel"\)/);
+});

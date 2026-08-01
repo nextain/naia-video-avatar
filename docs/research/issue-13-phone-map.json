@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "inventory": [
+    "sil",
+    "closed",
+    "labiodental",
+    "dental",
+    "alveolar",
+    "postalveolar",
+    "palatal",
+    "velar",
+    "glottal",
+    "vowel-open",
+    "vowel-mid",
+    "vowel-spread",
+    "vowel-round"
+  ],
+  "normalization": {
+    "unicode": "NFD",
+    "remove_combining_marks": true,
+    "remove_tokens": ["ˈ", "ˌ", "ː", "ˑ", ".", "‿", "1", "2", "3", "4", "5", "˥", "˦", "˧", "˨", "˩"],
+    "remove_modifiers": ["ʰ", "ʲ", "ʷ", "ˠ", "ˤ"],
+    "longest_tokens_first": true,
+    "unknown_policy": "reject",
+    "coverage_gate": "Every unique phone in all four pinned MFA v3 dictionaries must normalize to exactly one inventory unit before H1 media generation."
+  },
+  "source_phone_inventories": {
+    "english_mfa_v3": { "sha256": "30da2ad9168290da124369edb8011ebca5e9a6f0d4b0ad5e0fc33fa0fe12ca77" },
+    "korean_mfa_v3": { "sha256": "75683f4dc2a7dd95295a068206d248a30bd2f4f2231fd4449210c91d1e78150b" },
+    "japanese_mfa_v3": { "sha256": "4a0c66760576e4b7f3748f3169e7d5217c0135f857f0b5d34637c93a85fd1c91" },
+    "mandarin_china_mfa_v3": { "sha256": "0881d4e338e26509d022992cb5b897ead24a176448f534481238cb3a7fe949f0" }
+  },
+  "phones": {
+    "sil": ["sil", "sp", "spn", "<eps>", "|"],
+    "closed": ["p", "b", "m", "kp", "ɡb"],
+    "labiodental": ["f", "v", "ɸ", "β", "ɱ"],
+    "dental": ["θ", "ð"],
+    "alveolar": ["t", "d", "n", "s", "z", "l", "r", "ɾ", "ɹ", "ɭ", "ɫ", "ts", "dz"],
+    "postalveolar": ["tɕ", "dʑ", "tʃ", "dʒ", "ʈʂ", "ʃ", "ʒ", "ɕ", "ʑ", "ʂ", "ʐ", "ɻ"],
+    "palatal": ["j", "ɲ", "c", "ɟ", "ç", "ʝ", "ʎ"],
+    "velar": ["k", "g", "ɡ", "ŋ", "ɴ", "x", "ɣ", "q", "ɢ", "ʀ", "χ"],
+    "glottal": ["h", "ɦ", "ʔ"],
+    "vowel-open": ["a", "ä", "ɐ", "ɑ", "ɒ", "æ", "ɶ"],
+    "vowel-mid": ["ə", "ɜ", "ɞ", "ʌ", "ɤ", "ɨ", "ɯ", "ɚ", "ɝ", "ɰ"],
+    "vowel-spread": ["i", "ɪ", "e", "ɛ", "ɘ", "aj", "ej", "ɔj"],
+    "vowel-round": ["w", "ɥ", "u", "ʊ", "o", "ɔ", "y", "ʏ", "ø", "œ", "ɵ", "ʉ", "aw", "ow", "əw"]
+  }
+}

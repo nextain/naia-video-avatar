@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NVA Player</title>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+  :root{color-scheme:dark;font-family:system-ui,sans-serif;background:#0b0f16;color:#e6edf3}
+  *{box-sizing:border-box} body{margin:0;min-height:100vh;display:grid;grid-template-columns:minmax(280px,420px) minmax(320px,1fr)}
+  aside{padding:24px;border-right:1px solid #273246;background:#101722} main{display:grid;place-items:center;padding:24px;overflow:hidden}
+  h1{font-size:20px;margin:0 0 6px}.sub{font-size:13px;color:#96a4b7;margin:0 0 20px;line-height:1.45}
+  label{display:block;font-size:12px;color:#aebbd0;margin:14px 0 5px}input,button{width:100%;font:inherit;color:inherit}
+  input{border:1px solid #33415a;background:#0b111a;border-radius:7px;padding:9px}button{margin-top:14px;border:0;border-radius:8px;padding:10px;background:#2f6feb;cursor:pointer}
+  button.secondary{background:#273246}button:disabled{opacity:.45;cursor:default}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  #status{white-space:pre-wrap;font:12px/1.5 ui-monospace,monospace;color:#aebbd0;background:#0b111a;border:1px solid #273246;border-radius:8px;padding:10px;margin-top:16px;min-height:70px}
+  .badge{display:inline-block;border-radius:999px;background:#26344b;color:#bcd0ee;padding:3px 9px;font-size:11px;margin-top:10px}.badge.aligned{background:#123d31;color:#72e5bd}.badge.approximate{background:#4a3414;color:#ffd384}
+  canvas{display:block;max-width:100%;max-height:calc(100vh - 48px);background:#000;border-radius:14px;box-shadow:0 18px 60px #0009}
+  audio{width:100%;margin-top:14px}video{display:none}@media(max-width:760px){body{display:block}aside{border-right:0;border-bottom:1px solid #273246}main{min-height:50vh}}
+</style>
+</head>
+<body>
+<aside>
+  <h1>NVA Player</h1>
+  <p class="sub">Read-only, GPU-free playback. The player consumes an NVA bundle, audio, and a language-independent SpeechPlan; it never calls Ditto.</p>
+  <label for="nvaFile">NVA bundle</label><input id="nvaFile" type="file" accept=".nva,.zip,application/zip">
+  <label for="audioFile">Audio</label><input id="audioFile" type="file" accept="audio/*">
+  <label for="planFile">SpeechPlan v1</label><input id="planFile" type="file" accept=".json,application/json">
+  <div id="quality" class="badge">not loaded</div>
+  <audio id="audio"></audio>
+  <div class="row"><button id="play" disabled>Play</button><button id="stop" class="secondary" disabled>Stop</button></div>
+  <div id="status">Choose all three files.</div>
+</aside>
+<main><canvas id="stage" width="720" height="1280" aria-label="NVA avatar output"></canvas></main>
+<video id="body" muted playsinline></video><video id="speechA" muted playsinline></video><video id="speechB" muted playsinline></video>
+<script type="module">
+import { SpeechPlayer } from "./speech-player.js";
+import { assertZipBudget } from "./zip-budget.js";
+
+const get = (id) => document.getElementById(id);
+const inputs = [get("nvaFile"), get("audioFile"), get("planFile")];
+let player = null;
+let loading = 0;
+
+function setStatus(message, error = false) {
+  get("status").textContent = message;
+  get("status").style.color = error ? "#ff8d8d" : "#aebbd0";
+}
+
+async function loadBundle(file) {
+  if (file.size <= 0 || file.size > 100 * 1024 * 1024) throw new Error("NVA bundle exceeds the 100 MiB limit");
+  const zip = await JSZip.loadAsync(file);
+  assertZipBudget(zip);
+  const manifestFile = zip.file("manifest.json");
+  if (!manifestFile) throw new Error("manifest.json is missing");
+  const manifest = JSON.parse(await manifestFile.async("string"));
+  const assets = new Map();
+  let expandedBytes = 0;
+  for (const [path, entry] of Object.entries(zip.files)) {
+    if (path !== "manifest.json" && !entry.dir) {
+      const blob = await entry.async("blob");
+      expandedBytes += blob.size;
+      if (expandedBytes > 100 * 1024 * 1024) throw new Error("expanded NVA assets exceed the 100 MiB limit");
+      assets.set(path, blob);
+    }
+  }
+  return { manifest, assets };
+}
+
+async function prepare() {
+  if (inputs.some((input) => !input.files[0])) return;
+  const generation = ++loading;
+  get("play").disabled = true;
+  get("stop").disabled = true;
+  setStatus("Validating bundle, atlas, audio, and SpeechPlan…");
+  try {
+    const [{ manifest, assets }, plan] = await Promise.all([
+      loadBundle(get("nvaFile").files[0]),
+      get("planFile").files[0].text().then(JSON.parse),
+    ]);
+    if (generation !== loading) return;
+    player?.dispose();
+    player = new SpeechPlayer({
+      audio: get("audio"), canvas: get("stage"), bodyVideo: get("body"),
+      speechVideos: [get("speechA"), get("speechB")],
+    });
+    const result = await player.load({ manifest, assets, plan, audioBlob: get("audioFile").files[0] });
+    if (generation !== loading) return;
+    get("quality").className = `badge ${result.quality_mode}`;
+    get("quality").textContent = result.quality_mode === "aligned" ? "aligned quality path" : "approximate preview";
+    get("play").disabled = false;
+    get("stop").disabled = false;
+    setStatus(`Ready · ${result.transitions} transition clips · no GPU/model runtime`);
+  } catch (error) {
+    if (generation === loading) setStatus(`Blocked: ${error.message}`, true);
+  }
+}
+
+for (const input of inputs) input.addEventListener("change", prepare);
+get("play").addEventListener("click", async () => {
+  try { await player.play(); setStatus("Playing from the audio clock."); }
+  catch (error) { setStatus(`Playback failed: ${error.message}`, true); }
+});
+get("stop").addEventListener("click", () => { player?.stop("cancel"); setStatus("Stopped; original ready state restored."); });
+window.addEventListener("beforeunload", () => player?.dispose());
+</script>
+</body>
+</html>

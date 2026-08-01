@@ -18,3 +18,6 @@ NFR(비기능)은 UC로 안 내려가고 REQ→TEST-S 직결한다.
 | UC-007 | authoring | 제작자가 크로마키 색을 추측하거나 색상 입력기에 다시 입력하지 않고 원본 영상 프레임을 스포이드로 클릭해 지울 색을 지정한다 | REQ-011 | Done | TEST-S-008 |
 | UC-008 | integration | 제작자가 `http://localhost:8099/src/main/editor.html`에서 `http://localhost:8910` cascade에 연결해 기본 ref 음색을 선택하고 숫자 문장을 음성 포함 영상으로 직접 확인한다 | REQ-012 | Done | TEST-S-009 |
 | UC-009 | authoring | 제작자가 영상 비율이 다른 NVA의 캔버스를 왜곡 없이 편집하고, 선택한 고정 512×512 Ditto 영역을 같은 크기의 헤드 소스로 만든다 | REQ-013 | Done | TEST-S-010 |
+| UC-010 | generation | 제작자가 NVA Studio에서 얼굴 이미지를 일회성 업로드하고 불투명 자산 ID로 Naia 생성 서버에 발화 자산 생성을 요청한다. 자산 해시·단위별/언어별 품질 지표·생성 출처·품질 보고서 해시가 결박된 결과만 NVA에 추가한다 | REQ-014, REQ-017 | In-progress | TEST-S-011 |
+| UC-011 | authoring | 제작자가 생성된 몸·머리·입모양 동작 영상을 추가·교체하고 메타정보를 편집한 뒤 공개 규격의 `.nva`로 검증·패키징한다 | REQ-015 | In-progress | TEST-S-012 |
+| UC-012 | playback | 사용자가 Ditto·CUDA·VRAM이 없는 기기에서 cascade/정렬 공급자가 만든 `text + audio + SpeechPlan`을 입력해 하나의 NVA로 한국어·영어·일본어·중국어 미지 문장을 자연스럽게 재생한다 | REQ-016, NFR-005, NFR-006, NFR-007, NFR-008 | In-progress | TEST-S-013, TEST-S-014, TEST-S-015 |
