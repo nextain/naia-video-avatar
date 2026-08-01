@@ -7,7 +7,7 @@
 
 실제 Jina와 실제 Ditto를 사용해 여섯 개 발화 전환 조각을 독립 생성하고 다시 이어 붙이는 경로는 동작했다. 입 주변만 제한적으로 바꾸므로 눈·머리카락·머리 자세가 컷마다 흔들리는 문제는 차단했고, 눈 영역 오염과 지정 영역 밖 알파도 0이었다.
 
-하지만 **현재 조합 품질은 제품 합격 수준이 아니다.** 전체 화면만 보면 구조적 유사도 지수(SSIM) 0.9859, 최대 신호 대 잡음비(PSNR) 36.59dB지만, 실제 발화 접합 영역만 분리하면 SSIM 0.6616, PSNR 19.29dB다. 정지된 몸이 전역 수치를 높이는 착시를 제거한 결과다. 이 차이는 접합선이 반드시 심하다는 뜻이라기보다, 전체 발화 Ditto의 입·볼 움직임을 현재 5프레임 조각이 충분히 재현하지 못한다는 뜻이다. 공식 판정은 `INCONCLUSIVE`, 현재 구현 후보의 판정은 `FAIL_NEEDS_REDESIGN`이다.
+초기 5프레임 pair 조각은 발화 접합 영역 SSIM 0.6616, PSNR 19.29dB로 제품 합격 수준이 아니었다. 후속 2×2 실험에서 하안면 저주파 보정층은 전환 불안정을 키워 폐기했고, 11프레임만 사용하는 편이 나았다. 가장 큰 개선은 Ditto 생성 시 바로 앞 단위만 주는 대신 `이전이전→이전→현재` 3단위 문맥을 보존했을 때 나왔다. 최신 후보는 발화 접합 영역 SSIM 0.7783, PSNR 22.10dB이며 전환 최대 변화량은 기준과 같은 0.0710 수준이다. **방향성은 확인했지만 아직 제품 합격은 아니다.** 공식 판정은 `INCONCLUSIVE`, 3단위 문맥 후보는 `PROMISING_NEEDS_MULTILINGUAL_VALIDATION`이다.
 
 ## 직접 볼 영상
 
@@ -15,13 +15,13 @@
 
 ### 1. 실제 사전 생성 전환 조각 재조합
 
-[전체 발화 Ditto와 사전 생성 pair 전환 조합 비교 영상](../../../.agents/work/issue13-quality/pair-cut-probe-v4/whole-vs-factorized.mp4)
+[전체 발화 Ditto와 3단위 문맥 전환 조합 비교 영상](../../../.agents/work/issue13-quality/pair-cut-probe-v10-context3-core11/whole-vs-factorized.mp4)
 
 - 왼쪽 `W`: `sil→아→이→우→어→우→sil`에 해당하는 통제 오디오를 Ditto에 한 번에 넣은 결과
-- 오른쪽 `F`: 각 인접 전이를 Ditto로 별도 생성한 뒤, 전이당 5프레임과 80ms 완만한 코사인 혼합(raised-cosine)으로 다시 조합한 결과
+- 오른쪽 `F`: 3단위 문맥 전이를 Ditto로 별도 생성한 뒤, 전이당 11프레임과 80ms 완만한 코사인 혼합(raised-cosine)으로 다시 조합한 결과
 - 이 영상은 **컷 사이의 연결이 튀는지**를 보는 자료다.
 
-[전환 비교 접촉 시트](../../../.agents/work/issue13-quality/pair-cut-probe-v4/contact.png)
+[전환 비교 접촉 시트](../../../.agents/work/issue13-quality/pair-cut-probe-v10-context3-core11/contact.png)
 
 ### 2. 실제 한국어 발화의 접합부 제한 표현
 
@@ -38,7 +38,7 @@
 로컬 플레이어에서 열려면 다음 중 하나를 실행한다.
 
 ```bash
-xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/pair-cut-probe-v4/whole-vs-factorized.mp4
+xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/pair-cut-probe-v10-context3-core11/whole-vs-factorized.mp4
 xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/jina-ko-W-vs-F.mp4
 ```
 
@@ -47,7 +47,7 @@ xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/jina-ko-W-vs-F.
 ```text
 고정 발화 단위 오디오
   → 실제 Ditto TRT 렌더
-  → 이전 단위>현재 단위별 5프레임 추출
+  → 이전이전>이전>현재 문맥별 11프레임 추출
   → 중립 Jina와의 차이에서 입 주변 투명 발화층 생성
   → 음성 시계에 맞춰 조각 소유권 전환
   → 80ms 완만한 코사인 혼합
@@ -62,20 +62,30 @@ xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/jina-ko-W-vs-F.
 
 | 항목 | 결과 | 의미 |
 |---|---:|---|
-| 독립 pair 전환 수 | 6 | 이번 미리보기에서 실제로 따로 생성한 컷 수 |
-| 전환당 프레임 | 5 | 25fps 기준 경계 전후 -80~-40~0~40~80ms |
+| 독립 문맥 전환 수 | 6 | 이번 미리보기에서 실제로 따로 생성한 컷 수 |
+| 전환당 프레임 | 11 | 25fps 기준 전환 전후 전체 400ms |
 | 조각 간 혼합 | 80ms | 두 조각을 동시에 최대 2개만 사용 |
 | 발화층 영역 | 전체 머리의 2.0203% | 입·턱 주변만 변경 |
 | 눈 영역 겹침 | 0px | 눈은 발화층에서 제외 |
 | 발화층 바깥 alpha | 최대 0 | 지정한 접합부 밖 픽셀 변경 없음 |
-| 실제 컷 소유권 전환부 평균 변화량 | 0.02565 | F 인접 프레임의 0~255 전체 화면 평균; W-F 오차가 아님 |
-| 실제 컷 소유권 전환부 최대 변화량 | 0.07122 | 두 조각의 교차 혼합 중심 ±40ms에서 측정 |
-| W 대 F 전체 화면 SSIM / PSNR | 0.9859 / 36.59dB | 정적 몸이 포함된 전역 수치 |
-| W 대 F 발화 접합 영역 SSIM / PSNR | 0.6616 / 19.29dB | 전체 출력의 0.5747%인 입·턱 접합 영역만 측정 |
+| 실제 컷 소유권 전환부 평균 변화량 | 0.02969 | F 인접 프레임의 0~255 전체 화면 평균; W-F 오차가 아님 |
+| 실제 컷 소유권 전환부 최대 변화량 | 0.07097 | 두 조각의 교차 혼합 중심 ±40ms에서 측정 |
+| W 대 F 전체 화면 SSIM / PSNR | 0.9866 / 37.28dB | 정적 몸이 포함된 전역 수치 |
+| W 대 F 발화 접합 영역 SSIM / PSNR | 0.7783 / 22.10dB | 5프레임 pair 기준보다 SSIM +0.1167, PSNR +2.81dB |
 | W 대 F 머리 중 비접합 영역 SSIM / PSNR | 0.9696 / 32.94dB | W의 머리 움직임과 F의 고정 머리 차이도 포함 |
 | W 대 F 몸 영역 SSIM / PSNR | 0.9948 / 48.55dB | 정적 몸이 전역 수치를 높인다는 점을 확인 |
 
-원시 보고서: [quality-report.json](../../../.agents/work/issue13-quality/pair-cut-probe-v4/quality-report.json)
+원시 보고서: [quality-report.json](../../../.agents/work/issue13-quality/pair-cut-probe-v10-context3-core11/quality-report.json)
+
+### 소규모 요인 실험
+
+| 후보 | 발화 영역 SSIM | PSNR | 전환 최대 변화 | 판단 |
+|---|---:|---:|---:|---|
+| 5프레임 pair 단일층 | 0.6616 | 19.29dB | 0.0712 | 기준선 |
+| 5프레임 pair + 보정층 | 0.6655 | 19.35dB | 0.0768 | 폐기 |
+| 11프레임 pair 단일층 | 0.6739 | 19.43dB | 0.0706 | 프레임 확장 효과 작음 |
+| 11프레임 pair + 보정층 | 0.6753 | 19.46dB | 0.0764 | 폐기 |
+| 11프레임 3단위 문맥 단일층 | 0.7783 | 22.10dB | 0.0710 | 후속 검증 후보 |
 
 이 결과는 “구현이 작동한다”는 증거다. “사람이 자연스럽다고 느낀다”는 증거는 아니다. 특히 전체 프레임 SSIM과 PSNR은 입이 작은 전신 영상에서 과대평가되므로, 최종 판정에서는 입 주변 결함 수치와 가려진 전체 영상 사람 평가를 함께 사용한다.
 
@@ -91,10 +101,9 @@ xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/jina-ko-W-vs-F.
 
 ## 다음 판정 단계
 
-1. 169개 전이를 모두 생성하기 전에, 6개 전환으로 접합 영역 크기·5프레임 선택·표현 잔차 추출 방식을 재설계한다.
-2. 입만 자르는 단일 마스크 대신 입·턱 핵심층과 볼·하안면 저주파 보정층을 분리한 가짜 Live2D 방식도 같은 영상으로 비교한다.
-3. 접합 영역 SSIM/PSNR과 블라인드 자연스러움이 개선된 후보만 13개 공통 발화 단위의 전체 방향 전이로 확장한다.
-4. VoxCPM2 음성을 다국어 강제 정렬기(MFA)로 정렬해 SpeechPlan을 만들고 한국어·영어·일본어·중국어 각 20문장을 평가한다.
-5. Jina가 통과한 뒤 같은 표현 방식과 기준을 Naia 고양이형에 별도 적용한다.
+1. 13개 공통 발화 단위의 169개 pair를 fallback으로 만들고, 다국어 코퍼스 빈도가 높은 3단위 문맥을 제한된 추가 슬롯으로 선정한다.
+2. VoxCPM2 음성을 다국어 강제 정렬기(MFA)로 정렬해 SpeechPlan이 3단위 문맥을 우선 선택하고 없으면 pair로 내려가게 한다.
+3. 한국어·영어·일본어·중국어 각 20문장을 전체 발화 Ditto와 조합 영상으로 만들어 입 동기화와 블라인드 자연스러움을 평가한다.
+4. Jina가 통과한 뒤 같은 표현 방식과 기준을 Naia 고양이형에 별도 적용한다.
 
-현재 권고는 **접합부 재구성 방향은 유지하되, 현재 단일 발화층 F를 그대로 169개로 확대하지 않는 것**이다. 사람형 Jina에서 소규모 재설계가 통과하기 전에는 Naia 고양이형을 제품 근거로 사용하지 않는다.
+현재 권고는 **11프레임 3단위 문맥 단일층을 주 경로로 채택하고, 하안면 보정층은 폐기하는 것**이다. 사람형 Jina의 다국어 문장 평가가 통과하기 전에는 Naia 고양이형을 제품 근거로 사용하지 않는다.

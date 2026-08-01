@@ -142,9 +142,10 @@ text + audio + optional timeline --> NVA Player (public, CPU/browser) --> body/h
 - Studio Chromium 왕복: HTTPS 가짜 비공개 생성 서버에 원본 업로드 → 작업/조회/삭제/ZIP → 자동 가져오기 → 수동 재가져오기 → 전체 자산 SHA-256/bytes → atlas 두 slice SHA-256 → `.nva` export → manifest와 `speech/*` 6개 자산 재로드가 통과했다. `speech/atlas.bin`은 ZIP STORE였다.
 - VP9 알파 preflight: FFmpeg 8.1.1/libvpx-vp9 lossless로 만든 5프레임 조각 2개를 atlas처럼 연결해 Chromium에서 HTTP 206 Range 100회, 두 video element 100회 교대 디코딩했다. 오류 0, range 100/100, canvas 알파 측정 `[0,128,255]`, 허용 오차 8 이내였다. 조각 SHA-256은 각각 `4479170119f105e1fed8c76eef3f27cbb0cb78deb071ecd71fbf42ae506536f1`, `bb17ca869bc3eb79da56964ae8c8405c501a97a60e5297b71bec59eb33c565d7`다.
 - Viewer Chromium 통합: 실제 Jina `speak_body.webm`, 실제 512 PNG, 위 VP9 알파 조각 atlas, 600ms WAV와 공통 13단위 SpeechPlan을 `.nva`로 묶어 `viewer.html`에서 검증·디코딩·재생했다. canvas 720×1280, 오디오 450ms 이상 진행, 콘솔/page 오류 0이었다. 이는 제품 배선 증거이며 실제 Ditto B-F/C-F 자연스러움 증거는 아니다.
-- 비공개 생성 서버 회귀: 생성 서비스 17개와 실제 Ditto 품질 검사기 2개, 총 19/19 통과. 완료 번들 재시작 복구, 중단 작업 실패 닫힘, 일회성 원본 소비, 리더가 먼저 종료된 하위 프로세스 그룹 취소, API 프로세스 SIGKILL 뒤 고아 generator 재시작 회수, 동시 live owner 보존과 종료 경합을 포함한다.
+- 비공개 생성 서버 회귀: 생성 서비스 17개와 실제 Ditto 품질 검사기 4개, 총 21/21 통과. 완료 번들 재시작 복구, 중단 작업 실패 닫힘, 일회성 원본 소비, 리더가 먼저 종료된 하위 프로세스 그룹 취소, API 프로세스 SIGKILL 뒤 고아 generator 재시작 회수, 동시 live owner 보존과 종료 경합을 포함한다.
 - 실제 Jina support 제한 F 탐색 렌더는 support 5,313px(2.0267%), 눈 교집합 0, 디코드 390프레임 support 밖 알파 최대 0/비영 픽셀 0, 전체 입 전용 W 대비 SSIM 0.996632/PSNR 47.023535dB였다. 이는 컷 조합 전 탐색 증거다.
 - 실제 Ditto pair-cut 검사기는 `sil→아→이→우→어→우→sil`의 인접 전이 6개를 각각 새로 렌더하고, 전이당 5프레임과 80ms 교차 혼합으로 재조합했다. 무손실 FFV1 중간 영상 뒤 한 번만 H.264로 압축했다. W 전체발화 대비 F 조합은 전체 화면 SSIM 0.9859/PSNR 36.59dB였지만, 정적 몸을 제외한 발화 접합 영역은 SSIM 0.6616/PSNR 19.29dB였다. support 5,296px(머리의 2.0203%), 눈 교집합 0, support 밖 alpha 최대 0이다. 실제 컷 소유권 교차 중심의 F 인접 프레임 변화량은 평균 0.02565/최대 0.07122였으며 이는 W-F 오차가 아니다. 구현 경로는 동작하지만 현재 단일 발화층 후보는 `FAIL_NEEDS_REDESIGN`이고 전체 H1은 `INCONCLUSIVE`다. 직접 보는 영상과 지표 정의는 `issue-13-quality-preview.ko.md`에 기록했다.
+- 후속 요인 실험에서 하안면 저주파 보정층은 발화 영역 SSIM을 0.0039~0.0014만 높이면서 전환 최대 변화를 0.0056 이상 키워 폐기했다. 11프레임 3단위 문맥 단일층은 pair 기준과 같은 전환 최대 변화 0.0710을 유지하면서 발화 영역 SSIM을 0.6616→0.7783, PSNR을 19.29→22.10dB로 개선했다. 따라서 3단위 문맥 보존을 후속 다국어 검증 후보로 채택하되 H1은 계속 `INCONCLUSIVE`다.
 
 ### 정직한 현재 판정
 
