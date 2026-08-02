@@ -1,6 +1,6 @@
 # NVA 원본 머리 발화 품질 비교 — 사용자가 볼 문서
 
-최종 갱신: 2026-08-02
+최종 갱신: 2026-08-03
 관련 이슈: [nextain/naia-video-avatar#13](https://github.com/nextain/naia-video-avatar/issues/13)
 
 ## 먼저 바로잡는 내용
@@ -73,6 +73,49 @@ W는 품질 기준선이다. R은 1.2초 오디오 창 13개를 Ditto로 각각 
 
 다만 B의 수치 우위가 사람이 보기에도 자연스러운지, 또는 말 중간에 입이 잠시 중립으로 닫히는 느낌을 주는지는 영상으로 판단해야 한다. 먼저 정상 속도와 음성으로 보고, 그다음 4배 느린 영상으로 컷 경계를 확인한다. 느린 영상만으로 자연스러움을 판정하지 않는다.
 
+## 한국어 문장 5종 반복 비교
+
+한 문장에만 맞춘 결과인지 확인하기 위해 VoxCPM2로 서로 다른 발화 특성의 문장 5개를 만들고,
+각 문장을 동일한 Jina 원본 머리와 동일한 W/A/B/C 조건으로 다시 생성했다.
+
+1. 짧은 문장: “오늘도 반갑습니다. 편안하게 이야기해 볼까요?”
+2. 모음 전환: “아이와 여우가 우아하게 오솔길을 걸어요.”
+3. 입술 닫힘 자음: “봄바람이 불면 보랏빛 꽃잎이 부드럽게 피어납니다.”
+4. 연속 발화: “작은 기차가 굽은 철길을 지나 푸른 바다 가까이 달려갑니다.”
+5. 쉼표 발화: “잠시 멈추고, 숨을 고른 뒤, 천천히 다시 말씀드리겠습니다.”
+
+먼저 이어보기:
+
+1. [다섯 문장 머리 확대 W/A/B/C — 정상 속도와 음성](../../../.agents/work/issue13-quality/korean-multi-transition-v1/all-sentences-head-closeup.mp4)
+2. [다섯 문장 머리 확대 W/A/B/C — 4배 느리게](../../../.agents/work/issue13-quality/korean-multi-transition-v1/all-sentences-head-closeup-slow4x.mp4)
+
+문장별로 보기:
+
+| 유형 | 정상 속도 | 4배 느리게 | 원시 보고서 |
+|---|---|---|---|
+| 짧은 문장 | [영상](../../../.agents/work/issue13-quality/korean-multi-transition-v1/01-short/transition-methods-head-closeup.mp4) | [영상](../../../.agents/work/issue13-quality/korean-multi-transition-v1/01-short/transition-methods-head-closeup-slow4x.mp4) | [JSON](../../../.agents/work/issue13-quality/korean-multi-transition-v1/01-short/quality-report.json) |
+| 모음 전환 | [영상](../../../.agents/work/issue13-quality/korean-multi-transition-v1/02-vowels/transition-methods-head-closeup.mp4) | [영상](../../../.agents/work/issue13-quality/korean-multi-transition-v1/02-vowels/transition-methods-head-closeup-slow4x.mp4) | [JSON](../../../.agents/work/issue13-quality/korean-multi-transition-v1/02-vowels/quality-report.json) |
+| 입술 닫힘 자음 | [영상](../../../.agents/work/issue13-quality/korean-multi-transition-v1/03-bilabial/transition-methods-head-closeup.mp4) | [영상](../../../.agents/work/issue13-quality/korean-multi-transition-v1/03-bilabial/transition-methods-head-closeup-slow4x.mp4) | [JSON](../../../.agents/work/issue13-quality/korean-multi-transition-v1/03-bilabial/quality-report.json) |
+| 연속 발화 | [영상](../../../.agents/work/issue13-quality/korean-multi-transition-v1/04-continuous/transition-methods-head-closeup.mp4) | [영상](../../../.agents/work/issue13-quality/korean-multi-transition-v1/04-continuous/transition-methods-head-closeup-slow4x.mp4) | [JSON](../../../.agents/work/issue13-quality/korean-multi-transition-v1/04-continuous/quality-report.json) |
+| 쉼표 발화 | [영상](../../../.agents/work/issue13-quality/korean-multi-transition-v1/05-pauses/transition-methods-head-closeup.mp4) | [영상](../../../.agents/work/issue13-quality/korean-multi-transition-v1/05-pauses/transition-methods-head-closeup-slow4x.mp4) | [JSON](../../../.agents/work/issue13-quality/korean-multi-transition-v1/05-pauses/quality-report.json) |
+
+`추가 변화`는 각 조합 영상의 컷 경계 변화량에서 같은 시점의 W 변화량을 뺀 평균이다.
+낮을수록 컷이 덜 튀지만, 음수는 W보다 경계 동작이 작다는 뜻일 뿐 자연스러움의 보증은 아니다.
+
+| 문장 | 창 수 | A 추가 변화 | B 추가 변화 | C 추가 변화 | A 발화 SSIM | B 발화 SSIM | C 발화 SSIM |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 짧은 문장 | 9 | 0.019996 | **0.017690** | 0.022509 | 0.795788 | **0.795847** | 0.795276 |
+| 모음 전환 | 9 | **0.002486** | 0.009776 | 0.003671 | 0.827802 | **0.830233** | 0.827820 |
+| 입술 닫힘 자음 | 10 | **-0.008732** | -0.006180 | -0.007087 | 0.832578 | **0.834920** | 0.833276 |
+| 연속 발화 | 13 | 0.001202 | **0.001176** | 0.002737 | 0.769923 | **0.773719** | 0.772924 |
+| 쉼표 발화 | 14 | -0.004863 | **-0.006347** | -0.003369 | 0.779879 | **0.780290** | 0.778010 |
+| 5종 평균 | — | **0.002018** | 0.003223 | 0.003692 | 0.801194 | **0.803002** | 0.801461 |
+
+B는 다섯 문장 모두 발화 영역 SSIM이 가장 높았지만 차이는 작다. 컷 경계 추가 변화는
+A가 2개, B가 3개 문장에서 가장 낮았고, 5종 평균은 A가 가장 낮았다. 따라서 B를 확정하지
+않고 A와 B를 사람 눈가림 평가의 두 후보로 유지한다. C의 현 광학 흐름 구현은 어느 문장에서도
+두 지표를 동시에 이기지 못했으므로 제외 판단이 유지된다.
+
 ## 지금 내릴 수 있는 결론
 
 - 원본 NVA의 머리 전체를 몸 위에 합성하는 경로는 어깨를 Ditto로 다시 생성하지 않는다.
@@ -92,4 +135,6 @@ xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-original
 xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-original-nva-head-comparison/04-W-vs-80-vs-160-vs-240.mp4
 xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-transition-methods-v30-final/transition-methods-head-closeup.mp4
 xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-transition-methods-v30-final/transition-methods-head-closeup-slow4x.mp4
+xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-multi-transition-v1/all-sentences-head-closeup.mp4
+xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-multi-transition-v1/all-sentences-head-closeup-slow4x.mp4
 ```
