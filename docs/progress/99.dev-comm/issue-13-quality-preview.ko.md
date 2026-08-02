@@ -48,6 +48,31 @@ W는 품질 기준선이다. R은 1.2초 오디오 창 13개를 Ditto로 각각 
 - [160ms](../../../.agents/work/issue13-quality/korean-original-nva-head-comparison/quality-report-160ms.json)
 - [240ms](../../../.agents/work/issue13-quality/korean-original-nva-head-comparison/quality-report-240ms.json)
 
+## 중간 프레임 기술 3종 비교
+
+같은 13개 Ditto 생성 창과 240ms 전환 구간에 후처리만 다르게 적용했다. 따라서 입력과 생성 편차가 아닌 전환 기술 차이를 비교한다.
+
+- A `linear`: 현재 240ms 코사인 혼합
+- B `neutral_bridge`: 전환 양끝은 그대로 유지하고, 정중앙에서만 최대 35%를 원본 중립 머리 쪽으로 보정
+- C `flow_tween`: 양방향 광학 흐름으로 A/B 프레임을 휘어 중간 프레임 생성
+
+바로 볼 자료:
+
+1. [전신 4화면 정상 속도](../../../.agents/work/issue13-quality/korean-transition-methods-v30-final/transition-methods-comparison.mp4)
+2. [머리 확대 4화면 정상 속도](../../../.agents/work/issue13-quality/korean-transition-methods-v30-final/transition-methods-head-closeup.mp4)
+3. [머리 확대 4화면 4배 느리게](../../../.agents/work/issue13-quality/korean-transition-methods-v30-final/transition-methods-head-closeup-slow4x.mp4)
+4. [원시 품질 보고서](../../../.agents/work/issue13-quality/korean-transition-methods-v30-final/quality-report.json)
+
+| 기술 | 전환 최대 변화 | W 대비 추가 변화 | 발화 영역 SSIM | 자동 순위 |
+|---|---:|---:|---:|---:|
+| A 현재 혼합 | 0.12958 | +0.02097 | 0.72581 | 2 |
+| B 중립 브리지 | **0.12595** | **+0.01734** | **0.73390** | **1** |
+| C 광학 흐름 중간 프레임 | 0.17337 | +0.06476 | 0.72466 | 3 |
+
+독립적으로 한 번 더 실행한 v29에서도 전환 연속성과 발화 영역 유사도 둘 다 `B → A → C` 순서가 동일했다. B는 현재 가장 유력한 후보다. C의 단순 광학 흐름은 입·코·머리카락의 서로 다른 변형을 잘못 매칭하며 오히려 최대 변화를 키웠으므로 현 구현은 탐색 후보에서 제외한다.
+
+다만 B의 수치 우위가 사람이 보기에도 자연스러운지, 또는 말 중간에 입이 잠시 중립으로 닫히는 느낌을 주는지는 영상으로 판단해야 한다. 먼저 정상 속도와 음성으로 보고, 그다음 4배 느린 영상으로 컷 경계를 확인한다. 느린 영상만으로 자연스러움을 판정하지 않는다.
+
 ## 지금 내릴 수 있는 결론
 
 - 원본 NVA의 머리 전체를 몸 위에 합성하는 경로는 어깨를 Ditto로 다시 생성하지 않는다.
@@ -65,4 +90,6 @@ W는 품질 기준선이다. R은 1.2초 오디오 창 13개를 Ditto로 각각 
 ```bash
 xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-original-nva-head-comparison/03-W-vs-R-original-nva-head.mp4
 xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-original-nva-head-comparison/04-W-vs-80-vs-160-vs-240.mp4
+xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-transition-methods-v30-final/transition-methods-head-closeup.mp4
+xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-transition-methods-v30-final/transition-methods-head-closeup-slow4x.mp4
 ```
