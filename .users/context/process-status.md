@@ -28,11 +28,11 @@
 > 통합, 미리보기 배경색). cascade `enable_alpha=1` 로 발화도 투명(정적 matte).
 > 자세히 = alpha-adk `.agents/progress/nva-osarang-rebuild-2026-06-23.md`
 
-2026-08-01 갱신: 공개 제품은 NVA 규격·검증기·GPU 없는 Player와 생성 자산을 편집·패키징하는
-NVA Studio다. Ditto 생성·품질 분석은 비공개 Naia 서버가 소유한다. 인간형 Jina에서 중립
-머리+support 제한 투명 발화층을 먼저 검증하고, 통과 뒤 큰 고양이 머리 Naia를 별도 H2로
-검증한다. `sil/a/i/u/e/o` 6개 클립은 비교 기준이고 공통 조음 전이/문맥 자산이 네 언어 미지
-발화에 일반화되는지 판정한다.
+2026-08-02 갱신: 공개 제품은 NVA 규격·검증기·GPU 없는 Player와 생성 자산을 편집·패키징하는
+NVA Studio다. Ditto 생성·품질 분석은 비공개 Naia 서버가 소유한다. 인간형 Jina의 원본 NVA에
+등록된 전체 `head_image`를 먼저 검증하고, 통과 뒤 큰 고양이 머리 Naia를 별도 H2로 검증한다.
+임의 512 몸 크롭은 품질 증거에서 제외한다. `sil/a/i/u/e/o` 6개 클립은 비교 기준이고 공통 조음
+전이/문맥 자산이 네 언어 미지 발화에 일반화되는지 판정한다.
 
 ---
 
@@ -46,7 +46,7 @@ NVA Studio다. Ditto 생성·품질 분석은 비공개 Naia 서버가 소유한
 | P04 통합테스트 | pending | TEST-F-012~016 + Jina 4개 언어 타당성·Studio/Player/Naia 서버/cascade 통합 증거; 통과 뒤 Naia H2 |
 | P05 완료 | pending | 타당성 통과와 요구사항 Done, 또는 근거 있는 비실현 판정 |
 
-마지막 업데이트: 2026-08-01
+마지막 업데이트: 2026-08-02
 
 ---
 

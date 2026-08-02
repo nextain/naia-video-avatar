@@ -14,9 +14,9 @@
     "issue_doc": "docs/progress/99.dev-comm/issue-13-multilingual-precomputed-viseme.md",
     "github_issue": "https://github.com/nextain/naia-video-avatar/issues/13",
     "started": "2026-08-01",
-    "last_updated": "2026-08-01",
+    "last_updated": "2026-08-02",
     "status": "active",
-    "note": "오픈소스 경계는 NVA 규격·검증기·GPU 없는 Player·생성 자산을 편집/패키징하는 NVA Studio다. Ditto 생성·품질 분석은 비공개 Naia 서버가 소유한다. 인간형 Jina에서 중립 머리+support 제한 투명 발화층을 먼저 검증하고, 통과 뒤 큰 고양이 머리 Naia를 별도 H2로 검증한다. sil/a/i/u/e/o 6개 클립은 비교 기준이고 공통 조음 전이/문맥 자산이 네 언어 미지 발화에 일반화되는지 판정한다."
+    "note": "오픈소스 경계는 NVA 규격·검증기·GPU 없는 Player·생성 자산을 편집/패키징하는 NVA Studio다. Ditto 생성·품질 분석은 비공개 Naia 서버가 소유한다. 인간형 Jina의 원본 NVA에 등록된 전체 head_image를 먼저 검증하고, 통과 뒤 큰 고양이 머리 Naia를 별도 H2로 검증한다. 임의 512 몸 크롭은 품질 증거에서 제외한다. sil/a/i/u/e/o 6개 클립은 비교 기준이고 공통 조음 전이/문맥 자산이 네 언어 미지 발화에 일반화되는지 판정한다."
   },
 
   "sdlc_gates": {
