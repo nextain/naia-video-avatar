@@ -116,6 +116,40 @@ A가 2개, B가 3개 문장에서 가장 낮았고, 5종 평균은 A가 가장 �
 않고 A와 B를 사람 눈가림 평가의 두 후보로 유지한다. C의 현 광학 흐름 구현은 어느 문장에서도
 두 지표를 동시에 이기지 못했으므로 제외 판단이 유지된다.
 
+## Ditto 원래 눈 깜빡임 복원 비교
+
+앞의 영상에서는 W를 포함해 눈을 한 번도 깜빡이지 않았다. Ditto 코드와 실제 서버 설정을
+대조한 결과, 눈 기능이 제거된 것이 아니었다. 현재 체크포인트에는 15프레임 눈 깜빡임 동작이
+있고 `delta_eye_open_n=0`이면 60~100프레임 열린 구간 뒤 무작위로 삽입한다. 시작과 끝
+쪽에 무작위 여유 구간을 두려는 조건 때문에 2.88~4.96초인 이번 표본에는 깜빡임이 들어갈
+공간이 없거나 확률이 매우 낮았다. 예전에 긴 Ditto 영상에서 깜빡임을 본 기억과 모순되지 않는다.
+
+짧은 독립 창마다 따로 무작위 깜빡임을 만들면 컷에서 눈 상태가 충돌한다. 재실험은 Ditto의
+원래 15프레임 눈 동작을 그대로 사용하되, 전체 문장과 모든 독립 창에 같은 문장 전역 프레임
+시간축을 전달했다. 첫 깜빡임은 35프레임, 반복 주기는 90프레임으로 고정했다.
+
+바로 볼 자료:
+
+1. [다섯 문장 눈 깜빡임 W/A/B/C — 정상 속도와 음성](../../../.agents/work/issue13-quality/korean-blink-transition-v1/all-sentences-blink-head-closeup.mp4)
+2. [다섯 문장 눈 깜빡임 W/A/B/C — 4배 느리게](../../../.agents/work/issue13-quality/korean-blink-transition-v1/all-sentences-blink-head-closeup-slow4x.mp4)
+3. [눈 깜빡임 원시 검증 요약](../../../.agents/work/issue13-quality/korean-blink-transition-v1/blink-verification-summary.json)
+
+MediaPipe의 양쪽 `eyeBlink` 계수 중 큰 값을 사용하고 0.35 이상으로 올라가는 구간을 한 번의
+깜빡임으로 계산했다.
+
+| 문장 | W | A | B | C | 네 영상 최고점 시각 차이 |
+|---|---:|---:|---:|---:|---:|
+| 짧은 문장 | 1회 | 1회 | 1회 | 1회 | 1프레임 |
+| 모음 전환 | 1회 | 1회 | 1회 | 1회 | 1프레임 |
+| 입술 닫힘 자음 | 1회 | 1회 | 1회 | 1회 | 0프레임 |
+| 연속 발화 | 1회 | 1회 | 1회 | 1회 | 0프레임 |
+| 쉼표 발화 | 1회 | 1회 | 1회 | 1회 | 1프레임 |
+
+20개 영상 모두 검출 최고값이 0.69 이상이었고, 누락 프레임은 없었다. 따라서 Ditto 자체의
+눈 깜빡임이 W뿐 아니라 독립 생성 창을 조합한 A/B/C에서도 동일 시점에 유지됨을 확인했다.
+이 결과는 눈 동작을 문장별 영상에 우연히 맡기지 않고, NVA 재생 시간축이 선택하는 독립 동작
+계층으로 다뤄야 한다는 설계를 지지한다.
+
 ## 지금 내릴 수 있는 결론
 
 - 원본 NVA의 머리 전체를 몸 위에 합성하는 경로는 어깨를 Ditto로 다시 생성하지 않는다.
@@ -137,4 +171,6 @@ xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-transiti
 xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-transition-methods-v30-final/transition-methods-head-closeup-slow4x.mp4
 xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-multi-transition-v1/all-sentences-head-closeup.mp4
 xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-multi-transition-v1/all-sentences-head-closeup-slow4x.mp4
+xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-blink-transition-v1/all-sentences-blink-head-closeup.mp4
+xdg-open projects/naia-video-avatar/.agents/work/issue13-quality/korean-blink-transition-v1/all-sentences-blink-head-closeup-slow4x.mp4
 ```
