@@ -30,8 +30,8 @@ export class NvaAnimationPlayer {
     this.urlApi = urlApi;
     this.urls = new Map();
     this.state = "empty";
-    this.onEnded = () => { if (this.state === "action") void this.playIdle(); };
-    this.onError = () => { if (this.state === "action") void this.playIdle(); };
+    this.onEnded = () => { if (["action", "speech"].includes(this.state)) void this.playIdle(); };
+    this.onError = () => { if (["action", "speech"].includes(this.state)) void this.playIdle(); };
     video.addEventListener("ended", this.onEnded);
     video.addEventListener("error", this.onError);
   }
@@ -49,21 +49,30 @@ export class NvaAnimationPlayer {
     this.actions = Object.entries(manifest.animations)
       .filter(([, animation]) => animKind(animation) === "gesture")
       .map(([key, animation]) => ({ key, label: animation.label || key }));
+    this.speechClips = Object.entries(manifest.speech_clips || {})
+      .map(([key, speech]) => ({ key, label: speech.label || key }));
     this.state = "ready";
     await this.#show(this.idleKey, true, false);
-    return { idle: this.idleKey, actions: [...this.actions] };
+    return { idle: this.idleKey, actions: [...this.actions], speechClips: [...this.speechClips] };
   }
 
   async playIdle() {
     if (!this.manifest || this.state === "disposed") throw new Error("animation player is not ready");
-    await this.#show(this.idleKey, true, true);
     this.state = "idle";
+    await this.#show(this.idleKey, true, true);
   }
 
   async playAction(key) {
     if (!this.actions?.some((action) => action.key === key)) throw new Error(`unknown NVA action: ${key}`);
-    await this.#show(key, false, true);
     this.state = "action";
+    await this.#show(key, false, true);
+  }
+
+  async playSpeech(key) {
+    const speech = this.manifest?.speech_clips?.[key];
+    if (!speech) throw new Error(`unknown packaged speech video: ${key}`);
+    this.state = "speech";
+    await this.#showPath(speech.clip, false, true, false);
   }
 
   stop() {
@@ -89,10 +98,14 @@ export class NvaAnimationPlayer {
   async #show(key, loop, autoplay) {
     const animation = this.manifest.animations[key];
     if (!animation) throw new Error(`missing NVA animation: ${key}`);
-    const source = this.#urlFor(animation.clip);
+    await this.#showPath(animation.clip, loop, autoplay, true);
+  }
+
+  async #showPath(path, loop, autoplay, muted) {
+    const source = this.#urlFor(path);
     const changed = this.video.src !== source;
     this.video.loop = loop;
-    this.video.muted = true;
+    this.video.muted = muted;
     this.video.playsInline = true;
     if (changed) {
       this.video.src = source;

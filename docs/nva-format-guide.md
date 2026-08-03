@@ -1,79 +1,70 @@
-# NVA consumer format guide
+# NVA v0.3 completed-media format
 
-NVA (Naia Video Avatar) is a portable bundle of metadata and already-produced
-avatar media. This public document specifies what a Player may consume. It does
-not specify how faces, speech fragments, or source videos are generated.
+An NVA file is a ZIP archive that a browser can play without GPU inference.
+Version 0.3 is a delivery format: all speech and animation media is already
+finished before packaging.
 
-## Bundle layout
-
-An `.nva` file is a ZIP archive whose root contains `manifest.json`:
-
-```text
-avatar.nva
-├── manifest.json
-├── clips/
-│   ├── idle.webm
-│   ├── speaking-body.webm
-│   └── optional-action.webm
-└── speech/                 optional playback extension
-    └── packaged assets referenced by manifest.json
-```
-
-Every referenced asset is a relative bundle path. Absolute URLs, drive paths,
-backslashes, `.` and `..` segments are invalid. A Player must apply archive,
-expanded-size, entry-count and path-safety limits before playback.
-
-## Manifest v0.2
-
-The normative machine-readable contract is
-[`src/main/nva-schema.json`](../src/main/nva-schema.json). The main fields are:
-
-- `nva_version`: currently `0.2`.
-- `meta`: display name and media ownership/licensing metadata.
-- `canvas`: output width, height and optional frame rate.
-- `animations`: packaged idle, speaking-body and action clips.
-- `scenario`: optional graph that selects an initial idle animation.
-- `speech_motion`: optional, already-produced speech playback assets.
-
-Animation kinds are inferred from their public playback properties. A looping
-animation that cannot talk is an idle candidate; a looping animation that can
-talk is a speaking-body candidate; a non-looping animation is an action. The
-Player returns to idle after an action, speech, cancellation or playback error.
-
-## Playback modes
-
-The standalone path uses browser `speechSynthesis`. Browsers usually do not
-expose PCM or phoneme timestamps, so the Player labels this mode
-`approximate`. An independent audio system may instead provide audio plus a
-matching `SpeechPlan`; that path is labelled `aligned` after validation.
-
-Both paths consume completed NVA assets. They do not run an avatar generation
-model and do not require a GPU.
-
-## Local sample catalog
-
-Static deployments may publish a same-origin JSON catalog:
+## Required manifest fields
 
 ```json
 {
-  "version": "1",
-  "samples": [
-    { "label": "Example avatar", "url": "example.nva" }
-  ]
+  "nva_version": "0.3",
+  "profile": "completed-media",
+  "meta": {
+    "name": "Example avatar",
+    "delivery": { "kind": "completed-media", "realtime": false }
+  },
+  "canvas": { "width": 720, "height": 1280, "fps": 25 },
+  "background": { "type": "transparent" },
+  "animations": {
+    "idle": { "clip": "clips/idle.webm", "loop": true, "label": "Idle" },
+    "wave": { "clip": "clips/wave.webm", "loop": false, "label": "Wave" }
+  },
+  "speech_clips": {
+    "hello-ko": {
+      "clip": "speech/hello-ko.mp4",
+      "audio": "embedded",
+      "language": "ko-KR",
+      "label": "Korean greeting",
+      "duration_ms": 4480
+    }
+  },
+  "scenario": {
+    "nodes": {
+      "start": { "type": "start" },
+      "idle": { "type": "scene", "animation": "idle" }
+    },
+    "edges": [{ "from": "start", "to": "idle" }]
+  }
 }
 ```
 
-The catalog and every sample URL must resolve to the Player's HTTP origin. The
-Player rejects credentials, fragments, cross-origin URLs, oversized catalogs
-and oversized bundles. Catalog failure does not disable the local file picker.
+## Playback rules
 
-Private samples can be prepared under the ignored `examples/.local/` directory;
-only generated local filenames and display labels appear in its catalog. Source
-paths and source media are never part of the public repository.
+- At least one animation must be an idle loop (`loop: true`).
+- A speech clip is a complete MP4 or WebM with embedded audio.
+- The Player plays idle and action media muted, and speech media with audio.
+- When an action or speech video ends or fails, the Player returns to idle.
+- `language` uses a BCP 47 tag such as `ko-KR`, `en-US`, or `ja-JP`.
+- All paths are relative ZIP paths. Absolute paths, URLs, backslashes, and `..`
+  segments are rejected.
 
-## Public and private boundary
+## Limits
 
-The schema, validators and read-only Player are public. Authoring tools,
-generation procedures, model settings, internal quality thresholds and source
-media are outside this repository. Bundle authors retain the rights declared in
-`meta.owner` and `meta.license`.
+- archive and expanded content: 100 MiB maximum;
+- file count: 512 maximum;
+- manifest: 1 MiB maximum;
+- speech text metadata: 10,000 characters maximum.
+
+## Public boundary
+
+The format describes only finished media and playback metadata. It does not
+define how avatars, speech videos, audio, timing, or lip movement are produced.
+Applications needing live generation use a separate private runtime rather than
+extending this public Player contract.
+
+## v0.2 compatibility
+
+The Player can still open existing v0.2 files for viewing. Authors should use
+v0.3 for new distributable NVA files because it omits generation-oriented and
+real-time fields.

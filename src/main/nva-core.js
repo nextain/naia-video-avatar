@@ -1,21 +1,11 @@
-// nva-core — naia video clip avatar 코어 로직 (브라우저 + node 양용 ESM) — **nva v0.2**
+// nva-core — NVA completed-media playback contract (browser + Node ESM)
 //
-// 공개 소비 계약: animations 풀 + scenario 그래프를 Player와 검증기가 공유한다.
-// 의존 0 (순수 JS). 비공개 생성 서비스와는 완성된 NVA 파일 계약으로만 연결된다.
-//
-// v0.2 모델 (states/transitions 폐기):
-//  - animations{}: 재료 풀. 각 원소 = clip + entry/exit_pose + loop + can_talk + face_bbox.
-//    종류(kind)는 필드가 아니라 **조합에서 유도**:
-//      말하기 = loop & can_talk / 대기·듣기 = loop & !can_talk / 제스처 = 둘 다 off
-//      전환   = entry_pose != exit_pose
-//  - scenario{nodes,edges}: 노드 그래프. nodes[k]={type:"start"|"scene", animation, label, dwell_ms},
-//    edges=[{from,to}]. start 노드가 가리키는 첫 scene = idle 진입점.
-//  - 헤드토킹: ditto_region(픽셀 512²)을 무리사이즈 입력/출력 슬롯으로 쓰고,
-//    face_bbox(정규화)는 그 안의 실제 얼굴 landmark 가이드로 별도 유지한다.
+// The public v0.3 contract contains only finished media. Generation and
+// real-time processing are intentionally outside this repository. v0.2 is
+// accepted only for read compatibility with existing local files.
 
-import { SPEECH_UNITS } from "./speech-plan.js";
-
-export const NVA_VERSION = "0.2";
+export const NVA_VERSION = "0.3";
+export const READABLE_NVA_VERSIONS = Object.freeze(["0.2", NVA_VERSION]);
 
 function isBundleRelativePath(value) {
   if (typeof value !== "string" || !value || value.includes("\\")) return false;
@@ -24,7 +14,7 @@ function isBundleRelativePath(value) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 0. 파생 규칙 헬퍼 (cascade nva_loader.py 와 동일 규칙)
+// 0. Legacy v0.2 playback helpers
 // ─────────────────────────────────────────────────────────────────────────────
 export function isTransition(a) {
   return (a?.entry_pose || "") !== (a?.exit_pose || "");
@@ -48,7 +38,7 @@ export function scenarioStartAnim(m) {
   return nx && nodes[nx] ? nodes[nx].animation : null;
 }
 
-// cascade 로더와 동일한 파생 필드(idle/talking/listening/events).
+// Fields retained only so existing v0.2 files remain readable.
 export function derive(m) {
   const anims = m.animations || {};
   const isBase = (a) => a.loop && !isTransition(a);
@@ -89,7 +79,6 @@ export function migrateToV02(m) {
       exit_pose: s.exit_pose,
       loop: !!s.loop,
       can_talk: !!s.can_talk,
-      // face_bbox = [x,y,w,h] 직사각(권장, 머리 영역) 또는 [x,y,l] 정사각(하위호환) — 그대로 보존.
       ...(Array.isArray(s.face_bbox) ? { face_bbox: s.face_bbox } : {}),
       label: s.label || k,
     };
@@ -155,7 +144,16 @@ export function validateManifest(m, opts = {}) {
   if (!m || typeof m !== "object")
     return { ok: false, errors: ["manifest가 객체가 아님"], warnings };
 
-  if (m.nva_version !== "0.2") E(`nva_version은 "0.2"여야 함 (현재: ${m.nva_version})`);
+  if (!READABLE_NVA_VERSIONS.includes(m.nva_version))
+    E(`지원하지 않는 nva_version: ${m.nva_version}`);
+  const completedMedia = m.nva_version === NVA_VERSION;
+  if (completedMedia && m.profile !== "completed-media")
+    E('NVA v0.3 profile은 "completed-media"여야 함');
+  if (completedMedia) {
+    const rootFields = new Set(["nva_version", "profile", "meta", "canvas", "background", "poses", "animations", "speech_clips", "expressions", "scenario"]);
+    for (const field of Object.keys(m))
+      if (!rootFields.has(field)) E(`NVA v0.3 공개 포맷에서 허용하지 않는 최상위 필드 '${field}'`);
+  }
   if (!m.canvas || !(m.canvas.width > 0) || !(m.canvas.height > 0))
     E("canvas.width/height 필수(양수)");
 
@@ -174,31 +172,17 @@ export function validateManifest(m, opts = {}) {
   };
 
   for (const [k, a] of Object.entries(anims)) {
-    if (!a.clip) E(`animation ${k}: clip 없음`);
+    if (!isBundleRelativePath(a.clip)) E(`animation ${k}: clip은 번들 내부 상대경로여야 함`);
+    if (completedMedia) {
+      const animationFields = new Set(["clip", "loop", "entry_pose", "exit_pose", "label", "intent", "triggers"]);
+      for (const field of Object.keys(a))
+        if (!animationFields.has(field)) E(`animation ${k}: v0.3 공개 포맷에서 허용하지 않는 필드 '${field}'`);
+      if (typeof a.loop !== "boolean") E(`animation ${k}: loop는 boolean이어야 함`);
+    }
     // entry_pose/exit_pose 는 선택 — 자세 변화(앉기/눕기)가 있을 때만 씀. 서있는 아바타는 불요.
     // 있을 때만 어휘 검사(경고).
     if (a.entry_pose) checkPose(`animation ${k}.entry_pose`, a.entry_pose);
     if (a.exit_pose) checkPose(`animation ${k}.exit_pose`, a.exit_pose);
-    if (a.can_talk) {
-      if (!Array.isArray(a.face_bbox) || (a.face_bbox.length !== 3 && a.face_bbox.length !== 4))
-        E(`animation ${k}: can_talk=true면 face_bbox 필수 — [x,y,w,h] 직사각(머리 영역) 또는 [x,y,l] 정사각`);
-      else if (a.face_bbox.some((v) => v < 0 || v > 1))
-        E(`animation ${k}: face_bbox 값은 0~1 범위`);
-      if (a.ditto_region !== undefined) {
-        const r = a.ditto_region;
-        if (!Array.isArray(r) || r.length !== 4 || r.some((v) => !Number.isInteger(v)))
-          E(`animation ${k}: ditto_region은 정수 픽셀 [x,y,512,512]`);
-        else {
-          const [x, y, w, h] = r;
-          if (w !== 512 || h !== 512)
-            E(`animation ${k}: Ditto 입력 영역은 정확히 512x512여야 함`);
-          if (x < 0 || y < 0 || x + w > m.canvas.width || y + h > m.canvas.height)
-            E(`animation ${k}: ditto_region이 canvas 범위를 벗어남`);
-        }
-      } else if (!a.head_image) {
-        W(`animation ${k}: ditto_region 없음 — legacy face_bbox 합성 사용`);
-      }
-    }
   }
 
   // label 유일성 — AI/LLM 이 label 로 애니를 지목하므로 중복 label 은 지목 모호 → 에러.
@@ -210,39 +194,42 @@ export function validateManifest(m, opts = {}) {
     else seenLabels.set(lb, k);
   }
 
-  // base 루프 권장 (cascade 파생이 idle/talking 을 뽑으려면 필요)
+  // A completed-media file always needs an idle loop.
   const hasIdle = Object.values(anims).some((a) => a.loop && !isTransition(a) && !a.can_talk);
   const hasTalk = Object.values(anims).some((a) => a.loop && !isTransition(a) && a.can_talk);
   if (animKeys.length && !hasIdle)
-    W("대기 base 루프(loop & !can_talk & 비전환) 없음 — cascade idle 클립 유도 실패");
-  if (animKeys.length && !hasTalk)
-    W("말하기 base 루프(loop & can_talk) 없음 — 헤드토킹 대상 없음");
+    E("대기 반복 영상(loop=true)이 필요함");
+  if (!completedMedia && animKeys.length && !hasTalk)
+    W("기존 v0.2 말하기 반복 영상이 없음");
 
-  // Optional GPU-free speech extension. Old v0.2 manifests remain valid.
-  // The player consumes only this language-independent inventory and bundle
-  // references; generation-provider details stay in the provenance receipt.
-  const speech = m.speech_motion;
-  if (speech !== undefined) {
-    if (!speech || typeof speech !== "object" || Array.isArray(speech)) {
-      E("speech_motion은 객체여야 함");
+  // Optional completed speech videos. These are final media outputs with
+  // embedded audio; the public contract intentionally contains no real-time
+  // generation, alignment, model, or runtime details.
+  const speechClips = m.speech_clips;
+  if (completedMedia && (!speechClips || Object.keys(speechClips).length === 0))
+    E("NVA v0.3에는 완성된 speech_clips가 최소 1개 필요함");
+  if (speechClips !== undefined) {
+    if (!speechClips || typeof speechClips !== "object" || Array.isArray(speechClips)) {
+      E("speech_clips는 객체여야 함");
     } else {
-      if (speech.version !== "1") E('speech_motion.version은 "1"이어야 함');
-      if (speech.representation !== "factorized-difference-layer")
-        E("speech_motion.representation은 factorized-difference-layer여야 함");
-      if (speech.inventory_version !== "1.0.0")
-        E("speech_motion.inventory_version은 1.0.0이어야 함");
-      if (!Array.isArray(speech.inventory)
-        || speech.inventory.length !== SPEECH_UNITS.length
-        || speech.inventory.some((unit, index) => unit !== SPEECH_UNITS[index]))
-        E("speech_motion.inventory는 순서를 포함해 고정 13단위와 같아야 함");
-
-      const paths = ["neutral_head", "atlas", "atlas_index", "validation_report", "quality_report", "provenance"];
-      for (const field of paths) {
-        const path = speech[field];
-        if (!isBundleRelativePath(path))
-          E(`speech_motion.${field}는 번들 내부 상대경로여야 함`);
-        else if (opts.clipFiles && !new Set(opts.clipFiles).has(path))
-          E(`speech_motion.${field} '${path}' 번들에 없음`);
+      for (const [key, speech] of Object.entries(speechClips)) {
+        if (!speech || typeof speech !== "object" || Array.isArray(speech)) {
+          E(`speech_clips.${key}는 객체여야 함`);
+          continue;
+        }
+        if (!isBundleRelativePath(speech.clip))
+          E(`speech_clips.${key}.clip은 번들 내부 상대경로여야 함`);
+        else if (opts.clipFiles && !new Set(opts.clipFiles).has(speech.clip))
+          E(`speech_clips.${key}.clip '${speech.clip}' 번들에 없음`);
+        if (speech.audio !== "embedded") E(`speech_clips.${key}.audio는 embedded여야 함`);
+        if (typeof speech.language !== "string" || !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(speech.language))
+          E(`speech_clips.${key}.language은 BCP 47 언어 태그여야 함`);
+        if (typeof speech.label !== "string" || !speech.label.trim())
+          E(`speech_clips.${key}.label은 비어 있지 않은 문자열이어야 함`);
+        if (speech.text !== undefined && (typeof speech.text !== "string" || speech.text.length > 10_000))
+          E(`speech_clips.${key}.text는 최대 10000자의 문자열이어야 함`);
+        if (speech.duration_ms !== undefined && (!Number.isInteger(speech.duration_ms) || speech.duration_ms <= 0))
+          E(`speech_clips.${key}.duration_ms는 양의 정수여야 함`);
       }
     }
   }

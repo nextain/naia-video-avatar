@@ -5,15 +5,18 @@ import { NvaAnimationPlayer } from "../main/nva-animation-player.js";
 
 function manifest() {
   return {
-    nva_version: "0.2",
+    nva_version: "0.3",
+    profile: "completed-media",
     meta: { name: "test" },
     canvas: { width: 720, height: 1280 },
     background: { type: "color", value: "#000000" },
     animations: {
-      idle: { clip: "clips/idle.webm", loop: true, can_talk: false, entry_pose: "stand", exit_pose: "stand" },
-      talking: { clip: "clips/talk.webm", loop: true, can_talk: true, entry_pose: "stand", exit_pose: "stand", face_bbox: [0.25, 0.05, 0.5, 0.4], ditto_region: [104, 0, 512, 512] },
-      wave: { clip: "clips/wave.webm", loop: false, can_talk: false, entry_pose: "stand", exit_pose: "stand", label: "Wave" },
-      sit: { clip: "clips/sit.webm", loop: false, can_talk: false, entry_pose: "stand", exit_pose: "sit" },
+      idle: { clip: "clips/idle.webm", loop: true, entry_pose: "stand", exit_pose: "stand" },
+      wave: { clip: "clips/wave.webm", loop: false, entry_pose: "stand", exit_pose: "stand", label: "Wave" },
+      sit: { clip: "clips/sit.webm", loop: false, entry_pose: "stand", exit_pose: "sit" },
+    },
+    speech_clips: {
+      greeting: { clip: "speech/greeting.mp4", audio: "embedded", language: "ko-KR", label: "인사" },
     },
     scenario: {
       nodes: { start: { type: "start" }, idle: { type: "scene", animation: "idle" } },
@@ -36,7 +39,7 @@ function video() {
   };
 }
 
-test("animation player lists gestures but not pose transitions", async () => {
+test("animation player lists actions and completed speech videos", async () => {
   const element = video();
   let nextUrl = 0;
   const revoked = [];
@@ -46,12 +49,17 @@ test("animation player lists gestures but not pose transitions", async () => {
       revokeObjectURL: (url) => revoked.push(url),
     },
   });
-  const paths = ["idle", "talk", "wave", "sit"].map((name) => `clips/${name}.webm`);
+  const paths = ["idle", "wave", "sit"].map((name) => `clips/${name}.webm`).concat("speech/greeting.mp4");
   const assets = new Map(paths.map((path) => [path, new Blob([path])]));
   const result = await player.load({ manifest: manifest(), assets });
-  assert.deepEqual(result, { idle: "idle", actions: [{ key: "wave", label: "Wave" }] });
+  assert.deepEqual(result, {
+    idle: "idle",
+    actions: [{ key: "wave", label: "Wave" }],
+    speechClips: [{ key: "greeting", label: "인사" }],
+  });
   assert.equal(element.src, "blob:1");
   assert.equal(element.loop, true);
+  assert.equal(element.muted, true);
 
   await player.playAction("wave");
   assert.equal(player.state, "action");
@@ -61,15 +69,29 @@ test("animation player lists gestures but not pose transitions", async () => {
   assert.equal(player.state, "idle");
   assert.equal(element.loop, true);
 
+  await player.playSpeech("greeting");
+  assert.equal(player.state, "speech");
+  assert.equal(element.loop, false);
+  assert.equal(element.muted, false);
+  element.listeners.ended();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(player.state, "idle");
+  assert.equal(element.muted, true);
+
+  await player.playSpeech("greeting");
+  player.onError();
+  assert.equal(player.state, "idle", "error recovery marks idle before loading fallback media");
+  await new Promise((resolve) => setImmediate(resolve));
+
   player.dispose();
-  assert.deepEqual(revoked.sort(), ["blob:1", "blob:2"]);
+  assert.deepEqual(revoked.sort(), ["blob:1", "blob:2", "blob:3"]);
 });
 
 test("animation player rejects unknown actions", async () => {
   const player = new NvaAnimationPlayer(video(), {
     urlApi: { createObjectURL: () => "blob:x", revokeObjectURL() {} },
   });
-  const paths = ["idle", "talk", "wave", "sit"].map((name) => `clips/${name}.webm`);
+  const paths = ["idle", "wave", "sit"].map((name) => `clips/${name}.webm`).concat("speech/greeting.mp4");
   await player.load({
     manifest: manifest(),
     assets: new Map(paths.map((path) => [path, new Blob([path])])),

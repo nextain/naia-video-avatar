@@ -34,10 +34,9 @@ def manifest_paths(manifest: dict) -> set[str]:
     background = manifest.get("background", {})
     if background.get("src"):
         paths.add(background["src"])
-    speech = manifest.get("speech_motion", {})
-    for field in ("neutral_head", "atlas", "atlas_index", "validation_report", "quality_report", "provenance"):
-        if speech.get(field):
-            paths.add(speech[field])
+    for speech in manifest.get("speech_clips", {}).values():
+        if speech.get("clip"):
+            paths.add(speech["clip"])
     if any(not safe_name(path) for path in paths):
         raise ValueError("manifest contains an unsafe asset path")
     return paths
@@ -48,8 +47,8 @@ def read_manifest(raw: bytes) -> dict:
         value = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ValueError("manifest.json is not valid UTF-8 JSON") from error
-    if not isinstance(value, dict) or value.get("nva_version") != "0.2":
-        raise ValueError("manifest.json is not an NVA v0.2 object")
+    if not isinstance(value, dict) or value.get("nva_version") not in {"0.2", "0.3"}:
+        raise ValueError("manifest.json is not a supported NVA object")
     return value
 
 

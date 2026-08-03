@@ -9,12 +9,21 @@ const removed = [
   "generation-client.js",
   "generation-contract.js",
   "nva-cascade-adapter.js",
+  "browser-tts.js",
+  "speech-player.js",
+  "speech-plan.js",
+  "speech-runtime.js",
+  "speech-browser-runtime.js",
+  "speech-atlas-index.js",
+  "speech-atlas-source.js",
+  "speech-bundle.js",
+  "speech-provenance.js",
 ];
 
-test("public runtime contains format and Player surfaces but no Editor or video-generation client", async () => {
+test("public runtime contains only completed-media format and Player surfaces", async () => {
   for (const path of [
-    "nva-schema.json", "nva-core.js", "viewer.html", "browser-tts.js",
-    "nva-animation-player.js", "nva-bundle-loader.js", "speech-player.js",
+    "nva-schema.json", "nva-core.js", "viewer.html",
+    "nva-animation-player.js", "nva-bundle-loader.js",
     "sample-catalog.js", "load-coordinator.js",
   ]) await access(new URL(path, main));
   for (const path of removed)
@@ -24,6 +33,7 @@ test("public runtime contains format and Player surfaces but no Editor or video-
 test("README presents NVA Avatar Player as the current product", async () => {
   const readme = await readFile(new URL("../../README.md", import.meta.url), "utf8");
   assert.match(readme, /^# NVA Avatar Player/m);
-  assert.match(readme, /browser.*TTS/is);
+  assert.match(readme, /completed.*speech|pre-rendered.*speech/is);
+  assert.doesNotMatch(readme, /browser.*TTS|Cascade|TensorRT|TRT/is);
   assert.doesNotMatch(readme, /src\/main\/editor\.html|src\/main\/demo\.html/);
 });

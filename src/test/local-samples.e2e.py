@@ -31,17 +31,26 @@ with sync_playwright() as playwright:
     page.wait_for_load_state("networkidle")
     page.wait_for_function("document.querySelectorAll('#sample option').length === 4", timeout=10_000)
     labels = page.locator("#sample option").all_inner_texts()
-    assert labels == ["Jina", "Minho", "Naia", "Alpha"], labels
+    assert [label.split(" — ")[0] for label in labels] == ["Jina", "Minho", "Naia", "Alpha"], labels
 
     statuses: list[str] = []
     for index, label in enumerate(labels):
+        character = label.split(" — ")[0]
         page.locator("#sample").select_option(index=index)
         page.locator("#loadSample").click()
         page.locator("#status").filter(has_text="Ready ·").wait_for(timeout=30_000)
         status = page.locator("#status").inner_text()
-        assert label.lower() in status.lower(), (label, status)
+        assert character.lower() in status.lower(), (label, status)
         assert page.locator("#animation").is_visible()
         assert page.locator("#animation").evaluate("video => video.videoWidth > 0 && video.videoHeight > 0")
+        assert "1 packaged speech videos" in status
+        assert not page.locator("#playSpeech").is_disabled()
+        page.locator("#playSpeech").click()
+        page.locator("#status").filter(has_text="Playing packaged speech").wait_for(timeout=10_000)
+        assert page.locator("#animation").evaluate("video => video.muted === false && video.loop === false")
+        page.locator("#stop").click()
+        page.locator("#status").filter(has_text="Stopped; idle restored.").wait_for(timeout=10_000)
+        assert page.locator("#animation").evaluate("video => video.muted === true && video.loop === true")
         statuses.append(status)
 
     assert not page.locator("#nvaFile").is_disabled()
@@ -51,6 +60,6 @@ with sync_playwright() as playwright:
     page.screenshot(path="/var/tmp/nva-player-local-samples.png", full_page=True)
     browser.close()
 
-print("PASS: opened Jina, Minho, Naia and Alpha from ignored localhost catalog")
+print("PASS: opened and played completed speech for Jina, Minho, Naia and Alpha")
 for value in statuses:
     print(value)
