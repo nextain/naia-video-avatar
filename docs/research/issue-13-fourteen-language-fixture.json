@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "source": "Naia Shell Locale union, verified 2026-08-03",
+  "locales": [
+    {"locale":"ko","label":"한국어","espeak_voice":"ko","text":"안녕하세요. 빠르게 변하는 바람과 밝은 표정을 자연스럽게 이어서 보여 드리겠습니다."},
+    {"locale":"en","label":"English","espeak_voice":"en-us","text":"Hello. Five brave travelers quickly viewed the bright world and spoke with warm voices."},
+    {"locale":"ja","label":"日本語","espeak_voice":"ja","text":"こんにちは。静かな朝に、明るい表情で素早く言葉をつないで話します。","espeak_text":"こんにちは。しずかなあさに、あかるいひょうじょうですばやくことばをつないではなします。"},
+    {"locale":"zh","label":"中文","espeak_voice":"cmn","text":"你好。清晨的微风轻轻吹过，我们用自然的表情快速说完这句话。"},
+    {"locale":"fr","label":"Français","espeak_voice":"fr-fr","text":"Bonjour. Cinq voyageurs parlent clairement avec des voix vives et des expressions naturelles."},
+    {"locale":"de","label":"Deutsch","espeak_voice":"de","text":"Guten Tag. Fünf Reisende sprechen zügig mit klarer Stimme und natürlichem Ausdruck."},
+    {"locale":"ru","label":"Русский","espeak_voice":"ru","text":"Здравствуйте. Пять путешественников говорят быстро, ясно и с естественным выражением."},
+    {"locale":"es","label":"Español","espeak_voice":"es","text":"Hola. Cinco viajeros hablan rápido y con claridad, usando voces y gestos naturales."},
+    {"locale":"ar","label":"العربية","espeak_voice":"ar","text":"مرحبًا. يتحدث خمسة مسافرين بسرعة ووضوح مع أصوات دافئة وتعابير طبيعية."},
+    {"locale":"hi","label":"हिन्दी","espeak_voice":"hi","text":"नमस्ते। पाँच यात्री तेज़ और स्पष्ट आवाज़ में स्वाभाविक भाव के साथ बोलते हैं।"},
+    {"locale":"bn","label":"বাংলা","espeak_voice":"bn","text":"নমস্কার। পাঁচজন যাত্রী দ্রুত ও স্পষ্ট কণ্ঠে স্বাভাবিক অভিব্যক্তিতে কথা বলেন।"},
+    {"locale":"pt","label":"Português","espeak_voice":"pt","text":"Olá. Cinco viajantes falam depressa e com clareza, usando vozes e expressões naturais."},
+    {"locale":"id","label":"Bahasa Indonesia","espeak_voice":"id","text":"Halo. Lima pelancong berbicara cepat dan jelas dengan suara serta ekspresi yang alami."},
+    {"locale":"vi","label":"Tiếng Việt","espeak_voice":"vi","text":"Xin chào. Năm du khách nói nhanh và rõ ràng với giọng ấm cùng biểu cảm tự nhiên."}
+  ]
+}

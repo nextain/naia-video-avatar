@@ -2,6 +2,13 @@
 
 GitHub: https://github.com/nextain/naia-video-avatar/issues/13
 
+Naia 공식 14개 로케일의 선행 커버리지 계획과 고정 문장은
+[`issue-13-fourteen-language-coverage-plan.md`](../../research/issue-13-fourteen-language-coverage-plan.md)에 둔다.
+실행 결과와 층별 커버리지 판정은
+[`issue-13-fourteen-language-coverage-result.md`](../../research/issue-13-fourteen-language-coverage-result.md)에 둔다.
+테스트·통합 적대 검토 기록은
+[`issue13-fourteen-language-coverage-integration-2026-08-03.md`](../../../.agents/reviews/issue13-fourteen-language-coverage-integration-2026-08-03.md)에 둔다.
+
 ## 제품 목표
 
 얼굴 이미지는 비공개 Naia 생성 서버에서 Ditto로 한 번만 처리한다. 생성된 발화 동작 영상은 공개 NVA 규격으로 패키징한다. 사용자는 Ditto·CUDA·VRAM이 없는 기기에서 NVA Player에 텍스트와 오디오를 넣어 다국어 미지 문장을 실시간 재생한다.

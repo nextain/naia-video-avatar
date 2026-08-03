@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "inventory": [
     "sil",
     "closed",
@@ -18,11 +18,11 @@
   "normalization": {
     "unicode": "NFD",
     "remove_combining_marks": true,
-    "remove_tokens": ["ˈ", "ˌ", "ː", "ˑ", ".", "‿", "1", "2", "3", "4", "5", "˥", "˦", "˧", "˨", "˩"],
-    "remove_modifiers": ["ʰ", "ʲ", "ʷ", "ˠ", "ˤ"],
+    "remove_tokens": ["ˈ", "ˌ", "ː", "ˑ", ".", "‿", "-", "1", "2", "3", "4", "5", "6", "7", "˥", "˦", "˧", "˨", "˩"],
+    "remove_modifiers": ["ʰ", "ʲ", "ʷ", "ˠ", "ˤ", "ᵝ"],
     "longest_tokens_first": true,
     "unknown_policy": "reject",
-    "coverage_gate": "Every unique phone in all four pinned MFA v3 dictionaries must normalize to exactly one inventory unit before H1 media generation."
+    "coverage_gate": "Every normalized phone in the pinned Naia 14-language smoke fixture must map to exactly one inventory unit; full dictionary and visual-equivalence coverage remain separate release gates."
   },
   "source_phone_inventories": {
     "english_mfa_v3": { "sha256": "30da2ad9168290da124369edb8011ebca5e9a6f0d4b0ad5e0fc33fa0fe12ca77" },
@@ -33,15 +33,15 @@
   "phones": {
     "sil": ["sil", "sp", "spn", "<eps>", "|"],
     "closed": ["p", "b", "m", "kp", "ɡb"],
-    "labiodental": ["f", "v", "ɸ", "β", "ɱ"],
+    "labiodental": ["f", "v", "ɸ", "β", "ɱ", "ʋ"],
     "dental": ["θ", "ð"],
-    "alveolar": ["t", "d", "n", "s", "z", "l", "r", "ɾ", "ɹ", "ɭ", "ɫ", "ts", "dz"],
+    "alveolar": ["t", "d", "n", "s", "z", "l", "r", "ɾ", "ɹ", "ɭ", "ɫ", "ɽ", "ʈ", "ts", "dz"],
     "postalveolar": ["tɕ", "dʑ", "tʃ", "dʒ", "ʈʂ", "ʃ", "ʒ", "ɕ", "ʑ", "ʂ", "ʐ", "ɻ"],
     "palatal": ["j", "ɲ", "c", "ɟ", "ç", "ʝ", "ʎ"],
-    "velar": ["k", "g", "ɡ", "ŋ", "ɴ", "x", "ɣ", "q", "ɢ", "ʀ", "χ"],
-    "glottal": ["h", "ɦ", "ʔ"],
+    "velar": ["k", "g", "ɡ", "ŋ", "ɴ", "x", "ɣ", "q", "ɢ", "ʀ", "ʁ", "χ"],
+    "glottal": ["h", "ɦ", "ʔ", "ħ", "ʕ"],
     "vowel-open": ["a", "ä", "ɐ", "ɑ", "ɒ", "æ", "ɶ"],
-    "vowel-mid": ["ə", "ɜ", "ɞ", "ʌ", "ɤ", "ɨ", "ɯ", "ɚ", "ɝ", "ɰ"],
+    "vowel-mid": ["ə", "ɜ", "ɞ", "ʌ", "ɤ", "ɨ", "ɯ", "ᵻ", "ɚ", "ɝ", "ɰ"],
     "vowel-spread": ["i", "ɪ", "e", "ɛ", "ɘ", "aj", "ej", "ɔj"],
     "vowel-round": ["w", "ɥ", "u", "ʊ", "o", "ɔ", "y", "ʏ", "ø", "œ", "ɵ", "ʉ", "aw", "ow", "əw"]
   }
