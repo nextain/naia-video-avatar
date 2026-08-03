@@ -1,22 +1,14 @@
-# 04. Feature Specifications Registry (SPEC) — V-Model 04
+# 04. 기능 설계 Registry (SPEC) — V모델 04
 
-English | [한국어](./INDEX.ko.md)
-
-<!--
-Schema: Single-file registry. Decomposes UCs (02) into implementable feature units (SPECs).
-Traceability: Every SPEC points to ≥1 UC (back-trace) and closes into ≥1 TEST-F (05) (0 orphans).
-Columns = | ID | Derived UC | Feature Summary | Area | Status | TEST-F |
--->
-
-| ID | Derived UC | Feature Summary | Area | Status | TEST-F |
+| ID | 유도 UC | 기능 요약 | area | 상태 | TEST-F |
 |----|---------|-----------|------|------|--------|
-| SPEC-001 | UC-001 | nva manifest JSON Schema (states/transitions/poses/layers/meta) | src/main/nva-schema.json | Done | TEST-F-001 |
-| SPEC-002 | UC-001, UC-003 | nva-core: validateManifest + findTransitionPath + reachableStates + NvaStateMachine | src/main/nva-core.js | Done | TEST-F-001, TEST-F-002 |
-| SPEC-003 | UC-002 | viewer: chroma/alpha layer compositing + state transition playback + head-talking overlay | src/main/viewer.html | Done | TEST-F-003 |
-| SPEC-004 | UC-004 | editor: manifest editing + preview + validation + `.nva` (JSZip) export | src/main/editor.html | Done | TEST-F-004 |
-| SPEC-005 | UC-003 | scenario runner (playScenario) + listScenarios automated scenario playback | src/main (viewer+core) | Done | TEST-F-005 |
-| SPEC-007 | UC-005 | editor: preview button next to clip path input plays selected animation in center player | src/main/editor.html | Done | TEST-F-007 |
-| SPEC-008 | UC-006 | nva-core/editor: new 720×1280 standard with `ditto_region=[104,0,512,512]` default, pixel contract validation & guide display, independent `face_bbox` editing | src/main/nva-core.js + src/main/editor.html | Done | TEST-F-008 |
-| SPEC-009 | UC-007 | editor: in eyedropper mode, converts center canvas coordinates to source video frame pixels to read RGB, applying to `chroma_key` and color input | src/main/editor.html | Done | TEST-F-009 |
-| SPEC-010 | UC-008 | editor: `/health` → `/ref/voices` → `/upload_nva` → `/stream_text` connection pipeline and external reference retention for absolute ref URLs (bundles include relative/local refs only) | src/main/editor.html | Done | TEST-F-010 |
-| SPEC-011 | UC-009 | editor: edit manifest canvas width/height, responsive preview based on true aspect ratio, generate 512×512 `head_image` precisely captured from video's `ditto_region` | src/main/editor.html + src/main/nva-core.js | Done | TEST-F-011 |
+| SPEC-001 | UC-001 | NVA v0.2 manifest JSON Schema와 선택적 발화 자산 참조 계약 | src/main/nva-schema.json | Done | TEST-F-001 |
+| SPEC-002 | UC-001, UC-002 | manifest·경로·자산 존재·번들 크기 검증 | src/main/nva-core.js + src/main/nva-bundle-loader.js | Done | TEST-F-001 |
+| SPEC-003 | UC-002 | 읽기 전용 Player의 NVA 로드와 기본 idle 표시 | src/main/viewer.html + src/main/nva-animation-player.js | Done | TEST-F-003 |
+| SPEC-014 | UC-012 | 완성된 발화 아틀라스와 몸·머리 영상을 오디오 또는 외부 시계로 합성 재생 | src/main/speech-player.js | In-progress | TEST-F-014 |
+| SPEC-015 | UC-012 | SpeechPlan의 오디오 동일성·단조 시간축·품질 모드를 검증하는 소비 계약 | src/main/speech-plan.js | In-progress | TEST-F-015 |
+| SPEC-016 | UC-013 | 브라우저 음성 열거·발화·취소와 approximate 외부 시계 어댑터 | src/main/browser-tts.js + src/main/viewer.html | Done (#14) | TEST-F-017 |
+| SPEC-017 | UC-014 | idle/action 파생과 완료·중단·오류 뒤 idle 복구 | src/main/nva-animation-player.js + src/main/viewer.html | Done (#14) | TEST-F-018 |
+| SPEC-018 | UC-013 | Player 중심 README와 공개 surface guard | README.md + src/test/public-player-surface.test.mjs | Done (#14) | TEST-F-019 |
+| SPEC-019 | UC-015 | 동일 출처 JSON 카탈로그 로더, 샘플 선택 UI, 원격/수동 로드의 단일 수명주기와 최신 요청 우선 처리 | src/main/sample-catalog.js + src/main/viewer.html | Done (#14) | TEST-F-020 |
+| SPEC-020 | UC-015 | 디렉터리형 NVA를 ZIP으로 묶고 기존 `.nva`를 복사해 ignored 카탈로그를 만드는 로컬 준비 도구 | scripts/prepare-local-samples.py | Done (#14) | TEST-F-021 |

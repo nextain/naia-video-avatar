@@ -1,22 +1,11 @@
-# 03. Scenario Tests Registry (TEST-S) — V-Model 03
+# 03. 시나리오 테스트 Registry (TEST-S) — V모델 03
 
-English | [한국어](./INDEX.ko.md)
-
-<!--
-Schema: Single-file registry. System/acceptance tests verifying UCs (02) and NFRs (01).
-Traceability: Every UC closes into ≥1 TEST-S. TEST-S points to ≥1 UC or NFR-REQ (back-trace, 0 orphans).
-Columns = | ID | Target (UC/REQ) | Scenario Summary | Type | test_ref | Status |
--->
-
-| ID | Target (UC/REQ) | Scenario Summary | Type | test_ref | Status |
+| ID | 검증대상(UC/REQ) | 시나리오 요약 | 형태 | test_ref | 상태 |
 |----|------------------|---------------|------|----------|------|
-| TEST-S-001 | UC-001 | Load nva bundle → validateManifest VALID (0 warnings) | Integration (node) | examples/demo.nva + nva-core | Done |
-| TEST-S-002 | UC-002, UC-003 | stand_talk→sit_talk automatically inserts sit_down transition and plays seated pose | Capture (headless) | /var/tmp/nva_dance.png, nva_sit_speak.png | Done |
-| TEST-S-003 | UC-002 | Head-talking mouth overlay at face_bbox + chroma compositing during speaking | Capture (headless) | /var/tmp/nva_sit_speak.png | Done |
-| TEST-S-004 | UC-004 | Editor export → `.nva` (zip) = manifest.json + clips/ ×7 | Capture + unzip | /var/tmp/exported.nva | Done |
-| TEST-S-005 | NFR-001, NFR-002 | Render viewer/editor in browser + static http server without GPU | Capture (playwright) | /tmp/cap.mjs, cap2.mjs | Done |
-| TEST-S-006 | UC-005 | Select `speak` in editor → trigger preview next to clip → center player plays selected clip | Browser + contract (node) | src/test/editor-clip-preview.test.mjs + Playwright test | Done |
-| TEST-S-007 | UC-006 | Display and verify `[104,0,512,512]` region in 720×1280 standard video, maintaining actual face guides separately | Unit + browser | src/test/nva-core.test.mjs + Playwright test | Done |
-| TEST-S-008 | UC-007 | Activate eyedropper in editor → click background pixel of center source video → RGB applied to `chroma_key` and color input, applied immediately to preview | Browser + contract (node) | src/test/editor-chroma-eyedropper.test.mjs + Playwright test (`#267d35`) | Done |
-| TEST-S-009 | UC-008 | Load 8099 editor → connect to default URL 8910 → check ref list / default URL → trigger `안녕하세요, 반가워요.` speech → player receives MP4 with audio, 0 invalid `.../http://...` ref requests | Browser + contract (node) | src/test/editor-ref-url.test.mjs + Playwright E2E (2026-07-15) | Done |
-| TEST-S-010 | UC-009 | Load manifests with aspect ratios different from 720×1280, verifying canvas aspect ratio/coordinates are preserved, and head PNG generated from video frame is 512×512 matching manifest `ditto_region` | Browser + contract (node) | src/test/editor-responsive-canvas.test.mjs + Playwright (`tmp/nva-editor-responsive-canvas.png`) | Done |
+| TEST-S-001 | UC-001, REQ-001, REQ-007 | 정상 NVA는 검증되고 경로 이탈·누락·크기 초과·변조 번들은 거부된다 | Node 통합 | src/test/nva-core.test.mjs + src/test/nva-bundle-loader.test.mjs | Done |
+| TEST-S-002 | UC-002, REQ-004, REQ-007 | NVA 로드 뒤 기본 idle 클립이 디코딩되고 Player에 표시된다 | Chromium | src/test/standalone-player.e2e.py | Done |
+| TEST-S-005 | NFR-001, NFR-002, NFR-005 | 정적 HTTP 서버와 Chromium만으로 Player가 로드되고 외부 서비스 없이 애니메이션을 표시한다 | Chromium | src/test/standalone-player.e2e.py | Done |
+| TEST-S-013 | UC-012, REQ-016 | 올바른 audio+SpeechPlan은 aligned 모드로 재생되고 불일치 입력은 거부되며 오류 뒤 idle로 복귀한다 | Node+Chromium | src/test/speech-plan.test.mjs + src/test/speech-player.test.mjs + src/test/standalone-player.e2e.py | In-progress |
+| TEST-S-016 | UC-013, REQ-018, REQ-019, NFR-005, NFR-009 | 정적 Player에서 mock 브라우저 TTS로 발화·중단하고 approximate 표시, 외부 요청 0건, Editor·생성 실행 파일 부재를 확인한다 | Node+Chromium | src/test/browser-tts.test.mjs + src/test/public-player-surface.test.mjs + src/test/standalone-player.e2e.py | Done (#14) |
+| TEST-S-017 | UC-014, REQ-020 | idle/action 파생과 action 완료·중단·오류 뒤 idle 복귀를 확인한다 | Node+Chromium | src/test/nva-animation-player.test.mjs + src/test/standalone-player.e2e.py | Done (#14) |
+| TEST-S-018 | UC-015, REQ-021, NFR-010 | 로컬 준비 도구가 3개 디렉터리형 NVA와 Alpha 파일을 ignored 경로에 패키징하고, localhost 카탈로그에서 4개를 순서대로 로드해 이름·idle/action·오류 0건을 확인한다. 카탈로그 경로 이탈과 다른 출처 URL은 거부한다 | Python+Node+Chromium | src/test/local-sample-prep.test.py + src/test/sample-catalog.test.mjs + src/test/local-samples.e2e.py | Done (#14) |

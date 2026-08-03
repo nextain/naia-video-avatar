@@ -1,22 +1,10 @@
-# 02. User Scenarios Registry (UC) — V-Model 02
+# 02. 사용자 시나리오 Registry (UC) — V모델 02
 
-English | [한국어](./INDEX.ko.md)
-
-<!--
-Schema: Single-file registry. Status = Draft→Approved→In-progress→Done.
-Traceability: Every UC is derived from ≥1 REQ (01) (back-trace) and closed by ≥1 TEST-S (03) (0 orphans).
-Columns = | ID | Area | Who → What → Why | Derived REQ | Status | TEST-S |
-NFRs (non-functional) do not cascade to UCs; they connect REQ→TEST-S directly.
--->
-
-| ID | Area | Who → What → Why | Derived REQ | Status | TEST-S |
+| ID | 영역 | 누가 → 무엇을 → 왜 | 유도 REQ | 상태 | TEST-S |
 |----|------|--------------------|----------|------|--------|
-| UC-001 | authoring | Character creator bundles clips into an nva bundle and validates it to produce a distributable avatar | REQ-001, REQ-005, REQ-007 | Done | TEST-S-001, TEST-S-004 |
-| UC-002 | playback | Operator plays the avatar via viewer and demonstrates state transitions (standing/sitting/dancing/talking) | REQ-002, REQ-003, REQ-004 | Done | TEST-S-002, TEST-S-003 |
-| UC-003 | directing | Creator/operator specifies directing scenarios (state/event/dialogue sequences) or target states → automatically selects transition paths via pose pathfinding to direct transitions (Authoring guide: flow and timing demonstration) | REQ-002, REQ-008 | Done | TEST-S-002 |
-| UC-004 | sharing | Creator exports edited avatar as a single `.nva` file to share or distribute | REQ-006 | Done | TEST-S-004 |
-| UC-005 | authoring | Creator plays current media immediately next to selected animation clip inputs to verify quality before and after replacement | REQ-009 | Done | TEST-S-006 |
-| UC-006 | authoring | Creator independently designates center-top 512×512 Ditto input region and actual face position within standard 720×1280 video to guarantee unresized compositing | REQ-010 | Done | TEST-S-007 |
-| UC-007 | authoring | Creator clicks eyedropper on source video frame to designate keying color without guessing chroma key colors or manually entering color values | REQ-011 | Done | TEST-S-008 |
-| UC-008 | integration | Creator connects from `http://localhost:8099/src/main/editor.html` to `http://localhost:8910` cascade, selects default ref voice, and verifies numeric sentences as video with audio | REQ-012 | Done | TEST-S-009 |
-| UC-009 | authoring | Creator edits canvas for NVAs with different aspect ratios without distortion, generating matching 512×512 head sources from the selected fixed 512×512 Ditto region | REQ-013 | Done | TEST-S-010 |
+| UC-001 | distribution | 배포자가 공개 규격에 맞는 NVA를 제공해 어떤 호환 Player에서도 구조 검증을 받을 수 있다 | REQ-001, REQ-007 | Done | TEST-S-001 |
+| UC-002 | playback | 사용자가 `.nva`를 열어 기본 idle 영상을 바로 확인한다 | REQ-004, REQ-007 | Done | TEST-S-002 |
+| UC-012 | aligned | 사용자가 오디오와 일치하는 SpeechPlan을 넣어 완성된 NVA 발화 자산을 오디오 시간축으로 재생한다 | REQ-016, NFR-005 | In-progress | TEST-S-013 |
+| UC-013 | standalone | 사용자가 정적 Player에 `.nva`를 열고 텍스트와 브라우저 음성을 선택해 계정·서버·GPU 없이 approximate 발화를 시험한다 | REQ-018, REQ-019, NFR-005, NFR-009 | Done (#14) | TEST-S-016 |
+| UC-014 | action | 사용자가 NVA에 등록된 action을 선택해 재생하고 완료 뒤 idle로 돌아간다 | REQ-020 | Done (#14) | TEST-S-017 |
+| UC-015 | local-samples | 개발자나 검토자가 localhost Player의 샘플 목록에서 Naia·Jina·Minho·Alpha를 차례로 열어 실제 보유 NVA의 idle/action과 메타정보를 확인한다 | REQ-021, NFR-010 | Done (#14) | TEST-S-018 |

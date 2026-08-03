@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NVA Avatar Player</title>
+<style>
+  :root{color-scheme:dark;font-family:system-ui,sans-serif;background:#0b0f16;color:#e6edf3}
+  *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;grid-template-columns:minmax(300px,430px) minmax(320px,1fr)}
+  aside{padding:24px;border-right:1px solid #273246;background:#101722;overflow:auto}main{display:grid;place-items:center;padding:24px;overflow:hidden}
+  h1{font-size:21px;margin:0 0 6px}.sub{font-size:13px;color:#96a4b7;margin:0 0 20px;line-height:1.5}
+  label{display:block;font-size:12px;color:#aebbd0;margin:14px 0 5px}input,textarea,select,button{width:100%;font:inherit;color:inherit}
+  input,textarea,select{border:1px solid #33415a;background:#0b111a;border-radius:7px;padding:9px}textarea{min-height:88px;resize:vertical}
+  button{margin-top:12px;border:0;border-radius:8px;padding:10px;background:#2f6feb;cursor:pointer}button.secondary{background:#273246}button:disabled{opacity:.45;cursor:default}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.section{padding-top:14px;margin-top:16px;border-top:1px solid #273246}
+  #status{white-space:pre-wrap;font:12px/1.5 ui-monospace,monospace;color:#aebbd0;background:#0b111a;border:1px solid #273246;border-radius:8px;padding:10px;margin-top:16px;min-height:70px}
+  .badge{display:inline-block;border-radius:999px;background:#26344b;color:#bcd0ee;padding:3px 9px;font-size:11px;margin-top:10px}.badge.aligned{background:#123d31;color:#72e5bd}.badge.approximate{background:#4a3414;color:#ffd384}
+  .media{display:block;max-width:100%;max-height:calc(100vh - 48px);background:#000;border-radius:14px;box-shadow:0 18px 60px #0009}canvas[hidden],video[hidden]{display:none}
+  details{margin-top:18px;color:#96a4b7;font-size:12px}summary{cursor:pointer;color:#aebbd0}audio{width:100%;margin-top:12px}
+  .offscreen{display:none}@media(max-width:760px){body{display:block}aside{border-right:0;border-bottom:1px solid #273246}main{min-height:50vh}}
+</style>
+</head>
+<body>
+<aside>
+  <h1>NVA Avatar Player</h1>
+  <p class="sub">Open an NVA and speak with the browser's free voice. No account, generation server, Ditto, CUDA, or model runtime is required.</p>
+
+  <label for="nvaFile">NVA avatar</label>
+  <input id="nvaFile" type="file" accept=".nva,.zip,application/zip">
+
+  <label for="sample">Localhost samples</label>
+  <select id="sample" disabled><option value="">Loading sample catalog…</option></select>
+  <button id="loadSample" class="secondary" disabled>Open selected sample</button>
+
+  <div class="section">
+    <label for="speechText">Text</label>
+    <textarea id="speechText">Hello. This NVA avatar is speaking with the browser's built-in voice.</textarea>
+    <label for="voice">Browser voice</label>
+    <select id="voice"><option value="">Loading installed voices…</option></select>
+    <div id="quality" class="badge approximate">browser TTS · approximate lip sync</div>
+    <div class="row"><button id="speak" disabled>Speak</button><button id="stop" class="secondary" disabled>Stop</button></div>
+  </div>
+
+  <div class="section">
+    <label for="action">NVA action</label>
+    <select id="action" disabled><option value="">No actions loaded</option></select>
+    <button id="playAction" class="secondary" disabled>Play action</button>
+  </div>
+
+  <details>
+    <summary>Aligned audio + SpeechPlan</summary>
+    <p>This optional precision path still runs entirely in the Player; an independent audio cascade may supply these two files.</p>
+    <label for="audioFile">Audio</label><input id="audioFile" type="file" accept="audio/*">
+    <label for="planFile">SpeechPlan v1</label><input id="planFile" type="file" accept=".json,application/json">
+    <button id="playAligned" class="secondary" disabled>Play aligned speech</button>
+    <audio id="audio"></audio>
+  </details>
+
+  <div id="status">Choose an NVA avatar.</div>
+</aside>
+<main>
+  <video id="animation" class="media" muted playsinline></video>
+  <canvas id="stage" class="media" width="720" height="1280" aria-label="NVA avatar output" hidden></canvas>
+</main>
+<video id="body" class="offscreen" muted playsinline></video>
+<video id="speechA" class="offscreen" muted playsinline></video>
+<video id="speechB" class="offscreen" muted playsinline></video>
+<script type="module">
+import { BrowserTts, buildBrowserTtsPreviewPlan } from "./browser-tts.js";
+import { LoadCoordinator } from "./load-coordinator.js";
+import { loadNvaBundle } from "./nva-bundle-loader.js";
+import { NvaAnimationPlayer } from "./nva-animation-player.js";
+import { fetchNvaSample, loadSampleCatalog } from "./sample-catalog.js";
+import { SpeechPlayer } from "./speech-player.js";
+
+const get = (id) => document.getElementById(id);
+let bundle = null;
+let animationPlayer = null;
+let speechPlayer = null;
+let speechMode = null;
+const avatarLoads = new LoadCoordinator();
+let speechRun = 0;
+let tts = null;
+
+function setStatus(message, error = false) {
+  get("status").textContent = message;
+  get("status").style.color = error ? "#ff8d8d" : "#aebbd0";
+}
+
+function showAnimation() {
+  get("stage").hidden = true;
+  get("animation").hidden = false;
+}
+
+function showSpeech() {
+  get("animation").hidden = true;
+  get("stage").hidden = false;
+}
+
+function makeSpeechPlayer() {
+  speechPlayer?.dispose();
+  speechPlayer = new SpeechPlayer({
+    audio: get("audio"), canvas: get("stage"), bodyVideo: get("body"),
+    speechVideos: [get("speechA"), get("speechB")],
+    onPlaybackError: (error) => {
+      speechRun += 1;
+      tts?.cancel();
+      void restoreIdle(`Playback failed: ${error.message}`).then(() => {
+        get("status").style.color = "#ff8d8d";
+      });
+    },
+  });
+}
+
+function populateVoices() {
+  if (!tts) return;
+  const current = get("voice").value;
+  const voices = tts.voices();
+  get("voice").replaceChildren(...voices.map((voice) => {
+    const option = document.createElement("option");
+    option.value = voice.voiceURI;
+    option.textContent = `${voice.name} · ${voice.lang}${voice.localService ? " · local" : ""}`;
+    return option;
+  }));
+  if (!voices.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Browser default voice";
+    get("voice").append(option);
+  } else if (voices.some((voice) => voice.voiceURI === current)) {
+    get("voice").value = current;
+  }
+}
+
+try {
+  tts = new BrowserTts();
+  populateVoices();
+  globalThis.speechSynthesis.addEventListener?.("voiceschanged", populateVoices);
+} catch (error) {
+  setStatus(error.message, true);
+}
+
+async function prepareBrowserSpeech() {
+  if (!bundle?.manifest.speech_motion) throw new Error("This NVA has no precomputed speech fragments");
+  makeSpeechPlayer();
+  const result = await speechPlayer.loadExternal({
+    ...bundle,
+    plan: buildBrowserTtsPreviewPlan(),
+  });
+  speechMode = "browser";
+  get("quality").className = "badge approximate";
+  get("quality").textContent = "browser TTS · approximate lip sync";
+  return result;
+}
+
+async function restoreIdle(message = "Ready") {
+  speechPlayer?.stop("complete");
+  showAnimation();
+  await animationPlayer?.playIdle();
+  get("speak").disabled = !bundle?.manifest.speech_motion || !tts;
+  get("stop").disabled = true;
+  setStatus(message);
+}
+
+async function stopAll(message = "Stopped; idle restored.") {
+  speechRun += 1;
+  tts?.cancel();
+  speechPlayer?.stop("cancel");
+  await restoreIdle(message);
+}
+
+async function openNva(loadSource, label) {
+  const { generation, signal } = avatarLoads.begin();
+  get("speak").disabled = true;
+  get("playAction").disabled = true;
+  setStatus(`Loading ${label}…`);
+  try {
+    await stopAll("Loading…");
+    const file = await loadSource(signal);
+    if (!avatarLoads.isCurrent(generation)) return;
+    const loadedBundle = await loadNvaBundle(file);
+    if (!avatarLoads.isCurrent(generation)) return;
+    animationPlayer?.dispose();
+    animationPlayer = new NvaAnimationPlayer(get("animation"));
+    bundle = loadedBundle;
+    const animation = await animationPlayer.load(loadedBundle);
+    if (!avatarLoads.isCurrent(generation)) return;
+    await animationPlayer.playIdle().catch(() => {});
+    get("stage").width = bundle.manifest.canvas.width;
+    get("stage").height = bundle.manifest.canvas.height;
+    get("animation").style.aspectRatio = `${bundle.manifest.canvas.width}/${bundle.manifest.canvas.height}`;
+    get("stage").style.aspectRatio = `${bundle.manifest.canvas.width}/${bundle.manifest.canvas.height}`;
+    get("action").replaceChildren(...animation.actions.map((action) => {
+      const option = document.createElement("option");
+      option.value = action.key;
+      option.textContent = action.label;
+      return option;
+    }));
+    if (!animation.actions.length) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "No actions in this NVA";
+      get("action").append(option);
+    }
+    get("action").disabled = !animation.actions.length;
+    get("playAction").disabled = !animation.actions.length;
+    showAnimation();
+    if (bundle.manifest.speech_motion) await prepareBrowserSpeech();
+    get("speak").disabled = !bundle.manifest.speech_motion || !tts;
+    get("stop").disabled = false;
+    const avatarName = bundle.manifest.meta?.name || label;
+    setStatus(`Ready · ${avatarName} · ${animation.actions.length} actions · browser TTS ${bundle.manifest.speech_motion ? "available" : "blocked: no speech fragments"}`);
+  } catch (error) {
+    if (avatarLoads.isCurrent(generation) && error.name !== "AbortError") setStatus(`Blocked: ${error.message}`, true);
+  }
+}
+
+get("nvaFile").addEventListener("change", () => {
+  const file = get("nvaFile").files[0];
+  if (file) void openNva(async () => file, file.name);
+});
+
+get("loadSample").addEventListener("click", () => {
+  const option = get("sample").selectedOptions[0];
+  if (!option?.value) return;
+  void openNva(
+    (signal) => fetchNvaSample(option.value, { signal }),
+    option.textContent,
+  );
+});
+
+async function prepareSampleCatalog() {
+  const params = new URLSearchParams(location.search);
+  const catalogUrl = params.get("catalog") || new URL("../../examples/catalog.json", location.href).href;
+  try {
+    const samples = await loadSampleCatalog(catalogUrl);
+    get("sample").replaceChildren(...samples.map((sample) => {
+      const option = document.createElement("option");
+      option.value = sample.url;
+      option.textContent = sample.label;
+      return option;
+    }));
+    if (!samples.length) {
+      const option = document.createElement("option");
+      option.textContent = "No samples in catalog";
+      option.value = "";
+      get("sample").append(option);
+    }
+    get("sample").disabled = !samples.length;
+    get("loadSample").disabled = !samples.length;
+  } catch (error) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Samples unavailable — use file picker";
+    get("sample").replaceChildren(option);
+    get("sample").disabled = true;
+    get("loadSample").disabled = true;
+    setStatus(`Sample catalog blocked: ${error.message}. You can still open a local file.`, true);
+  }
+}
+
+void prepareSampleCatalog();
+
+get("speak").addEventListener("click", async () => {
+  const run = ++speechRun;
+  try {
+    if (speechMode !== "browser") await prepareBrowserSpeech();
+    get("speak").disabled = true;
+    get("stop").disabled = false;
+    const done = tts.speak({
+      text: get("speechText").value,
+      voiceURI: get("voice").value,
+      onStart: () => {
+        animationPlayer.stop();
+        showSpeech();
+        void speechPlayer.playExternal(() => tts.currentTimeSeconds()).catch(async (error) => {
+          tts.cancel();
+          await restoreIdle(`Playback failed: ${error.message}`);
+        });
+        setStatus("Speaking with browser TTS · approximate lip sync");
+      },
+    });
+    const { outcome } = await done;
+    if (run !== speechRun) return;
+    await restoreIdle(outcome === "complete" ? "Speech complete; idle restored." : "Speech cancelled; idle restored.");
+  } catch (error) {
+    await restoreIdle(`Browser TTS failed: ${error.message}`);
+    get("status").style.color = "#ff8d8d";
+  }
+});
+
+get("stop").addEventListener("click", () => { void stopAll(); });
+
+get("playAction").addEventListener("click", async () => {
+  try {
+    await stopAll("Starting action…");
+    showAnimation();
+    await animationPlayer.playAction(get("action").value);
+    setStatus(`Playing action: ${get("action").selectedOptions[0].textContent}`);
+  } catch (error) {
+    await restoreIdle(`Action failed: ${error.message}`);
+    get("status").style.color = "#ff8d8d";
+  }
+});
+
+get("animation").addEventListener("ended", () => {
+  if (animationPlayer?.state === "action") setStatus("Action complete; restoring idle.");
+});
+
+function alignedReady() {
+  get("playAligned").disabled = !bundle || !get("audioFile").files[0] || !get("planFile").files[0];
+}
+get("audioFile").addEventListener("change", alignedReady);
+get("planFile").addEventListener("change", alignedReady);
+get("playAligned").addEventListener("click", async () => {
+  try {
+    await stopAll("Preparing aligned speech…");
+    const plan = JSON.parse(await get("planFile").files[0].text());
+    makeSpeechPlayer();
+    const result = await speechPlayer.load({
+      ...bundle, plan, audioBlob: get("audioFile").files[0],
+    });
+    speechMode = "aligned";
+    get("quality").className = `badge ${result.quality_mode}`;
+    get("quality").textContent = `${result.quality_mode} audio clock`;
+    animationPlayer.stop();
+    showSpeech();
+    await speechPlayer.play();
+    setStatus("Playing from the supplied audio clock.");
+  } catch (error) {
+    await restoreIdle(`Aligned playback failed: ${error.message}`);
+    get("status").style.color = "#ff8d8d";
+  }
+});
+get("audio").addEventListener("ended", () => { void restoreIdle("Aligned speech complete; idle restored."); });
+
+window.addEventListener("beforeunload", () => {
+  avatarLoads.cancel();
+  tts?.cancel();
+  speechPlayer?.dispose();
+  animationPlayer?.dispose();
+});
+</script>
+</body>
+</html>

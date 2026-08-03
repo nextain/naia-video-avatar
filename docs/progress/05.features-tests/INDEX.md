@@ -1,22 +1,13 @@
-# 05. Feature Tests Registry (TEST-F) — V-Model 05
+# 05. 기능 테스트 Registry (TEST-F) — V모델 05
 
-English | [한국어](./INDEX.ko.md)
-
-<!--
-Schema: Single-file registry. Integrated test plan verifying SPECs (04).
-Traceability: Every SPEC closes into ≥1 TEST-F. TEST-F points to ≥1 SPEC (back-trace, 0 orphans).
-Columns = | ID | Target SPEC | Test Summary | test_ref | Status |
--->
-
-| ID | Target SPEC | Test Summary | test_ref | Status |
+| ID | 검증 SPEC | 테스트 요약 | test_ref | 상태 |
 |----|-----------|-------------|----------|------|
-| TEST-F-001 | SPEC-001, SPEC-002 | demo.nva manifest → validateManifest VALID, invalid manifest → INVALID | node nva-core (manual verification) | Done |
-| TEST-F-002 | SPEC-002 | findTransitionPath/reachableStates: verify stand→sit_down→sit path, sit→stand_up | node nva-core (manual verification) | Done |
-| TEST-F-003 | SPEC-003 | viewer headless capture: chroma-keyed character + state transition + head-talking | /tmp/cap.mjs (playwright) | Done |
-| TEST-F-004 | SPEC-004 | editor export → unzip = manifest.json + clips ×7 (9 entries) | /tmp/cap2.mjs (playwright) | Done |
-| TEST-F-005 | SPEC-002, SPEC-005 | nva-core unit tests (validation, pose, state machine, scenarios) 18 asserts ALL PASS | src/test/nva-core.test.mjs | Done |
-| TEST-F-007 | SPEC-007 | Clip preview control, multilingual labels, selected animation playback wiring contract + actual browser clicks | src/test/editor-clip-preview.test.mjs + Playwright test | Done |
-| TEST-F-008 | SPEC-008 | Verify new standard values are 720×1280 + `[104,0,512,512]`, Ditto region has integer coordinates, exact 512×512 within canvas, preserved separately from face bbox | src/test/nva-core.test.mjs + Playwright test | Done |
-| TEST-F-009 | SPEC-009 | Eyedropper button, multilingual guidance, source video drawImage/getImageData, coordinate conversion, `chroma_key` save wiring and actual background pixel click verification | src/test/editor-chroma-eyedropper.test.mjs + Playwright test | Done |
-| TEST-F-010 | SPEC-010 | Contract checks verify that absolute cascade ref URLs remain in the manifest and are excluded from the zip file list, while Playwright tests verify 8099→8910 connection, ref selection, speech playback, and zero browser 4xx errors | src/test/editor-ref-url.test.mjs + Playwright E2E (2026-07-15) | Done |
-| TEST-F-011 | SPEC-011 | Contract checks verify canvas input handling, aspect-ratio-based player sizing, and exact 512×512 head generation wiring from `ditto_region`, while Playwright tests load 720×1280 and non-standard aspect ratio NVAs to verify actual canvas dimensions and display ratios | src/test/editor-responsive-canvas.test.mjs + Playwright | Done |
+| TEST-F-001 | SPEC-001, SPEC-002 | 정상/비정상 manifest와 ZIP 경로·크기·압축·필수 자산을 검증한다 | src/test/nva-core.test.mjs + src/test/nva-bundle-loader.test.mjs | Done |
+| TEST-F-003 | SPEC-003 | 실제 Chromium에서 NVA 로드 뒤 idle 영상 표시와 canvas 비율을 확인한다 | src/test/standalone-player.e2e.py | Done |
+| TEST-F-014 | SPEC-014 | 발화 자산 스케줄·prefetch·이중 디코딩·합성·오류 복구를 검증한다 | src/test/speech-*.test.mjs + src/test/standalone-player.e2e.py | In-progress |
+| TEST-F-015 | SPEC-015 | SpeechPlan의 시간축·오디오 해시·aligned/approximate 경계를 검증한다 | src/test/speech-plan.test.mjs | In-progress |
+| TEST-F-017 | SPEC-016 | mock speechSynthesis로 음성 열거, 발화 시작·완료·오류·취소와 approximate 배지를 검증한다 | src/test/browser-tts.test.mjs + src/test/standalone-player.e2e.py | Done (#14) |
+| TEST-F-018 | SPEC-017 | idle/action 파생과 action 종료·오류 뒤 idle 복구를 검증한다 | src/test/nva-animation-player.test.mjs + src/test/standalone-player.e2e.py | Done (#14) |
+| TEST-F-019 | SPEC-018 | 공개 파일 목록과 README에 Player만 있고 Editor·생성 실행 파일이 없음을 검사한다 | src/test/public-player-surface.test.mjs | Done (#14) |
+| TEST-F-020 | SPEC-019 | 카탈로그 스키마·같은 출처 제한·경로 해석·최신 로드 우선과 실제 4개 샘플 UI 로드를 검증한다 | src/test/sample-catalog.test.mjs + src/test/load-coordinator.test.mjs + src/test/local-samples.e2e.py | Done (#14) |
+| TEST-F-021 | SPEC-020 | 입력 디렉터리/파일 검증, 결정론적 ZIP, 절대경로 비노출, ignored 출력과 4개 카탈로그 항목을 검증한다 | src/test/local-sample-prep.test.py | Done (#14) |

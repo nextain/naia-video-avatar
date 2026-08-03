@@ -1,72 +1,132 @@
-# naia-video-avatar (nva)
+# NVA Avatar Player
 
-English | [한국어](READMES/README.ko.md)
+**NVA (Naia Video Avatar)** is an open bundle format and a read-only web Player
+for precomputed video avatars. Open one `.nva` file, type text, and let the
+browser's built-in free TTS speak while the Player composes precomputed speech
+motion. No account, backend, Ditto, CUDA, or AI model is required at playback.
 
-**naia video clip avatar** — A tool-neutral exchange format (nva) for video clip-based talking head avatars, plus authoring tools (editor) and demo.
+The public project deliberately contains the file format, validators, and
+Player only. Avatar authoring, Ditto generation, and quality analysis belong to
+a separate generation service and are not part of this repository.
 
-> Regardless of how the character is created (live-action footage, VRM / MetaHuman renders, or AI video generation), the final deliverable always consists of video clips and metadata.
-> The core of the format lies not in the video files alone, but in representing **clip placement, combination, and sequencing as a state machine** (inheriting game animation state machine concepts).
-> Because there is currently no global open exchange standard for video talking heads (VRM is 3D, Live2D is proprietary 2D, and D-ID/HeyGen are proprietary cloud services), naia defines this **transitional open standard**.
+## What is inside an NVA?
 
-## 📍 Document Index — "What is Where"
+An `.nva` file is a ZIP bundle:
 
-| What | Location |
-|------|------|
-| **Intent & Authoring Guide** | [`docs/nva-format-guide.md`](docs/nva-format-guide.md) |
-| **Format Field Spec** (states/transitions/scenarios/layers) | [`src/main/nva-schema.json`](src/main/nva-schema.json) |
-| **Requirements, UCs, Specs & Tests** (V-model) | [`docs/progress/01~05`](docs/progress/README.md) |
-| **Charter & Structural Rules** | [`AGENTS.md`](AGENTS.md), [`docs/project-structure.md`](docs/project-structure.md) |
-| **Editor Guide** | Upper-right **❔ Intent · Usage · Structure** button in the editor |
-
-## Structure
-
-```
-src/main/
-  nva-schema.json          Format JSON Schema (v0.1)
-  nva-core.js              Validation + state machine + pose graph + scenarios (browser/node isomorphic, canonical logic)
-  editor.html              ★ Authoring tool — resource/structure editing + preview player + .nva export (general-purpose)
-  nva-cascade-adapter.js   cascade (/avatar) adapter (for demo)
-examples/
-  build-sample.sh          ffmpeg dummy box character generator
-  demo.nva/                Sample bundle (manifest.json + clips/ ×7 + scenarios ×4)
-docs/                      Format guide + V-model (progress/01~05)
-src/test/nva-core.test.mjs Unit tests (19 asserts)
+```text
+avatar.nva
+├── manifest.json                 identity, canvas, placement, animations
+├── clips/
+│   ├── idle.webm                 default loop
+│   ├── talking-body.webm         body loop used while speaking
+│   └── wave.webm                 optional action video
+└── speech/                       optional precomputed speech-motion extension
+    ├── neutral-head.png
+    ├── atlas.bin                 indexed transition/context clips
+    ├── atlas-index.json
+    ├── validation-report.json
+    ├── quality-report.json
+    └── provenance.json
 ```
 
-> **The editor (authoring tool) and demo (showcase) are separate components**. The editor is designed for general-purpose nva authoring (character-agnostic), while the demo plays the created nva via cascade.
+The bundle contains video assets and metadata, not a generation model. The
+speech atlas uses 13 language-independent articulation units and is generated
+once before distribution. See the [NVA format guide](docs/nva-format-guide.md)
+for the manifest and packaging contract.
 
-## Format Summary (nva manifest)
-
-- **state**: `talking` (stable talking pose with `face_bbox` defining the head talking region) or `animation` (motion). Comprises video clips and pose metadata.
-- **transition**: Movement clips between poses, transitioning from `entry_pose` (from) to `exit_pose` (to).
-- **scenario**: Directing sequences combining states/events, spoken lines (`say`), and timing (`dwell_ms`), automatically played by the viewer or demo.
-- **Pose continuity**: Transition from A to B is valid ⟺ `A.exit_pose == B.entry_pose` (otherwise a transition clip is automatically inserted).
-- **Layers**: Background (`background`) + Character (alpha / `chroma_key`) + Head talking. Concurrent alpha decodes ≤ 2.
-
-## Usage
+## Run the Player
 
 ```bash
-# Local server (file:// has fetch limitations -> http recommended)
 python3 -m http.server 8099
 ```
-- **Authoring (Editor)**: `http://localhost:8099/src/main/editor.html`
-  → Load demo / Open .nva → +Talking / +Motion / +Transition / +Scenario → Upload clips / edit meta → Preview → **Export .nva**
-  → Built-in guide via the upper-right **❔ Intent · Usage · Structure** button
 
-## Verification
+Open <http://localhost:8099/src/main/viewer.html> and choose an `.nva` file.
+
+The Player also loads the tracked same-origin sample catalog. To inspect private
+NVA files that already exist on your machine, prepare an ignored local catalog:
 
 ```bash
-node src/test/nva-core.test.mjs          # Unit tests (19 asserts)
-node scripts/check-traceability.mjs      # V-model traceability (0 orphans)
+python3 scripts/prepare-local-samples.py \
+  --sample "First avatar=/path/to/first-nva-directory" \
+  --sample "Second avatar=/path/to/second.nva"
 ```
-Editor and demo rendering are verified via headless (Playwright) capture.
 
-## Alpha Channel Notes
+Then open:
 
-Because ffmpeg 8.1 libvpx alpha does not function in this environment (dropping the alpha channel to yuv420p), the dummy sample works around this by using **chroma keying** (`chroma_key`).
-In production deployments, trt (Ditto) generates VP9 yuva420p alpha streams — the format and tools **support both alpha channels and chroma keying**.
+<http://localhost:8099/src/main/viewer.html?catalog=../../examples/.local/catalog.json>
 
-## Rights & License
+The command packages directory-form NVA assets or copies an existing `.nva`.
+`examples/.local/` is ignored by Git, and the catalog records no source paths.
 
-- The format specification, core library, editor, and demo are **naia (nextain) assets**. The specification is licensed under CC-BY-4.0, and the implementation is licensed under Apache-2.0 (scheduled for future open-source release).
-- Character clips included in an nva bundle belong to their respective creators (manifest `meta.owner`). The TTS reference voice is configured independently at runtime outside NVA.
+The default path is fully frontend-only:
+
+```text
+.nva + text → browser speechSynthesis → approximate speech-motion playback
+```
+
+Browser TTS does not normally expose PCM or phoneme timestamps, so this mode is
+honestly labelled `approximate`. It is the zero-account, zero-server open-source
+demo path.
+
+For precise timing, expand **Aligned audio + SpeechPlan** and provide audio with
+its matching timeline:
+
+```text
+independent audio cascade → audio + SpeechPlan → aligned NVA playback
+```
+
+The audio cascade is optional and independent. It produces speech and timing;
+it does not know about NVA files, faces, videos, or Ditto.
+
+## Player capabilities
+
+- Native browser loading of stored or deflated `.nva` ZIP files
+- Manifest, path, expanded-size, atlas range, and content-hash validation
+- Browser-installed TTS voice selection and cancellation
+- Explicit approximate versus aligned quality modes
+- Idle and registered action playback with automatic idle restoration
+- Audio-clock speech composition over the body video
+- Static hosting with no application server
+
+## Public source layout
+
+```text
+src/main/
+  viewer.html                    static Player entry point
+  nva-schema.json                NVA manifest schema
+  nva-core.js                    validation and animation derivation
+  nva-bundle-loader.js           dependency-free ZIP intake
+  nva-animation-player.js        idle/action playback
+  sample-catalog.js              bounded same-origin sample loading
+  load-coordinator.js            latest avatar request wins
+  browser-tts.js                 free browser TTS adapter
+  speech-plan.js                 aligned/approximate timing contract
+  speech-runtime.js              articulation transition scheduler
+  speech-player.js               body/head/speech-layer compositor
+  speech-atlas-*.js              indexed speech asset access
+  speech-browser-runtime.js      browser decoder and canvas composition
+  speech-bundle.js               asset and provenance verification
+  speech-provenance.js           packaged generation-receipt validation
+```
+
+There is intentionally no Editor, Studio, Ditto runner, generation client, or
+video-generation cascade in the public runtime.
+
+## Validation
+
+```bash
+node --test src/test/*.test.mjs
+python3 src/test/local-sample-prep.test.py
+TRACE_PROJECT_ROOT="$PWD" node scripts/check-traceability.mjs --enforce --strict-orphans
+```
+
+The tracked box-character sample under `examples/demo.nva/` demonstrates the
+animation structure. Browser speech requires an NVA containing the optional
+`speech_motion` assets shown above.
+
+## License
+
+- Runtime and validators: Apache License 2.0
+- Format documentation: CC BY 4.0
+- Character media inside an NVA remains under the license declared by that
+  bundle's `meta.owner` and `meta.license` fields.

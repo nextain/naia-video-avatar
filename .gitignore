@@ -6,6 +6,8 @@ node_modules/
 # Build artifacts
 dist/
 build/
+__pycache__/
+*.py[cod]
 *.tsbuildinfo
 *.js.map
 
@@ -19,6 +21,9 @@ naia-agent.env
 # Archive (local only)
 *-old/
 *-archive/
+
+# Prepared local NVA media — source assets and generated bundles stay private
+examples/.local/
 
 # OS
 .DS_Store

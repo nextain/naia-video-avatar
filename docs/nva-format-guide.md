@@ -1,72 +1,79 @@
-# nva Authoring Guide — Creating Diverse Avatar Videos
+# NVA consumer format guide
 
-English | [한국어](./nva-format-guide.ko.md)
+NVA (Naia Video Avatar) is a portable bundle of metadata and already-produced
+avatar media. This public document specifies what a Player may consume. It does
+not specify how faces, speech fragments, or source videos are generated.
 
-> Target audience: Clip creators.
-> Key takeaway: **The box demo serves as a "specification of positions, flows, and timings"**. Simply replacing those slots with **high-quality clips (live-action / deep-real)** yields identical behavior.
+## Bundle layout
 
-## 1. What is nva
+An `.nva` file is a ZIP archive whose root contains `manifest.json`:
 
-**naia video clip avatar** — A **tool-neutral exchange format** for video clip-based talking head avatars.
-Regardless of how the character is created (live-action footage, VRM / MetaHuman renders, or AI video generation), the final deliverable always consists of video clips and metadata (manifest). **The core of the format lies not in the video files alone, but in representing clip placement, combination, and sequencing as a state machine.**
-
-## 2. Immediate Preview (Demo)
-
-In sample bundle `examples/demo.nva`, **4 scenarios are automatically directed** using the box character (facility guide, directions, welcome, goodbye). Visual quality is 0 (a box placeholder), but **the flow, timing, transitions, and subtitles serve directly as the baseline specification**. The editor is available at `…/src/main/editor.html`.
-
-## 3. Structure (`.nva` Bundle)
-
-```
-character.nva/
-  manifest.json      ← Brain: states + transitions + scenarios + layers/meta
-  clips/             ← Video clips (replace these with high-quality clips)
-  heads/             ← Transparent 512×512 head/shoulder reference images for talking
+```text
+avatar.nva
+├── manifest.json
+├── clips/
+│   ├── idle.webm
+│   ├── speaking-body.webm
+│   └── optional-action.webm
+└── speech/                 optional playback extension
+    └── packaged assets referenced by manifest.json
 ```
 
-- **state**: `talking` (stable talking pose with face region defined by `face_bbox`) or `animation` (motion)
-- **transition**: Movement clips between poses (e.g., stand ↔ sit), transitioning from `entry_pose` to `exit_pose`
-- **scenario**: Directing sequences (states/events + spoken lines + timing) played automatically
+Every referenced asset is a relative bundle path. Absolute URLs, drive paths,
+backslashes, `.` and `..` segments are invalid. A Player must apply archive,
+expanded-size, entry-count and path-safety limits before playback.
 
-## 4. Clip Authoring: Upgrading Clip Quality
+## Manifest v0.2
 
-Simply place **high-quality clips adhering to the same specifications** into the box positions; the manifest remains unchanged.
+The normative machine-readable contract is
+[`src/main/nva-schema.json`](../src/main/nva-schema.json). The main fields are:
 
-| Clip | Production Requirements (Seamless) |
-|---|---|
-| `stand_idle` | Standing idle loop — identical first and last frame pose (slight breathing) |
-| `sit_idle` | Sitting idle loop |
-| `sit_down` / `stand_up` | Transition — **starts at standing pose, ends at sitting pose** (must align precisely to prevent jitter) |
-| `wave` / `nod` / `dance` | Motion — **starts and ends in standing pose** (naturally inserted into idle) |
-| (Face region) | Lip-sync at `face_bbox` position during speaking — renderable in real time via Ditto/cascade |
+- `nva_version`: currently `0.2`.
+- `meta`: display name and media ownership/licensing metadata.
+- `canvas`: output width, height and optional frame rate.
+- `animations`: packaged idle, speaking-body and action clips.
+- `scenario`: optional graph that selects an initial idle animation.
+- `speech_motion`: optional, already-produced speech playback assets.
 
-> Core rule: **Each clip must begin and end in the corresponding pose** so that concatenating them produces no seam jumps (game animation seamlessness).
+Animation kinds are inferred from their public playback properties. A looping
+animation that cannot talk is an idle candidate; a looping animation that can
+talk is a speaking-body candidate; a non-looping animation is an action. The
+Player returns to idle after an action, speech, cancellation or playback error.
 
-### Ditto Reference Images for Adult Characters
+## Playback modes
 
-- Ditto input canvas is **always fixed at 512×512**. Do not stretch the NVA full-body canvas or alter subject scale.
-- In `head_image`, do not crop tightly to the head alone; include the **entire head, neck, and both shoulder lines**. For custom PNGs, margins are recommended to avoid edge clipping.
-- Do not include the waist or hands. Cropping the top 512px directly from a full-body adult frame captures down to the waist, which is prohibited.
-- `speak_body` must be a static loop with pixel-locked full-body positioning. `idle` allows natural breathing and minor weight shifts as a separate clip.
-- `face_bbox` maintains the actual head position within the full-body canvas. Do not confuse this with coordinates within the 512×512 `head_image`.
-- For alpha backgrounds, verify per-frame that non-character pixels are strictly 0. Semi-transparent chroma artifacts cause background shimmering during playback.
+The standalone path uses browser `speechSynthesis`. Browsers usually do not
+expose PCM or phoneme timestamps, so the Player labels this mode
+`approximate`. An independent audio system may instead provide audio plus a
+matching `SpeechPlan`; that path is labelled `aligned` after validation.
 
-The editor's **Generate from Video** function captures the manifest's `ditto_region` at exact 1:1 scale without resizing into a 512×512 PNG. If the video aspect ratio differs, specify the actual dimensions in manifest `canvas.width` and `canvas.height`.
+Both paths consume completed NVA assets. They do not run an avatar generation
+model and do not require a GPU.
 
-## 5. Generating Diverse Videos: Combining Scenarios and Clips
+## Local sample catalog
 
-- **New directing**: Add steps (state + line + duration) to `manifest.scenarios` → infinite scenario variations
-- **New motions**: Add clips and animation states (e.g. clapping, pointing)
-- **Background replacement**: Swap the background layer only (character is isolated via alpha or chroma) → the same character appears across different scenes
-- **Character replacement**: Swap the entire bundle while maintaining the identical manifest structure
+Static deployments may publish a same-origin JSON catalog:
 
-→ Once clips are produced, **diverse videos can be generated automatically through scenarios, backgrounds, and clip combinations**.
+```json
+{
+  "version": "1",
+  "samples": [
+    { "label": "Example avatar", "url": "example.nva" }
+  ]
+}
+```
 
-## 6. Current Demo Limitations (Resolved in Production)
+The catalog and every sample URL must resolve to the Player's HTTP origin. The
+Player rejects credentials, fragments, cross-origin URLs, oversized catalogs
+and oversized bundles. Catalog failure does not disable the local file picker.
 
-- **Box character placeholders**: The box character serves only as a placeholder. Visual fidelity is achieved once clips are replaced with live-action or deep-real footage.
-- **Alpha channel handling**: The demo relies on chroma keying as a workaround for ffmpeg alpha limitations in this environment. In production pipelines, VP9 alpha is generated via cascade/Ditto — the format natively accepts both alpha and chroma.
-- **Speech rendering**: The demo uses a mock mouth overlay. Real-time lip-sync is enabled when connected to cascade (`?cascade=/avatar`).
+Private samples can be prepared under the ignored `examples/.local/` directory;
+only generated local filenames and display labels appear in its catalog. Source
+paths and source media are never part of the public repository.
 
-## 7. Rights
+## Public and private boundary
 
-The format specification, viewer, and editor are **naia (nextain) assets** (a transitional open standard). Bundles contain character clips only, while the TTS reference audio is configured independently at runtime outside NVA. The owner of character assets is declared in `meta.owner`.
+The schema, validators and read-only Player are public. Authoring tools,
+generation procedures, model settings, internal quality thresholds and source
+media are outside this repository. Bundle authors retain the rights declared in
+`meta.owner` and `meta.license`.

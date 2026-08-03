@@ -1,7 +1,7 @@
 // nva-core — naia video clip avatar 코어 로직 (브라우저 + node 양용 ESM) — **nva v0.2**
 //
-// 포맷의 진짜 IP: 비디오 파일이 아니라 "클립의 위치·조합·순서" = animations 풀 + scenario 그래프.
-// 의존 0 (순수 JS). 뷰어·에디터·검증기가 공유. cascade(output_cascade/nva_loader.py)와 동일 계약.
+// 공개 소비 계약: animations 풀 + scenario 그래프를 Player와 검증기가 공유한다.
+// 의존 0 (순수 JS). 비공개 생성 서비스와는 완성된 NVA 파일 계약으로만 연결된다.
 //
 // v0.2 모델 (states/transitions 폐기):
 //  - animations{}: 재료 풀. 각 원소 = clip + entry/exit_pose + loop + can_talk + face_bbox.
@@ -13,7 +13,15 @@
 //  - 헤드토킹: ditto_region(픽셀 512²)을 무리사이즈 입력/출력 슬롯으로 쓰고,
 //    face_bbox(정규화)는 그 안의 실제 얼굴 landmark 가이드로 별도 유지한다.
 
+import { SPEECH_UNITS } from "./speech-plan.js";
+
 export const NVA_VERSION = "0.2";
+
+function isBundleRelativePath(value) {
+  if (typeof value !== "string" || !value || value.includes("\\")) return false;
+  if (value.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(value)) return false;
+  return value.split("/").every((part) => part && part !== "." && part !== "..");
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 0. 파생 규칙 헬퍼 (cascade nva_loader.py 와 동일 규칙)
@@ -209,6 +217,35 @@ export function validateManifest(m, opts = {}) {
     W("대기 base 루프(loop & !can_talk & 비전환) 없음 — cascade idle 클립 유도 실패");
   if (animKeys.length && !hasTalk)
     W("말하기 base 루프(loop & can_talk) 없음 — 헤드토킹 대상 없음");
+
+  // Optional GPU-free speech extension. Old v0.2 manifests remain valid.
+  // The player consumes only this language-independent inventory and bundle
+  // references; generation-provider details stay in the provenance receipt.
+  const speech = m.speech_motion;
+  if (speech !== undefined) {
+    if (!speech || typeof speech !== "object" || Array.isArray(speech)) {
+      E("speech_motion은 객체여야 함");
+    } else {
+      if (speech.version !== "1") E('speech_motion.version은 "1"이어야 함');
+      if (speech.representation !== "factorized-difference-layer")
+        E("speech_motion.representation은 factorized-difference-layer여야 함");
+      if (speech.inventory_version !== "1.0.0")
+        E("speech_motion.inventory_version은 1.0.0이어야 함");
+      if (!Array.isArray(speech.inventory)
+        || speech.inventory.length !== SPEECH_UNITS.length
+        || speech.inventory.some((unit, index) => unit !== SPEECH_UNITS[index]))
+        E("speech_motion.inventory는 순서를 포함해 고정 13단위와 같아야 함");
+
+      const paths = ["neutral_head", "atlas", "atlas_index", "validation_report", "quality_report", "provenance"];
+      for (const field of paths) {
+        const path = speech[field];
+        if (!isBundleRelativePath(path))
+          E(`speech_motion.${field}는 번들 내부 상대경로여야 함`);
+        else if (opts.clipFiles && !new Set(opts.clipFiles).has(path))
+          E(`speech_motion.${field} '${path}' 번들에 없음`);
+      }
+    }
+  }
 
   // scenario 그래프
   const scen = m.scenario || {};
