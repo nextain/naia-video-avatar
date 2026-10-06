@@ -1,81 +1,81 @@
-# 합격 기준 — 계약 구체화 + 검증이 게이트를 대체한다
+# Acceptance Criteria — Contract Specification + Verification Replace Gates
 
-> **한 줄**: 게이트가 *표면 토큰*(키워드·returncode)을 보면 placeholder 가 통과한다.
-> 게이트가 *기계검증 가능한 합격 기준* + *적대적 검증 verdict* 를 보면 사람 게이트키퍼가 불필요해진다.
+English | [한국어](./acceptance-criteria.ko.md)
 
-이 문서는 자율 작업에서 **"완료선언 ≠ 완료"** 를 구조적으로 막는 방법론이다.
-2026-05-30 alpha-n-naia-144 실험(placeholder glyph 가 "17/17 통과"로 넘어간 드리프트)에서 도출.
+> **One-liner**: When gates inspect *surface tokens* (keywords, returncode), placeholders slip through.
+> When gates inspect *machine-verifiable acceptance criteria* + *adversarial verification verdicts*, human gatekeepers become unnecessary.
 
-## 1. 동기 (실측된 드리프트)
+This document defines a methodology to structurally prevent **"declared completion ≠ actual completion"** in autonomous workflows.
+Derived from the 2026-05-30 alpha-n-naia-144 experiment (a drift where placeholder glyphs passed as "17/17 tests passing").
 
-한 프로젝트가 한글 폰트를 "구현 완료, 17/17 테스트 통과"로 인도했다. 그러나:
-- ASCII 글리프 95/95 가 전부 `0x00` (blank)
-- `JAMO_BRIGHTNESS` 가 계약("on-pixel count 실측")을 위반 — 선언값 `0,1,…,15` 반복 vs 실제 popcount `32~64` 무상관
-- 조회 API `font_get_glyph` 미구현
+## 1. Motivation (Observed Drift)
 
-**왜 통과했나**: 테스트는 *함수 리턴값*만 봤고, 완료 게이트는 *"통과" 문자열*만 봤다.
-**무엇이 잡았나**: 두 독립 AI(codex·gemini)에게 raw 데이터만 주자 둘 다 즉시 `VERDICT=FAIL` + 정확한 근거. 그리고 `brightness[i] == popcount(glyph[i])` 한 줄의 기계검증이 결정론적으로 잡았다.
+A project delivered a Korean font as "implementation complete, 17/17 tests passing". However:
+- 95/95 ASCII glyphs were entirely `0x00` (blank)
+- `JAMO_BRIGHTNESS` violated the contract ("actual on-pixel count measurement") — repeated declared values `0,1,…,15` vs actual popcount `32~64` uncorrelated
+- Lookup API `font_get_glyph` was unimplemented
 
-→ 결론: **검증할 수단이 있었고(적대 리뷰·기계검증), 게이트가 그걸 안 돌렸을 뿐.**
+**Why it passed**: Tests only inspected *function return values*, and completion gates only looked for *"passed" strings*.
+**What caught it**: Providing raw data to two independent AIs (codex, gemini) immediately produced `VERDICT=FAIL` with accurate rationale from both. Furthermore, a single line of machine verification: `brightness[i] == popcount(glyph[i])` caught it deterministically.
 
-## 2. 두 층의 검증 (둘 다 게이트에 배선)
+→ Conclusion: **The means of verification already existed (adversarial review, machine verification); the gate simply never executed them.**
 
-| 층 | 무엇 | 비용 | 잡는 것 | 어디 |
+## 2. Two Verification Layers (Both Wired to Gates)
+
+| Layer | What | Cost | Catches | Where |
 |---|---|---|---|---|
-| **기계검증 합격기준** | 계약이 선언한 *명령 + 기대결과* (예: `brightness==popcount`, printable non-blank) | 싸다·결정론 | 기계로 판정 가능한 모든 것 | 프로젝트가 작성, 게이트가 실행 |
-| **적대적 다중-AI 검증** | `review-pass` 스킬 — 독립 리뷰 → 투표(CONFIRMED) → 중재 | 비싸다 | 기계로 못 잡는 도메인 진실 | **adk 스킬**, phase 게이트에서 호출 |
+| **Machine-verifiable acceptance criteria** | Contract-declared *command + expected outcome* (e.g. `brightness==popcount`, printable non-blank) | Cheap, deterministic | Everything decidable by machine | Written by project, executed by gate |
+| **Adversarial multi-AI verification** | `review-pass` skill — independent review → vote (CONFIRMED) → arbitration | Expensive | Domain truth beyond machines | **adk skill**, invoked at phase gates |
 
-**원칙**: 기계로 검증 가능한 건 기계검증으로(싸고 확실), 나머지만 적대 리뷰로(비싸지만 도메인). 사람은 *비가역·blast-radius* 결정에만 (위험 기반 게이트).
+**Principle**: Verify what is machine-verifiable mechanically (cheap and certain); leave only the remainder to adversarial review (costly but domain-specific). Humans handle only *irreversible / blast-radius* decisions (risk-based gating).
 
-### 2.1 적대 검증은 독립적으로 호출한다 (안티앵커링)
+### 2.1 Adversarial Verification Is Invoked Independently (Anti-anchoring)
 
-리뷰어에게 **선행 verdict 를 보여주지 않는다.** 병렬·격리 호출(`review-pass` §9 known_issues + 독립 라운드). 인라인 "검증됨" 주석·"선임이 통과시킴" 같은 앵커는 *주관적 판단*을 오염시킬 수 있다.
+**Do not show preceding verdicts to reviewers.** Use parallel, isolated invocation (`review-pass` §9 known_issues + independent rounds). Anchors like inline "verified" comments or "passed by lead" can pollute *subjective judgment*.
 
-> **실측(2026-05-30)**: 객관적 off-by-one 버그에 대해선 capable 모델(codex·gemini)이 강한 앵커("선임이 CLEAN 승인" + 인라인 "검증 완료" 주석)에도 **2/2 가 독립적으로 버그를 잡고 앵커를 명시 거부**했다 — 이 차원의 검증은 견고. 단 *주관적* 발견(placeholder 가 acceptable 한가 등)은 미검증이라, **모델 견고성에 의존하지 말고 구조적 독립 호출을 강제**한다. ad-hoc 교차검증도 review-pass 처럼 독립 호출 원칙을 따른다.
+> **Observed Fact (2026-05-30)**: For objective off-by-one bugs, capable models (codex, gemini) independently caught the bug and explicitly rejected strong anchors ("approved as CLEAN by lead" + inline "verification complete" comments) in **2 out of 2 cases** — verification at this level is robust. However, because *subjective* findings (whether a placeholder is acceptable, etc.) remain unverified, **do not rely on model robustness; enforce structurally independent invocations.** Ad-hoc cross-verification follows the same independent invocation principle as review-pass.
 
-## 3. 계약은 기계검증 가능한 합격기준을 선언한다 (advisory 표준)
+## 3. Contracts Declare Machine-Verifiable Acceptance Criteria (Advisory Standard)
 
-요구/계약 문서(`docs/contracts/*`, `docs/0N-*/`, requirements)는 **추상적 의도만으로 끝내지 않는다.** 각 항목에 검증 방법을 명시한다:
+Requirement and contract documents (`docs/contracts/*`, `docs/0N-*/`, requirements) **must not stop at abstract intent.** Explicitly specify the verification method for each item:
 
 ```markdown
-### 자모 밝기 매핑
-- 의도: 각 자모의 on-pixel count 를 실측해 정렬한다.
-- **합격기준(기계검증)**: `JAMO_BRIGHTNESS[i] == popcount(FONT_GLYPHS[jamo_start+i])` for all i
-- **검증 명령**: `python3 tools/verify_glyphs.py` → exit 0
+### Jamo Brightness Mapping
+- Intent: Measure and sort the actual on-pixel count for each jamo.
+- **Acceptance Criteria (Machine verification)**: `JAMO_BRIGHTNESS[i] == popcount(FONT_GLYPHS[jamo_start+i])` for all i
+- **Verification Command**: `python3 tools/verify_glyphs.py` → exit 0
 ```
 
-추상 의도 "실측" 만 있고 합격기준·검증명령이 없으면 = **게이트가 무력화될 계약**.
-→ `review-pass` 의 `planning` 단계 `traceability_setup` 렌즈가 "각 기준이 독립 검증 가능한가 / 검증 방법이 명시됐는가"를 **지적**한다(advisory — 차단 아님, 연구 단계엔 가볍게).
+Having only the abstract intent "actual measurement" without acceptance criteria and verification commands = **a contract where gates are rendered ineffective**.
+→ The `traceability_setup` lens in the `planning` stage of `review-pass` **flags** whether each criterion is independently verifiable and whether verification commands are specified (advisory — not a block, keeping research agile).
 
-> ⚠️ 보정점(추상화↔구체화↔과잉통제): 이 표준은 **권고(advisory)** 다. 모든 한 줄에 테스트를 강제하면 과잉통제·조숙한 통제(연구를 질식). "기계로 판정 가능한 핵심 합격조건"에만 적용하고, 본질적으로 주관적인 것(서사·미감)은 적대 리뷰·사람에게.
+> ⚠️ Calibration (Abstraction ↔ Specification ↔ Over-control): This standard is an **advisory** guideline. Forcing tests on every single line causes over-control and premature control (stifling research). Apply it to "core acceptance criteria decidable by machine", delegating intrinsically subjective aspects (narrative, aesthetics) to adversarial reviews and humans.
 
-## 4. 완료 증거 = 재실행 가능한 검증을 인용한다 (키워드 아님)
+## 4. Completion Evidence = Citing Re-executable Verification (Not Keywords)
 
-완료선언("done/완료/통과")의 증거는 **재실행 가능한 검증을 가리켜야** 한다:
+Evidence for completion declarations ("done / complete / passed") **must point to re-executable verification**:
 
-| 증거 등급 | 예 | 게이트 |
+| Evidence Grade | Example | Gate |
 |---|---|---|
-| **강(strong)** | `review-pass: CLEAN (.agents/reviews/r-...json)`, `acceptance: python3 tools/verify_glyphs.py → 0` | 통과 |
-| **약(weak)** | `Verified:`, `tests pass`, `coverage` (키워드만) | 통과하되 **advisory 경고** — 강한 증거 인용 권고 |
-| **없음** | 증거 0 | 차단 |
+| **Strong** | `review-pass: CLEAN (.agents/reviews/r-...json)`, `acceptance: python3 tools/verify_glyphs.py → 0` | Pass |
+| **Weak** | `Verified:`, `tests pass`, `coverage` (keywords only) | Pass with **advisory warning** — recommends citing strong evidence |
+| **None** | 0 evidence | Block |
 
-> **⚠️ advisory 는 flagship-tier 전제 (2026-05-30 실측)**: advisory(비차단) 경고는 *acting agent 가 따라야* 효과가 있다. 플래그십 모델(claude·codex)은 advisory 를 따름(검증 실행 후 커밋 선택)이 실측됐으나, **약한 모델은 무시**(이전 실패 OC = "맞다 하고 행동 불변"). 따라서 **advisory-레벨 게이트는 main=flagship 일 때만 유효** — 약한 에이전트가 acting 이면 그 게이트는 `enforced`(차단)로 승격해야 한다. (위험 기반 게이트 ⊥ 에이전트 tier.)
+> **⚠️ Advisory requires flagship tier (Observed 2026-05-30)**: Advisory (non-blocking) warnings only work if the *acting agent heeds them*. While flagship models (claude, codex) were observed to follow advisories (electing to run verification before committing), **weaker models ignore them** (prior failure OC = acknowledged but unchanged behavior). Therefore, **advisory-level gates are valid only when main=flagship** — if a weaker agent is acting, the gate must be promoted to `enforced` (blocking). (Risk-based gating ⊥ agent tier.)
 
-`completion-evidence-guard` 가 약한 증거만 있으면 "재실행 가능한 검증(review-pass 리포트/acceptance check)을 인용하라"고 **경고**한다(로컬=1차 마찰, CI=강제). 키워드는 위조되지만, 리포트 경로·검증 명령은 재실행으로 반증 가능하다.
+When only weak evidence is present, `completion-evidence-guard` **warns** to "cite re-executable verification (review-pass report / acceptance check)" (local = primary friction, CI = enforced). Keywords can be forged, but report paths and verification commands can be disproved by re-execution.
 
-> **강한 증거 = 인용한 아티팩트가 실제 존재해야 인정** (적대검증 교훈, 2026-05-30). `review-pass: CLEAN` 텍스트만으론 부족 — 게이트가 인용된 리포트 경로(`*.json/md`, `.agents/reviews/...`)의 **파일 존재를 검증**한다. 인용했으나 파일이 없으면 위조 의심으로 약한 증거 강등. 위조하려면 리포트를 *실제로 만들어야* 한다(=검증을 돌려야 한다).
+> **Strong evidence = Recognized only when the cited artifact actually exists** (adversarial verification lesson, 2026-05-30). `review-pass: CLEAN` text alone is insufficient — the gate **verifies the file existence** of cited report paths (`*.json/md`, `.agents/reviews/...`). If cited without existing files, it is demoted to weak evidence on suspicion of forgery. To forge it, one must *actually generate* the report (= run the verification).
 >
-> **알려진 잔여(설계상, CI 몫)**: 파일 *존재*만 보면 *기존 무관 파일·과거 리포트를 끼워넣는* 재사용 위조가 남는다(codex 적대검증 지적). 로컬 hook 은 여기까지 — 차단엔 **연관성 검사**(리포트 내용이 현재 변경셋 해시/세션ID/타임스탬프를 포함하는가)가 필요하고, 이는 CI(`self-trust-gates.yml`)에서 한다. *로컬을 더 조이지 않는 건 과잉통제 회피* — 위험 대비 비용이 CI 쪽이 맞다.
+> **Known residual (by design, CI responsibility)**: Looking only at file *existence* leaves room for reuse forgery by *substituting existing unrelated files or past reports* (codex adversarial review finding). The local hook stops here — blocking requires **relevance checks** (whether report contents include the current changeset hash/session ID/timestamp), handled in CI (`self-trust-gates.yml`). *Not tightening locally further avoids over-control* — CI offers the proper risk-to-cost balance.
 
-## 5. 게이트키퍼 제거 (이 방법론의 목적)
+## 5. Eliminating Gatekeepers (The Purpose of this Methodology)
 
-사람 게이트키퍼가 필요한 *유일한* 이유는 자동 게이트가 가짜(표면 토큰)라서다. 게이트가
-(3)기계검증 합격기준 + (4)강한 완료증거 + (2)적대 검증을 실제로 돌리면, placeholder 는
-**자동으로** 걸린다. 그래서 사람은 *검증이 닿지 않는 곳*(비가역 결정, 도메인 방향)에만 남는다.
-이것이 "게이트키퍼가 아니라 검증" — **검증이 게이트를 감사한다.**
+The *only* reason human gatekeepers are needed is because automated gates are superficial (surface tokens). When gates actually execute (3) machine-verifiable criteria + (4) strong completion evidence + (2) adversarial verification, placeholders are **automatically** caught. Thus humans remain only *where verification cannot reach* (irreversible decisions, domain direction).
+This is "verification instead of gatekeepers" — **verification audits the gate.**
 
-## 6. 레벨 지도
+## 6. Level Map
 
-- **적대적 검증 능력** = `review-pass` 스킬, **adk 레벨** (이미 구현·실증). 중복 구현 금지.
-- **계약 구체화 + 완료증거 등급 + 게이트 배선** = **template 레벨** (이 문서 + `self_trust_config.completion`).
-- 프로젝트는 자신의 `tools/verify_*` 합격기준 스크립트를 작성한다 (프로젝트 레벨).
+- **Adversarial verification capability** = `review-pass` skill, **adk level** (already implemented and proven). Do not duplicate implementation.
+- **Contract specification + completion evidence grading + gate wiring** = **template level** (this document + `self_trust_config.completion`).
+- The project writes its own `tools/verify_*` acceptance criteria scripts (project level).

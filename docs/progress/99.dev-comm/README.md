@@ -1,3 +1,5 @@
-# 99. 개발자 의사소통 (ledger)
+# 99. Developer Communication (ledger)
 
-날짜별 진행·검토·설계·이슈 메모. append-only. SDLC registry(01~05)와 분리.
+English | [한국어](./README.ko.md)
+
+Date-based progress, review, design, and issue notes. Append-only. Separated from SDLC registries (01~05).
