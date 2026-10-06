@@ -13,7 +13,6 @@
 | **의도 · 제작 가이드** | [`docs/nva-format-guide.md`](docs/nva-format-guide.md) |
 | **포맷 필드 스펙** (states/transitions/scenarios/레이어) | [`src/main/nva-schema.json`](src/main/nva-schema.json) |
 | **요구·UC·설계·테스트** (V모델) | [`docs/progress/01~05`](docs/progress/) |
-| **cascade 연결**(데모↔naia-omni) | [`docs/cascade-integration.md`](docs/cascade-integration.md) |
 | **헌장 / 구조 규칙** | [`AGENTS.md`](AGENTS.md), [`docs/project-structure.md`](docs/project-structure.md) |
 | **에디터 사용 안내** | 에디터 화면 우상단 **❔ 의도·사용법·구조** 버튼 |
 
@@ -24,12 +23,11 @@ src/main/
   nva-schema.json          포맷 JSON Schema (v0.1)
   nva-core.js              검증 + 상태머신 + 포즈 그래프 + 시나리오 (브라우저·node 양용, 정본 로직)
   editor.html              ★ 제작 도구 — 리소스/구조 편집 + 미리보기 플레이 + .nva export (범용)
-  demo.html                ★ 데모(시연) — nva 시나리오 → cascade 실시간 렌더
   nva-cascade-adapter.js   cascade(/avatar) 연결 어댑터 (데모용)
 examples/
   build-sample.sh          ffmpeg 더미 박스 캐릭터 생성
   demo.nva/                샘플 번들 (manifest.json + clips/ ×7 + 시나리오 4)
-docs/                      포맷 가이드 + cascade 연결 + V모델(progress/01~05)
+docs/                      포맷 가이드 + V모델(progress/01~05)
 src/test/nva-core.test.mjs 단위 테스트 (19 assert)
 ```
 
@@ -52,8 +50,6 @@ python3 -m http.server 8099
 - **제작(에디터)**: `http://localhost:8099/src/main/editor.html`
   → 데모 로드 / .nva 열기 → +말하기·+동작·+전환·+시나리오 → 클립 업로드·메타 편집 → 미리보기 → **.nva export**
   → 화면 우상단 **❔ 의도·사용법·구조** 버튼에 안내 내장
-- **시연(데모)**: `http://localhost:8099/src/main/demo.html?nva=../../examples/demo.nva&cascade=<cascade-url>`
-  → 시나리오 버튼 → nva 시나리오를 cascade가 실시간 렌더 (cascade 없으면 자막만)
 
 ## 검증
 
