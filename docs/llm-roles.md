@@ -40,7 +40,7 @@ The **canonical config** for reviewer panels and tier policy = `naia-adk/naia-se
 |-----|----------|------------------|---------------------|
 | **claude** | `claude -p` (prompt via stdin) | `--model haiku` | `MIRROR_LLM_CLI=claude MIRROR_SUB_MODEL=haiku` |
 | **gemini** | `gemini -p "<prompt>"` | `-m gemini-3.1-flash-lite` (small model — flash-lite, not flash) | `MIRROR_LLM_CLI=gemini` |
-| **codex** | `codex exec "<prompt>"` | `-c model=<available account model>` | `MIRROR_LLM_CLI=codex` (note ChatGPT account model constraints) |
+| **codex** | `codex exec "<prompt>"` | `-c model=<계정 가능 모델>` (a model available to your account) | `MIRROR_LLM_CLI=codex` (note ChatGPT account model constraints) |
 
 > Default: If in claude code environment, `claude -p --model haiku`. `scripts/mirror-translate.mjs` branches based on the above env.
 
