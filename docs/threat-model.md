@@ -33,7 +33,7 @@ As long as the AI has local file write permissions, local hooks do not constitut
 - **Tool dependencies** — Assumes Node.js, Claude Code hooks, and GitHub Actions. Decoupling core verifiers into standalone CLIs and converting hooks into adapters is planned on a separate track.
 
 ## 5. Threat Actor Assumptions
-The baseline assumption is not that "AI makes mistakes", but rather that **"AI may re-interpret or bypass policies to achieve objectives"**. Therefore, policies and evidence are recomputed in zones inaccessible to AI (CI), and evidence must be re-executable.
+The baseline assumption is not that "AI makes mistakes", but rather that **"AI may re-interpret or bypass policies to achieve objectives"**. Therefore, policies and evidence are recomputed in CI, where AI cannot modify them, and evidence must be re-executable.
 
 ## 6. Mandatory Operational Prerequisites (Without Which CI Enforcement Fails)
 - GitHub branch protection / ruleset:

@@ -14,7 +14,7 @@
 |------|------|
 | **의도 · 제작 가이드** | [`docs/nva-format-guide.ko.md`](../docs/nva-format-guide.ko.md) |
 | **포맷 필드 스펙** (states/transitions/scenarios/레이어) | [`src/main/nva-schema.json`](../src/main/nva-schema.json) |
-| **요구·UC·설계·테스트** (V모델) | [`docs/progress/01~05`](../docs/progress/) |
+| **요구·UC·설계·테스트** (V모델) | [`docs/progress/01~05`](../docs/progress/README.ko.md) |
 | **헌장 / 구조 규칙** | [`AGENTS.md`](../AGENTS.md), [`docs/project-structure.ko.md`](../docs/project-structure.ko.md) |
 | **에디터 사용 안내** | 에디터 화면 우상단 **❔ 의도·사용법·구조** 버튼 |
 

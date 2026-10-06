@@ -31,7 +31,7 @@ A project delivered a Korean font as "implementation complete, 17/17 tests passi
 
 ### 2.1 Adversarial Verification Is Invoked Independently (Anti-anchoring)
 
-**Do not expose preceding verdicts to reviewers.** Use parallel, isolated invocations (`review-pass` §9 known_issues + independent rounds). Anchors such as inline "verified" comments or assertions like "passed by lead" can pollute *subjective judgment*.
+**Do not expose preceding verdicts to reviewers.** Use parallel, isolated invocations (`review-pass` §9 known_issues + independent rounds). Anchors such as inline "verified" comments or assertions like "passed by lead" can bias *subjective judgment*.
 
 > **Observed Fact (2026-05-30)**: When presented with objective off-by-one bugs, capable models (codex, gemini) independently caught the bug and explicitly rejected strong anchors ("approved as CLEAN by lead" along with inline "verification complete" comments) in **2 out of 2 cases** — demonstrating that verification at this level is robust. However, because *subjective* findings (such as whether a placeholder is acceptable) remain unverified, **do not rely on model robustness alone; enforce structurally independent invocations.** Ad-hoc cross-verifications must adhere to this same independent invocation principle as `review-pass`.
 
@@ -71,7 +71,7 @@ When only weak evidence is present, `completion-evidence-guard` **warns** the ag
 
 ## 5. Eliminating Gatekeepers (The Purpose of this Methodology)
 
-The *only* reason human gatekeepers are required is because automated gates often inspect only superficial surface tokens. When gates actually execute (3) machine-verifiable acceptance criteria + (4) strong completion evidence + (2) adversarial verification, placeholders are **automatically** caught. Consequently, humans need only step in *where verification cannot reach* (irreversible decisions, overarching domain direction).
+The *only* reason human gatekeepers are required is because automated gates often inspect only surface-level tokens. When gates actually execute (3) machine-verifiable acceptance criteria + (4) strong completion evidence + (2) adversarial verification, placeholders are **automatically** caught. Consequently, humans need only step in *where verification cannot reach* (irreversible decisions, overarching domain direction).
 This embodies "verification instead of gatekeepers" — **verification audits the gate.**
 
 ## 6. Level Map

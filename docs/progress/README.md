@@ -6,7 +6,7 @@ This directory serves two roles:
 
 ## 1. V-Model Traceability Registry (`01`~`05`)
 
-Each stage uses a **single-file INDEX.md registry** (no separate document per item ❌ — prevents documentation explosion).
+Each stage uses a **single-file INDEX.md registry** (no separate document per item ❌ — prevents documentation sprawl).
 
 | Stage | Directory | Deliverable | ID |
 |------|----------|--------|-----|

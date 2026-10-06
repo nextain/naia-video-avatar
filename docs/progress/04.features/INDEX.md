@@ -14,7 +14,7 @@ Columns = | ID | Derived UC | Feature Summary | Area | Status | TEST-F |
 | SPEC-002 | UC-001, UC-003 | nva-core: validateManifest + findTransitionPath + reachableStates + NvaStateMachine | src/main/nva-core.js | Done | TEST-F-001, TEST-F-002 |
 | SPEC-003 | UC-002 | viewer: chroma/alpha layer compositing + state transition playback + head-talking overlay | src/main/viewer.html | Done | TEST-F-003 |
 | SPEC-004 | UC-004 | editor: manifest editing + preview + validation + `.nva` (JSZip) export | src/main/editor.html | Done | TEST-F-004 |
-| SPEC-005 | UC-003 | scenario runner (playScenario) + listScenarios automated directing playback | src/main (viewer+core) | Done | TEST-F-005 |
+| SPEC-005 | UC-003 | scenario runner (playScenario) + listScenarios automated scenario playback | src/main (viewer+core) | Done | TEST-F-005 |
 | SPEC-007 | UC-005 | editor: preview button next to clip path input plays selected animation in center player | src/main/editor.html | Done | TEST-F-007 |
 | SPEC-008 | UC-006 | nva-core/editor: new 720×1280 standard with `ditto_region=[104,0,512,512]` default, pixel contract validation & guide display, independent `face_bbox` editing | src/main/nva-core.js + src/main/editor.html | Done | TEST-F-008 |
 | SPEC-009 | UC-007 | editor: in eyedropper mode, converts center canvas coordinates to source video frame pixels to read RGB, applying to `chroma_key` and color input | src/main/editor.html | Done | TEST-F-009 |

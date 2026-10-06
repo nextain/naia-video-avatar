@@ -4,7 +4,7 @@ English | [한국어](READMES/README.ko.md)
 
 **naia video clip avatar** — A tool-neutral exchange format (nva) for video clip-based talking head avatars, plus authoring tools (editor) and demo.
 
-> Regardless of how the character is created (live-action footage, VRM / MetaHuman renders, or AI video generation), the final deliverable is unified as "video clips + metadata".
+> Regardless of how the character is created (live-action footage, VRM / MetaHuman renders, or AI video generation), the final deliverable always consists of video clips and metadata.
 > The core of the format lies not in the video files alone, but in representing **clip placement, combination, and sequencing as a state machine** (inheriting game animation state machine concepts).
 > Because there is currently no global open exchange standard for video talking heads (VRM is 3D, Live2D is proprietary 2D, and D-ID/HeyGen are proprietary cloud services), naia defines this **transitional open standard**.
 
@@ -14,7 +14,7 @@ English | [한국어](READMES/README.ko.md)
 |------|------|
 | **Intent & Authoring Guide** | [`docs/nva-format-guide.md`](docs/nva-format-guide.md) |
 | **Format Field Spec** (states/transitions/scenarios/layers) | [`src/main/nva-schema.json`](src/main/nva-schema.json) |
-| **Requirements, UCs, Specs & Tests** (V-model) | [`docs/progress/01~05`](docs/progress/) |
+| **Requirements, UCs, Specs & Tests** (V-model) | [`docs/progress/01~05`](docs/progress/README.md) |
 | **Charter & Structural Rules** | [`AGENTS.md`](AGENTS.md), [`docs/project-structure.md`](docs/project-structure.md) |
 | **Editor Guide** | Upper-right **❔ Intent · Usage · Structure** button in the editor |
 
@@ -33,7 +33,7 @@ docs/                      Format guide + V-model (progress/01~05)
 src/test/nva-core.test.mjs Unit tests (19 asserts)
 ```
 
-> **The editor (authoring tool) and demo (showcase) are separated**. The editor is designed for general-purpose nva authoring (character-agnostic), while the demo plays the created nva via cascade.
+> **The editor (authoring tool) and demo (showcase) are separate components**. The editor is designed for general-purpose nva authoring (character-agnostic), while the demo plays the created nva via cascade.
 
 ## Format Summary (nva manifest)
 

@@ -8,11 +8,11 @@ English | [한국어](./nva-format-guide.ko.md)
 ## 1. What is nva
 
 **naia video clip avatar** — A **tool-neutral exchange format** for video clip-based talking head avatars.
-Regardless of how the character is created (live-action footage, VRM / MetaHuman renders, or AI video generation), the final deliverable is unified as "video clips + metadata (manifest)". **The core of the format lies not in the video files alone, but in representing clip placement, combination, and sequencing as a state machine.**
+Regardless of how the character is created (live-action footage, VRM / MetaHuman renders, or AI video generation), the final deliverable always consists of video clips and metadata (manifest). **The core of the format lies not in the video files alone, but in representing clip placement, combination, and sequencing as a state machine.**
 
 ## 2. Immediate Preview (Demo)
 
-In sample bundle `examples/demo.nva`, **4 scenarios are automatically directed** using the box character (facility guide, directions, welcome, goodbye). While the visual quality is minimal (box placeholder), **the flow, timing, transitions, and subtitles serve directly as the baseline specification**. The editor is available at `…/src/main/editor.html`.
+In sample bundle `examples/demo.nva`, **4 scenarios are automatically directed** using the box character (facility guide, directions, welcome, goodbye). Visual quality is 0 (a box placeholder), but **the flow, timing, transitions, and subtitles serve directly as the baseline specification**. The editor is available at `…/src/main/editor.html`.
 
 ## 3. Structure (`.nva` Bundle)
 
@@ -41,7 +41,7 @@ Simply place **high-quality clips adhering to the same specifications** into the
 
 > Core rule: **Each clip must begin and end in the corresponding pose** so that concatenating them produces no seam jumps (game animation seamlessness).
 
-### Ditto Reference Image for Adult-Proportioned Characters
+### Ditto Reference Images for Adult Characters
 
 - Ditto input canvas is **always fixed at 512×512**. Do not stretch the NVA full-body canvas or alter subject scale.
 - In `head_image`, do not crop tightly to the head alone; include the **entire head, neck, and both shoulder lines**. For custom PNGs, margins are recommended to avoid edge clipping.
@@ -61,7 +61,7 @@ The editor's **Generate from Video** function captures the manifest's `ditto_reg
 
 → Once clips are produced, **diverse videos can be generated automatically through scenarios, backgrounds, and clip combinations**.
 
-## 6. Current Demo Limitations (Resolved Post-Production)
+## 6. Current Demo Limitations (Resolved in Production)
 
 - **Box character placeholders**: The box character serves only as a placeholder. Visual fidelity is achieved once clips are replaced with live-action or deep-real footage.
 - **Alpha channel handling**: The demo relies on chroma keying as a workaround for ffmpeg alpha limitations in this environment. In production pipelines, VP9 alpha is generated via cascade/Ditto — the format natively accepts both alpha and chroma.

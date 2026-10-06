@@ -3,7 +3,7 @@
 English | [한국어](./llm-roles.ko.md)
 
 > Defines the standard for which models to use and what tasks to assign or withhold across project scripting, synchronization, and verification.
-> Motivation: Delegating judgment and editing to small models causes **context loss** and breaks consistency (a high risk). Roles are strictly bifurcated.
+> Motivation: Delegating judgment and editing to small models causes **context loss** and breaks consistency (a high risk). Roles are clearly separated.
 
 ## Role Division (Invariant Principles) — 3 Levels
 
@@ -42,7 +42,7 @@ The **canonical config** for reviewer panels and tier policies is `naia-adk/naia
 | **gemini** | `gemini -p "<prompt>"` | `-m gemini-3.1-flash-lite` (small model — flash-lite, not flash) | `MIRROR_LLM_CLI=gemini` |
 | **codex** | `codex exec "<prompt>"` | `-c model=<계정 가능 모델>` (a model available to your account) | `MIRROR_LLM_CLI=codex` (note ChatGPT account model constraints) |
 
-> Default: If in claude code environment, `claude -p --model haiku`. `scripts/mirror-translate.mjs` branches based on the above env.
+> Default: In a Claude Code environment, use `claude -p --model haiku`. `scripts/mirror-translate.mjs` branches based on the above env.
 
 ## Detection Tiers (Obvious Errors Caught Immediately Without LLMs)
 

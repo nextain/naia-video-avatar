@@ -19,14 +19,14 @@ English | [한국어](./project-structure.ko.md)
 | `about-docs/` | **Meta documentation about this canonical repo itself** (descriptions, verification ledgers, experiments). Not payload — excluded from replication in project-create/migration |
 | `benchmark/` | Performance, accuracy, and autonomy benchmarks |
 | `bin/` | CLI entry points |
-| `docs/` | Canonical design documentation (only those registered in this table, sub: `progress/` issue-specific deliverables) |
+| `docs/` | Canonical design documentation (only documents registered in this table; `progress/` contains issue-specific deliverables) |
 | `examples/` | Executable examples |
 | `node_modules/` | Dependencies (gitignored, automatically generated) |
 | `packages/` | Source packages (only those registered in `pnpm-workspace.yaml`) |
-| `quarantine/` | **Quarantine holding** (6th disposition method) — backup of suspected abandoned assets. Actual files are gitignored, only `MANIFEST.json`/`README.md` are tracked. Managed by `scripts/quarantine.mjs` (agents-rules `quarantine_policy`) |
+| `quarantine/` | **Quarantine staging (sixth disposition method)** — backup for suspected abandoned assets. Actual files are gitignored; only `MANIFEST.json`/`README.md` are tracked. Managed by `scripts/quarantine.mjs` (agents-rules `quarantine_policy`) |
 | `READMES/` | Multilingual READMEs |
-| `scripts/` | Build, verification, and operation scripts (sub: `cron/` periodic batch tasks) |
-| `src/` | Source code (sub: `main/` main source, `test/` tests) |
+| `scripts/` | Build, verification, and operation scripts (subdirectories include `cron/` for periodic batch tasks) |
+| `src/` | Source code (subdirectories: `main/` for primary source, `test/` for tests) |
 
 > When adding a new directory, the following order is mandatory: `agents-rules.json` F12 → this table → explicit user approval.
 
