@@ -23,9 +23,9 @@ Empty state (this notice comment only) = SDLC gate bootstrap (warn/permit). Popu
 | NFR-002 | packaging | Viewer and editor are self-contained single HTML files | Done | — | — | TEST-S-005 |
 | NFR-003 | alpha | Character layer accepts both alpha (VP9) and chroma keying | Done | — | — | TEST-S-003 |
 | NFR-004 | deps | Zero runtime dependencies for nva-core (pure JS) | Done | — | — | TEST-F-001 |
-| REQ-008 | scenario | Auto-playback + validation of directing scenarios (state/event/dialogue sequences) | Done | UC-003 | SPEC-005 | TEST-S-002 |
+| REQ-008 | scenario | Automated playback and validation of directing scenarios (state/event/dialogue sequences) | Done | UC-003 | SPEC-005 | TEST-S-002 |
 | REQ-009 | editor | Provide explicit preview control next to animation clip inputs to instantly play current media in the center player | Done | UC-005 | SPEC-007 | TEST-S-006 |
 | REQ-010 | compositing | Use center-top `[104,0,512,512]` of standard 720×1280 video as Ditto speech region, separating exact 512×512 pixel region from actual face guides | Done | UC-006 | SPEC-008 | TEST-S-007 |
 | REQ-011 | editor | Sample chroma key clear color from center source video frames via eyedropper and save immediately to manifest `chroma_key` | Done | UC-007 | SPEC-009 | TEST-S-008 |
-| REQ-012 | cascade | `:8099` editor sends current nva and ref URLs to specified cascade URL (local canonical `:8910`) and plays speech with audio without re-interpreting absolute ref URLs as zip-relative files | Done | UC-008 | SPEC-010 | TEST-S-009 |
-| REQ-013 | editor | Edit manifest canvas width and height with true aspect-ratio preview, generating talking `head_image` as 512×512 PNG matching manifest `ditto_region` | Done | UC-009 | SPEC-011 | TEST-S-010 |
+| REQ-012 | cascade | The `:8099` editor sends current nva and ref URLs to specified cascade URL (local canonical `:8910`) and plays speech with audio without re-interpreting absolute ref URLs as zip-relative files | Done | UC-008 | SPEC-010 | TEST-S-009 |
+| REQ-013 | editor | Edit manifest canvas width and height with true aspect-ratio preview, generating talking `head_image` as a 512×512 PNG matching manifest `ditto_region` | Done | UC-009 | SPEC-011 | TEST-S-010 |

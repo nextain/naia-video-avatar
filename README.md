@@ -4,9 +4,9 @@ English | [한국어](READMES/README.ko.md)
 
 **naia video clip avatar** — A tool-neutral exchange format (nva) for video clip-based talking head avatars, plus authoring tools (editor) and demo.
 
-> Regardless of how the character is created (live action footage / VRM·MetaHuman render / AI video generation), the final deliverable is unified as "video clips + metadata".
-> The core of the format is not just the video files, but the **clip placement, combination, and order = state machine** (inheriting game animation state machine concepts).
-> As there is currently no global open exchange standard for video talking heads (VRM is 3D, Live2D is 2D proprietary, D-ID/HeyGen are cloud proprietary), naia defines this **transitional open standard**.
+> Regardless of how the character is created (live-action footage, VRM / MetaHuman renders, or AI video generation), the final deliverable is unified as "video clips + metadata".
+> The core of the format lies not in the video files alone, but in representing **clip placement, combination, and sequencing as a state machine** (inheriting game animation state machine concepts).
+> Because there is currently no global open exchange standard for video talking heads (VRM is 3D, Live2D is proprietary 2D, and D-ID/HeyGen are proprietary cloud services), naia defines this **transitional open standard**.
 
 ## 📍 Document Index — "What is Where"
 
@@ -33,14 +33,14 @@ docs/                      Format guide + V-model (progress/01~05)
 src/test/nva-core.test.mjs Unit tests (19 asserts)
 ```
 
-> **Editor (authoring tool) ↔ Demo (showcase) are separated**. The editor is for general-purpose nva authoring (character-agnostic), while the demo runs the created nva via cascade.
+> **The editor (authoring tool) and demo (showcase) are separated**. The editor is designed for general-purpose nva authoring (character-agnostic), while the demo plays the created nva via cascade.
 
 ## Format Summary (nva manifest)
 
-- **state**: `talking` (stable talking pose, `face_bbox` = head talking region) / `animation` (motion). Clip + pose metadata.
-- **transition**: Inter-pose movement clips. `entry_pose` (from) → `exit_pose` (to).
-- **scenario**: Directing sequence — states/events + spoken lines (`say`) + timing (`dwell_ms`). Auto-played by viewer/demo.
-- **Pose continuity**: A → B possible ⟺ `A.exit_pose == B.entry_pose` (otherwise transition is automatically inserted).
+- **state**: `talking` (stable talking pose with `face_bbox` defining the head talking region) or `animation` (motion). Comprises video clips and pose metadata.
+- **transition**: Movement clips between poses, transitioning from `entry_pose` (from) to `exit_pose` (to).
+- **scenario**: Directing sequences combining states/events, spoken lines (`say`), and timing (`dwell_ms`), automatically played by the viewer or demo.
+- **Pose continuity**: Transition from A to B is valid ⟺ `A.exit_pose == B.entry_pose` (otherwise a transition clip is automatically inserted).
 - **Layers**: Background (`background`) + Character (alpha / `chroma_key`) + Head talking. Concurrent alpha decodes ≤ 2.
 
 ## Usage
@@ -63,10 +63,10 @@ Editor and demo rendering are verified via headless (Playwright) capture.
 
 ## Alpha Channel Notes
 
-ffmpeg 8.1 libvpx alpha is inactive in this environment (drops to yuv420p) → the dummy sample works around this using **chroma keying** (`chroma_key`).
-Production deployments generate VP9 yuva420p alpha via trt (Ditto) — the format and tools **support both alpha and chroma keying**.
+Because ffmpeg 8.1 libvpx alpha does not function in this environment (dropping the alpha channel to yuv420p), the dummy sample works around this by using **chroma keying** (`chroma_key`).
+In production deployments, trt (Ditto) generates VP9 yuva420p alpha streams — the format and tools **support both alpha channels and chroma keying**.
 
 ## Rights & License
 
-- Format specification + core/editor/demo = **naia (nextain) assets**. Spec = CC-BY-4.0 / Implementation = Apache-2.0. (Scheduled for future open-source release)
-- Character clips included in an nva bundle = author's assets (manifest `meta.owner`). The TTS reference voice is an independent runtime setting outside NVA.
+- The format specification, core library, editor, and demo are **naia (nextain) assets**. The specification is licensed under CC-BY-4.0, and the implementation is licensed under Apache-2.0 (scheduled for future open-source release).
+- Character clips included in an nva bundle belong to their respective creators (manifest `meta.owner`). The TTS reference voice is configured independently at runtime outside NVA.

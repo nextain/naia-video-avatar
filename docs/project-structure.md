@@ -3,8 +3,8 @@
 English | [한국어](./project-structure.ko.md)
 
 > **SoT**: `.agents/context/agents-rules.json` F12/F13
-> Always check registry status in this document before creating new files/folders.
-> Unregistered resources → **deleted** by `scripts/enforce-root-structure.sh --fix`.
+> Always verify whether resources are registered in this document before creating new files or directories.
+> Any unregistered resource will be **deleted** by `scripts/enforce-root-structure.sh --fix`.
 
 ---
 
@@ -28,7 +28,7 @@ English | [한국어](./project-structure.ko.md)
 | `scripts/` | Build, verification, and operation scripts (sub: `cron/` periodic batch tasks) |
 | `src/` | Source code (sub: `main/` main source, `test/` tests) |
 
-> When adding a new directory: `agents-rules.json` F12 → this table → user approval order is mandatory.
+> When adding a new directory, the following order is mandatory: `agents-rules.json` F12 → this table → explicit user approval.
 
 ---
 
@@ -53,19 +53,19 @@ English | [한국어](./project-structure.ko.md)
 | `README.template.md` | README skeleton for new projects (used as README.md in create/migration) |
 | `CHANGELOG.md` | Change log |
 
-> When adding a new file: `agents-rules.json` F13 → this table → user approval order is mandatory.
+> When adding a new file, the following order is mandatory: `agents-rules.json` F13 → this table → explicit user approval.
 
 ---
 
 ## Registered Packages (Package Registry)
 
-Packages under `packages/` can only be created if registered in `pnpm-workspace.yaml`.
+Packages under `packages/` may only be created if registered in `pnpm-workspace.yaml`.
 
 Procedure for adding a new package:
 1. Edit `pnpm-workspace.yaml` first
-2. Update `agents-rules.json` package list
-3. Add to this table
-4. Create actual folder/files after user approval
+2. Update the package list in `agents-rules.json`
+3. Add the package to this table
+4. Create the actual directory and files only after receiving explicit user approval
 
 | Package Directory | npm name | Layer | Description |
 |--------------|----------|------|------|
@@ -75,12 +75,12 @@ Procedure for adding a new package:
 
 ## Canonical Documents (Doc Registry)
 
-Documents under `docs/` must be registered in the `AGENTS.md` Canonical Design Documents table.
+Only documents registered in the Canonical Design Documents table of `AGENTS.md` are permitted under `docs/`.
 
 Procedure for adding a new document:
-1. Add to `AGENTS.md` Canonical Design Documents table first
-2. Add to this table
-3. Create actual file after user approval
+1. Add the document to the Canonical Design Documents table in `AGENTS.md` first
+2. Add the document to this table
+3. Create the actual file only after receiving explicit user approval
 
 | File | Role |
 |------|------|
