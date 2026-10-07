@@ -11,3 +11,5 @@
 | SPEC-019 | UC-015 | 동일 출처 JSON 카탈로그 로더, 샘플 선택 UI, 원격/수동 로드의 단일 수명주기와 최신 요청 우선 처리 | src/main/sample-catalog.js + src/main/viewer.html | Done (#14) | TEST-F-020 |
 | SPEC-020 | UC-015 | 디렉터리형 NVA를 ZIP으로 묶고 기존 `.nva`를 복사해 ignored 카탈로그를 만드는 로컬 준비 도구 | scripts/prepare-local-samples.py | Done (#14) | TEST-F-021 |
 | SPEC-021 | UC-016 | 기존 v0.2 입력과 완성 발화 영상을 공개 v0.3 소비 패키지로 정리하는 결정론적 패키징 도구 | scripts/build-final-nva.py | Done (#14) | TEST-F-022 |
+| SPEC-022 | UC-017, UC-018 | v0.3 completed-media 검증과 v0.2 `locale` 읽기 호환을 포함한 안전한 NVA 번들 로드 | src/main/nva-schema.json + src/main/nva-core.js + src/main/nva-bundle-loader.js | Done (#16) | TEST-F-023 |
+| SPEC-023 | UC-017, UC-019 | 파일·공개 샘플 열기, 대기·발화·동작 재생, 배경 미리보기만 제공하는 단순 서비스 Player | src/main/viewer.html + src/main/nva-animation-player.js | Done (#16) | TEST-F-024 |

@@ -222,7 +222,8 @@ export function validateManifest(m, opts = {}) {
         else if (opts.clipFiles && !new Set(opts.clipFiles).has(speech.clip))
           E(`speech_clips.${key}.clip '${speech.clip}' 번들에 없음`);
         if (speech.audio !== "embedded") E(`speech_clips.${key}.audio는 embedded여야 함`);
-        if (typeof speech.language !== "string" || !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(speech.language))
+        const speechLanguage = completedMedia ? speech.language : (speech.language ?? speech.locale);
+        if (typeof speechLanguage !== "string" || !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(speechLanguage))
           E(`speech_clips.${key}.language은 BCP 47 언어 태그여야 함`);
         if (typeof speech.label !== "string" || !speech.label.trim())
           E(`speech_clips.${key}.label은 비어 있지 않은 문자열이어야 함`);

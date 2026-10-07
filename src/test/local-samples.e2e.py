@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import json
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -29,9 +30,13 @@ with sync_playwright() as playwright:
     url = f"{BASE_URL}/src/main/viewer.html?catalog=../../examples/.local/catalog.json"
     page.goto(url)
     page.wait_for_load_state("networkidle")
-    page.wait_for_function("document.querySelectorAll('#sample option').length === 4", timeout=10_000)
+    expected_labels = [sample["label"] for sample in json.loads(CATALOG.read_text())["samples"]]
+    page.wait_for_function(
+        "count => document.querySelectorAll('#sample option').length === count",
+        arg=len(expected_labels), timeout=10_000,
+    )
     labels = page.locator("#sample option").all_inner_texts()
-    assert [label.split(" — ")[0] for label in labels] == ["Jina", "Minho", "Naia", "Alpha"], labels
+    assert [label.split(" — ")[0] for label in labels] == expected_labels, labels
 
     statuses: list[str] = []
     for index, label in enumerate(labels):
@@ -60,6 +65,6 @@ with sync_playwright() as playwright:
     page.screenshot(path="/var/tmp/nva-player-local-samples.png", full_page=True)
     browser.close()
 
-print("PASS: opened and played completed speech for Jina, Minho, Naia and Alpha")
+print("PASS: opened and played completed speech for every local sample")
 for value in statuses:
     print(value)

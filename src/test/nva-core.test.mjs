@@ -69,6 +69,23 @@ test("existing v0.2 manifests remain readable", () => {
   assert.equal(derive(legacy).talkKey, "talk");
 });
 
+test("v0.2 accepts the legacy speech locale alias but v0.3 requires language", () => {
+  const legacy = completedManifest();
+  legacy.nva_version = "0.2";
+  delete legacy.profile;
+  legacy.animations.talk = { clip: "clips/talk.webm", loop: true, can_talk: true };
+  legacy.speech_clips.hello.locale = legacy.speech_clips.hello.language;
+  delete legacy.speech_clips.hello.language;
+  assert.equal(validateManifest(legacy).ok, true);
+
+  const current = completedManifest();
+  current.speech_clips.hello.locale = current.speech_clips.hello.language;
+  delete current.speech_clips.hello.language;
+  const validation = validateManifest(current);
+  assert.equal(validation.ok, false);
+  assert.match(validation.errors.join("\n"), /speech_clips\.hello\.language/);
+});
+
 test("scenario and pose helpers preserve deterministic playback order", () => {
   const manifest = completedManifest();
   assert.equal(isTransition(manifest.animations.raise), true);

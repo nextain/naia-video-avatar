@@ -63,7 +63,12 @@ def build_fixture(path: Path, temporary: Path) -> None:
 with tempfile.TemporaryDirectory(prefix="nva-player-e2e-") as temporary_name:
     temporary = Path(temporary_name)
     fixture = temporary / "completed-player.nva"
+    background = temporary / "background.png"
     build_fixture(fixture, temporary)
+    subprocess.run([
+        "ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
+        "color=c=0x123456:s=32x32", "-frames:v", "1", str(background),
+    ], check=True)
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         page = browser.new_page(viewport={"width": 1280, "height": 900})
@@ -86,6 +91,13 @@ with tempfile.TemporaryDirectory(prefix="nva-player-e2e-") as temporary_name:
         assert page.locator("#animation").evaluate("video => video.muted === false && video.loop === false")
         page.locator("#status").filter(has_text="Playback complete; idle restored.").wait_for(timeout=10_000)
         assert page.locator("#animation").evaluate("video => video.muted === true && video.loop === true")
+
+        page.locator("#backgroundColor").evaluate("element => { element.value = '#123456'; element.dispatchEvent(new Event('input', { bubbles: true })); }")
+        assert page.locator("#stage").evaluate("element => element.style.backgroundColor") == "rgb(18, 52, 86)"
+        page.locator("#backgroundImage").set_input_files(str(background))
+        assert page.locator("#stage").evaluate("element => String(element.style.backgroundImage).startsWith('url(\"blob:')")
+        page.locator("#clearBackground").click()
+        assert page.locator("#stage").evaluate("element => element.style.backgroundImage") == "none"
 
         page.locator("#playAction").click()
         page.locator("#status").filter(has_text="Playing action").wait_for(timeout=5_000)
