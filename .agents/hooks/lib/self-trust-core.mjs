@@ -99,10 +99,11 @@ function escapeRe(s) {
 	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// 키워드 매칭: ASCII는 단어경계(\b), CJK/한글 등 비-ASCII는 부분일치(\b가 작동 안 하므로)
+// 키워드 매칭: ASCII는 단어경계, CJK/한글 등 비-ASCII는 부분일치(\b가 작동 안 하므로)
+// ASCII 경계는 하이픈도 단어 일부로 본다 — `completed-media` 같은 식별자를 완료선언으로 읽지 않는다.
 function keywordHit(text, kw) {
 	const k = kw.normalize("NFC");
-	if (/^[\x00-\x7F]+$/.test(k)) return new RegExp(`\\b${escapeRe(k)}\\b`, "i").test(text);
+	if (/^[\x00-\x7F]+$/.test(k)) return new RegExp(`(?<![\\w-])${escapeRe(k)}(?![\\w-])`, "i").test(text);
 	return text.includes(k);
 }
 
