@@ -78,6 +78,9 @@ test("v0.2 accepts the legacy speech locale alias but v0.3 requires language", (
   delete legacy.speech_clips.hello.language;
   assert.equal(validateManifest(legacy).ok, true);
 
+  legacy.speech_clips.hello.locale = "not a tag!";
+  assert.ok(validateManifest(legacy).errors.some((e) => e.startsWith("speech_clips.hello.locale")));
+
   const current = completedManifest();
   current.speech_clips.hello.locale = current.speech_clips.hello.language;
   delete current.speech_clips.hello.language;

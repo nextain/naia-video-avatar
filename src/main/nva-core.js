@@ -222,9 +222,13 @@ export function validateManifest(m, opts = {}) {
         else if (opts.clipFiles && !new Set(opts.clipFiles).has(speech.clip))
           E(`speech_clips.${key}.clip '${speech.clip}' 번들에 없음`);
         if (speech.audio !== "embedded") E(`speech_clips.${key}.audio는 embedded여야 함`);
+        // v0.2 packages used `locale`; v0.3 renamed it to `language`. The alias
+        // is read-only so existing NVA files still open, while newly authored
+        // v0.3 packages stay on the public contract.
         const speechLanguage = completedMedia ? speech.language : (speech.language ?? speech.locale);
+        const languageField = !completedMedia && speech.language === undefined ? "locale" : "language";
         if (typeof speechLanguage !== "string" || !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(speechLanguage))
-          E(`speech_clips.${key}.language은 BCP 47 언어 태그여야 함`);
+          E(`speech_clips.${key}.${languageField}은 BCP 47 언어 태그여야 함`);
         if (typeof speech.label !== "string" || !speech.label.trim())
           E(`speech_clips.${key}.label은 비어 있지 않은 문자열이어야 함`);
         if (speech.text !== undefined && (typeof speech.text !== "string" || speech.text.length > 10_000))
