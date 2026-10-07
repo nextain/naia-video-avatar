@@ -1,75 +1,70 @@
-# nva 제작 가이드 — 다양한 아바타 영상을 이렇게 만든다
+# NVA v0.3 completed-media 포맷
 
 [English](./nva-format-guide.md) | 한국어
 
-> 대상: 클립 제작자.
-> 요지: **박스 데모는 "자리·흐름·타이밍 명세"**다. 그 자리에 **고품질 클립(실사/딥리얼)만 교체**하면 동일하게 동작한다.
+NVA 파일은 브라우저가 GPU 추론 없이 재생할 수 있는 ZIP 아카이브입니다. 버전 0.3은
+배포용 포맷으로, 모든 발화와 애니메이션 미디어가 패키징 전에 이미 완성되어 있습니다.
 
-## 1. nva란
+## 필수 manifest 필드
 
-**naia video clip avatar** — 비디오 클립 기반 토킹헤드 아바타의 **도구 중립 교환 포맷**.
-캐릭터를 무엇으로 만들든(실사 촬영 / VRM·메타휴먼 렌더 / AI 영상생성) 최종 산출은
-"비디오 클립 + 메타(manifest)"로 통일된다. **포맷의 핵심은 비디오 파일이 아니라
-클립의 위치·조합·순서 = 상태머신**이다.
-
-## 2. 지금 보기 (데모)
-
-샘플 번들 `examples/demo.nva` — 박스 캐릭터로 **시나리오 4개가 자동 연출**된다(시설 안내·길 안내·환영·작별).
-품질은 0(박스)이지만 **흐름·타이밍·전환·자막이 그대로 명세**다. 에디터: `…/src/main/editor.html`.
-
-## 3. 구조 (`.nva` 번들)
-
+```json
+{
+  "nva_version": "0.3",
+  "profile": "completed-media",
+  "meta": {
+    "name": "Example avatar",
+    "delivery": { "kind": "completed-media", "realtime": false }
+  },
+  "canvas": { "width": 720, "height": 1280, "fps": 25 },
+  "background": { "type": "transparent" },
+  "animations": {
+    "idle": { "clip": "clips/idle.webm", "loop": true, "label": "Idle" },
+    "wave": { "clip": "clips/wave.webm", "loop": false, "label": "Wave" }
+  },
+  "speech_clips": {
+    "hello-ko": {
+      "clip": "speech/hello-ko.mp4",
+      "audio": "embedded",
+      "language": "ko-KR",
+      "label": "Korean greeting",
+      "duration_ms": 4480
+    }
+  },
+  "scenario": {
+    "nodes": {
+      "start": { "type": "start" },
+      "idle": { "type": "scene", "animation": "idle" }
+    },
+    "edges": [{ "from": "start", "to": "idle" }]
+  }
+}
 ```
-character.nva/
-  manifest.json      ← 두뇌: states + transitions + scenarios + 레이어/메타
-  clips/             ← 비디오 클립들 (여기를 고품질로 교체)
-  heads/             ← 말하기용 투명 512×512 머리·어깨 기준 이미지
-```
 
-- **state**: `talking`(말하기 가능 안정 포즈, 얼굴 영역=face_bbox) / `animation`(동작)
-- **transition**: 포즈 간 이동 클립 (서기↔앉기). `entry_pose`→`exit_pose`
-- **scenario**: 연출 시퀀스 (상태/이벤트 + 대사 + 타이밍) — 자동 재생
+## 재생 규칙
 
-## 4. 클립 제작 = 클립만 고품질로
+- 애니메이션 중 하나 이상은 idle 루프(`loop: true`)여야 합니다.
+- 발화 클립은 음성이 내장된 완성 MP4 또는 WebM입니다.
+- Player는 idle과 action 미디어를 음소거로, 발화 미디어를 음성과 함께 재생합니다.
+- action이나 발화 영상이 끝나거나 실패하면 Player는 idle로 돌아갑니다.
+- `language`는 `ko-KR`, `en-US`, `ja-JP` 같은 BCP 47 태그를 사용합니다.
+- 모든 경로는 ZIP 내부 상대 경로입니다. 절대 경로, URL, 역슬래시, `..` 구간은
+  거부됩니다.
 
-박스 자리에 **동일 규격의 고품질 클립**을 넣으면 끝. manifest는 그대로.
+## 제한
 
-| 클립 | 제작 요건 (seamless) |
-|---|---|
-| `stand_idle` | 서서 대기 루프 — 첫·끝 프레임 동일 포즈(호흡 정도) |
-| `sit_idle` | 앉아서 대기 루프 |
-| `sit_down` / `stand_up` | 전환 — **시작=서기 포즈, 끝=앉기 포즈**(정확히 맞아야 튐 없음) |
-| `wave` / `nod` / `dance` | 동작 — **서기 포즈에서 시작·끝**(idle에 자연 삽입) |
-| (얼굴 영역) | speaking 시 face_bbox 위치에 립싱크 — Ditto/cascade가 실시간 렌더 가능 |
+- 아카이브와 압축 해제 후 내용: 최대 100 MiB
+- 파일 수: 최대 512개
+- manifest: 최대 1 MiB
+- 발화 텍스트 메타데이터: 최대 10,000자
 
-> 핵심 규칙: **각 클립은 해당 포즈에서 시작하고 끝나야** 이어 붙일 때 튀지 않는다(게임 애니메이션 seamless).
+## 공개 범위
 
-### 성인형 캐릭터의 Ditto 기준 이미지
+이 포맷은 완성된 미디어와 재생 메타데이터만 기술합니다. 아바타, 발화 영상, 음성,
+타이밍, 입 움직임을 어떻게 만드는지는 정의하지 않습니다. 실시간 생성이 필요한
+애플리케이션은 공개 Player 계약을 확장하지 말고 별도의 비공개 런타임을 사용하세요.
 
-- Ditto 입력 캔버스는 **항상 512×512**로 고정한다. NVA 전신 캔버스를 늘이거나 인물 크기를 바꾸지 않는다.
-- `head_image`에는 머리만 꽉 채우지 말고 **머리 전체·목·양쪽 어깨선**이 보이게 넣는다. 별도 제작한 PNG는 가장자리 절단을 피할 여백을 권장한다.
-- 허리와 손은 포함하지 않는다. 성인 전신에서 상단 512px를 그대로 자르면 허리까지 들어가므로 금지한다.
-- `speak_body`는 전신 위치가 픽셀 단위로 고정된 정지 루프여야 한다. `idle`은 별도 클립으로 자연스러운 호흡·작은 체중 이동을 허용한다.
-- `face_bbox`는 전신 캔버스 안의 실제 머리 위치를 유지한다. `head_image`의 512 좌표와 혼동하지 않는다.
-- 알파 배경은 인물 바깥 픽셀이 완전한 0인지 프레임별로 확인한다. 반투명 크로마 잔여값은 재생 중 배경 지글거림을 만든다.
+## v0.2 호환성
 
-에디터의 **영상에서 생성** 기능은 manifest의 `ditto_region`을 리사이즈 없이 정확히 캡처해 512×512 PNG로 만든다. 영상 비율이 다르면 manifest의 `canvas.width`와 `canvas.height`를 실제 값으로 지정한다.
-
-## 5. 다양한 영상 = 시나리오·클립 조합
-
-- **새 연출**: `manifest.scenarios`에 단계(상태+대사+시간) 추가 → 무한 시나리오
-- **새 동작**: 클립 + animation state 추가 (예: 박수·가리키기)
-- **배경 교체**: 배경 레이어만 교체(캐릭터는 알파/크로마로 분리) → 같은 캐릭터 다른 장면
-- **캐릭터 교체**: 번들 전체 교체 (manifest 동일 구조)
-
-→ 클립을 한 번 제작해두면 **시나리오·배경·조합으로 다양한 영상이 자동 생성**된다.
-
-## 6. 현재 데모의 한계 (제작 후 해소)
-
-- 박스 = 자리 표시. 실사/딥리얼 클립으로 교체 시 품질 확보.
-- 알파: 데모는 크로마키(ffmpeg 알파 미지원 환경 우회). 실 파이프라인은 cascade/Ditto가 VP9 알파 생성 — 포맷은 알파/크로마 둘 다 수용.
-- speaking: 데모는 mock 입 오버레이. cascade 연결 시 실시간 립싱크(`?cascade=/avatar`).
-
-## 7. 권리
-
-포맷 명세 + 뷰어/에디터 = naia(nextain) 자산(과도기 오픈 표준). 번들에는 캐릭터 클립만 담으며, TTS 레퍼런스 음성은 NVA 밖의 독립 런타임 설정이다. 캐릭터 자산 소유자는 `meta.owner`.
+Player는 기존 v0.2 파일을 보기 용도로 계속 열 수 있습니다. 새로 배포하는 NVA 파일은
+생성 관련·실시간 필드를 제외한 v0.3을 사용해야 합니다. v0.2의 음성 클립 `locale`
+필드는 읽기 전용으로 `language`의 별칭으로 취급합니다.

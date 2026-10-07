@@ -11,12 +11,12 @@ NFR(비기능)은 UC로 안 내려가고 REQ→TEST-S 직결한다.
 
 | ID | 영역 | 누가 → 무엇을 → 왜 | 유도 REQ | 상태 | TEST-S |
 |----|------|--------------------|----------|------|--------|
-| UC-001 | authoring | 캐릭터 제작자가 클립을 nva 번들로 묶고 유효성을 확인해 배포 가능한 아바타를 만든다 | REQ-001, REQ-005, REQ-007 | Done | TEST-S-001, TEST-S-004 |
-| UC-002 | playback | 운영자가 뷰어로 아바타를 재생하고 상태(서기/앉기/춤/말하기)를 전환해 보여준다 | REQ-002, REQ-003, REQ-004 | Done | TEST-S-002, TEST-S-003 |
-| UC-003 | directing | 연출 시나리오(상태/이벤트/대사 시퀀스) 또는 목표 상태 지정 → 포즈 경로 탐색으로 전환 자동 연출 (제작 가이드: 흐름·타이밍 시연) | REQ-002, REQ-008 | Done | TEST-S-002 |
-| UC-004 | sharing | 제작자가 편집한 아바타를 단일 `.nva` 파일로 내보내 공유/배포한다 | REQ-006 | Done | TEST-S-004 |
-| UC-005 | authoring | 제작자가 선택한 애니메이션의 클립 입력 옆에서 현재 미디어를 즉시 재생해 교체 전후 품질을 확인한다 | REQ-009 | Done | TEST-S-006 |
-| UC-006 | authoring | 제작자가 표준 720×1280 영상의 중앙 상단 512×512 Ditto 입력 영역과 그 안의 실제 얼굴 위치를 독립 지정해 무리사이즈 합성을 보장한다 | REQ-010 | Done | TEST-S-007 |
-| UC-007 | authoring | 제작자가 크로마키 색을 추측하거나 색상 입력기에 다시 입력하지 않고 원본 영상 프레임을 스포이드로 클릭해 지울 색을 지정한다 | REQ-011 | Done | TEST-S-008 |
-| UC-008 | integration | 제작자가 `http://localhost:8099/src/main/editor.html`에서 `http://localhost:8910` cascade에 연결해 기본 ref 음색을 선택하고 숫자 문장을 음성 포함 영상으로 직접 확인한다 | REQ-012 | Done | TEST-S-009 |
-| UC-009 | authoring | 제작자가 영상 비율이 다른 NVA의 캔버스를 왜곡 없이 편집하고, 선택한 고정 512×512 Ditto 영역을 같은 크기의 헤드 소스로 만든다 | REQ-013 | Done | TEST-S-010 |
+| UC-001 | distribution | 배포자가 공개 규격에 맞는 NVA를 제공해 어떤 호환 Player에서도 구조 검증을 받을 수 있다 | REQ-001, REQ-007 | Done | TEST-S-001 |
+| UC-002 | playback | 사용자가 `.nva`를 열어 기본 idle 영상을 바로 확인한다 | REQ-004, REQ-007 | Done | TEST-S-002 |
+| UC-013 | standalone | 사용자가 정적 Player에 완성 `.nva`를 열고 패키지에 포함된 발화 영상을 계정·서버·GPU 없이 재생한다 | REQ-018, REQ-019, NFR-005, NFR-009 | Done (#14) | TEST-S-016 |
+| UC-014 | action | 사용자가 NVA에 등록된 action을 선택해 재생하고 완료 뒤 idle로 돌아간다 | REQ-020 | Done (#14) | TEST-S-017 |
+| UC-015 | local-samples | 개발자나 검토자가 localhost Player의 샘플 목록에서 Naia·Jina·Minho·Alpha를 차례로 열어 실제 보유 NVA의 idle·발화·action을 확인한다 | REQ-021, NFR-010 | Done (#14) | TEST-S-018 |
+| UC-016 | final-package | 배포자가 기존 아바타와 완성 발화 영상을 넣어 공개 소비 필드와 참조 미디어만 포함한 최종 `.nva`를 반복 가능하게 만든다 | REQ-022 | Done (#14) | TEST-S-019 |
+| UC-017 | playback | 방문자가 계정·서버·GPU 없이 완성된 `.nva` 파일을 열어 대기·내장 발화·동작을 한 화면에서 확인한다 | REQ-023, REQ-024, REQ-025 | Approved (#16) | TEST-S-020, TEST-S-021 |
+| UC-018 | integration | 개발자가 공개 NVA v0.3 규격으로 만든 completed-media 패키지를 검증하고 웹 서비스에 재생기로 연결한다 | REQ-023, REQ-026 | Approved (#16) | TEST-S-020, TEST-S-022 |
+| UC-019 | evaluation | 방문자가 캐릭터의 투명 배경을 색상·이미지 위에서 바꿔 보며 실제 서비스 배치 적합성을 판단한다 | REQ-027 | Approved (#16) | TEST-S-021 |

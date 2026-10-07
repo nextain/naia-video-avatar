@@ -10,13 +10,14 @@
 
 | ID | 검증대상(UC/REQ) | 시나리오 요약 | 형태 | test_ref | 상태 |
 |----|------------------|---------------|------|----------|------|
-| TEST-S-001 | UC-001 | nva 번들 로드 → validateManifest VALID(경고 0) | 통합(node) | examples/demo.nva + nva-core | Done |
-| TEST-S-002 | UC-002, UC-003 | stand_talk→sit_talk 시 sit_down transition 자동 삽입 후 앉은 자세 재생 | 캡쳐(headless) | /var/tmp/nva_dance.png, nva_sit_speak.png | Done |
-| TEST-S-003 | UC-002 | speaking 시 face_bbox에 헤드토킹 입 오버레이 + 크로마 합성 | 캡쳐(headless) | /var/tmp/nva_sit_speak.png | Done |
-| TEST-S-004 | UC-004 | 에디터 export → `.nva`(zip) = manifest.json + clips/ ×7 | 캡쳐+unzip | /var/tmp/exported.nva | Done |
-| TEST-S-005 | NFR-001, NFR-002 | GPU 없이 정적 http 서버 + 브라우저로 뷰어/에디터 렌더 | 캡쳐(playwright) | /tmp/cap.mjs, cap2.mjs | Done |
-| TEST-S-006 | UC-005 | 에디터에서 `speak` 선택 → 클립 옆 미리보기 실행 → 중앙 플레이어가 선택 클립을 재생 | 브라우저+계약(node) | src/test/editor-clip-preview.test.mjs + Playwright 실측 | Done |
-| TEST-S-007 | UC-006 | 720×1280 표준 영상에서 `[104,0,512,512]` 영역을 표시·검증하고 실제 얼굴 가이드를 별도 유지 | 단위+브라우저 | src/test/nva-core.test.mjs + Playwright 실측 | Done |
-| TEST-S-008 | UC-007 | 에디터에서 스포이드 활성화 → 중앙 원본 영상의 배경 픽셀 클릭 → 해당 RGB가 `chroma_key`와 색상 입력기에 반영되고 즉시 미리보기에 적용 | 브라우저+계약(node) | src/test/editor-chroma-eyedropper.test.mjs + Playwright 실측 (`#267d35`) | Done |
-| TEST-S-009 | UC-008 | 8099 에디터 로드 → 기본 URL 8910 연결 → ref 목록/기본 URL 확인 → `안녕하세요, 반가워요.` 발화 → 플레이어에 음성 포함 MP4 수신, 잘못된 `.../http://...` ref 요청 0건 | 브라우저+계약(node) | src/test/editor-ref-url.test.mjs + Playwright E2E(2026-07-15) | Done |
-| TEST-S-010 | UC-009 | 720×1280과 다른 비율의 manifest를 각각 로드해 캔버스 비율·좌표가 유지되고, 영상 프레임에서 생성한 헤드 PNG가 manifest의 `ditto_region`과 동일한 512×512인지 확인 | 브라우저+계약(node) | src/test/editor-responsive-canvas.test.mjs + Playwright (`tmp/nva-editor-responsive-canvas.png`) | Done |
+| TEST-S-001 | UC-001, REQ-001, REQ-007 | 정상 NVA는 검증되고 경로 이탈·누락·크기 초과·변조 번들은 거부된다 | Node 통합 | src/test/nva-core.test.mjs + src/test/nva-bundle-loader.test.mjs | Done |
+| TEST-S-002 | UC-002, REQ-004, REQ-007 | NVA 로드 뒤 기본 idle 클립이 디코딩되고 Player에 표시된다 | Chromium | src/test/standalone-player.e2e.py | Done |
+| TEST-S-005 | NFR-001, NFR-002, NFR-005 | 정적 HTTP 서버와 Chromium만으로 Player가 로드되고 외부 서비스 없이 애니메이션을 표시한다 | Chromium | src/test/standalone-player.e2e.py | Done |
+| TEST-S-016 | UC-013, REQ-018, REQ-019, NFR-005, NFR-009 | 정적 Player에서 음성 내장 완성 발화를 재생·중단하고 idle 복귀, 외부 요청 0건, 실시간·생성 실행 파일 부재를 확인한다 | Node+Chromium | src/test/nva-animation-player.test.mjs + src/test/public-player-surface.test.mjs + src/test/standalone-player.e2e.py | Done (#14) |
+| TEST-S-017 | UC-014, REQ-020 | idle/action 파생과 action 완료·중단·오류 뒤 idle 복귀를 확인한다 | Node+Chromium | src/test/nva-animation-player.test.mjs + src/test/standalone-player.e2e.py | Done (#14) |
+| TEST-S-018 | UC-015, REQ-021, NFR-010 | ignored localhost 카탈로그에서 실제 4개 완성 NVA를 순서대로 열고 각 발화 영상을 음성과 함께 재생한 뒤 idle 복귀와 오류 0건을 확인한다 | Python+Node+Chromium | src/test/local-sample-prep.test.py + src/test/sample-catalog.test.mjs + src/test/local-samples.e2e.py | Done (#14) |
+| TEST-S-019 | UC-016, REQ-022 | 같은 입력은 동일 바이트 NVA를 만들고 생성용 필드·미참조 자산을 제외하며 음성 없는 발화 영상은 거부한다 | Python | src/test/final-nva.test.py | Done (#14) |
+| TEST-S-020 | UC-017, UC-018, REQ-023..REQ-026 | v0.3 completed-media NVA를 열면 manifest와 번들 경로를 검증하고 대기·내장 발화·동작 목록을 구성한다 | 통합(node) | src/test/nva-bundle-loader.test.mjs, src/test/nva-animation-player.test.mjs | Done (#16) |
+| TEST-S-021 | UC-017, UC-019, REQ-024, REQ-025, REQ-027 | 브라우저에서 NVA를 열어 대기→발화/동작→대기로 복귀하고 배경 색상·이미지를 변경한다 | 브라우저(Playwright) | src/test/standalone-player.e2e.py | Done (#16) |
+| TEST-S-022 | UC-018, REQ-023, REQ-026, NFR-011, NFR-012 | 공개 스키마는 v0.3을 정본으로 검증하고 기존 v0.2 `locale` manifest는 읽기 호환한다 | 계약(node) | src/test/nva-core.test.mjs | Done (#16) |
+| TEST-S-023 | NFR-013, NFR-014 | 공개 실행 코드·예제·UI에 create, 편집기, TTS, 실시간 생성, Cascade 진입점과 외부 런타임 의존성이 없다 | 정적 계약(node) | src/test/public-service-surface.test.mjs, src/test/security.test.mjs | Done (#16) |

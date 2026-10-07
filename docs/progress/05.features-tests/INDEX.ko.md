@@ -10,13 +10,13 @@
 
 | ID | 검증 SPEC | 테스트 요약 | test_ref | 상태 |
 |----|-----------|-------------|----------|------|
-| TEST-F-001 | SPEC-001, SPEC-002 | demo.nva manifest → validateManifest VALID, 잘못된 manifest → INVALID | node nva-core (수동 검증) | Done |
-| TEST-F-002 | SPEC-002 | findTransitionPath/reachableStates: stand→sit_down→sit 경로, sit→stand_up 검증 | node nva-core (수동 검증) | Done |
-| TEST-F-003 | SPEC-003 | viewer headless 캡쳐: 크로마 제거 캐릭터 + 상태전환 + 헤드토킹 | /tmp/cap.mjs (playwright) | Done |
-| TEST-F-004 | SPEC-004 | editor export → unzip = manifest.json + clips ×7 (9 entries) | /tmp/cap2.mjs (playwright) | Done |
-| TEST-F-005 | SPEC-002, SPEC-005 | nva-core 단위(검증·포즈·상태머신·시나리오) 18 assert ALL PASS | src/test/nva-core.test.mjs | Done |
-| TEST-F-007 | SPEC-007 | 클립 미리보기 제어·다국어 라벨·선택 애니메이션 재생 결선 계약 + 실제 브라우저 클릭 | src/test/editor-clip-preview.test.mjs + Playwright 실측 | Done |
-| TEST-F-008 | SPEC-008 | 신규 표준값은 720×1280 + `[104,0,512,512]`이며 Ditto 영역은 정수 좌표·정확히 512×512·캔버스 내부이고 얼굴 bbox와 별도 보존됨을 검증 | src/test/nva-core.test.mjs + Playwright 실측 | Done |
-| TEST-F-009 | SPEC-009 | 스포이드 버튼·다국어 안내·원본 video drawImage/getImageData·좌표 변환·`chroma_key` 저장 결선과 실제 배경 픽셀 클릭을 검증 | src/test/editor-chroma-eyedropper.test.mjs + Playwright 실측 | Done |
-| TEST-F-010 | SPEC-010 | 절대 cascade ref URL은 manifest에 남고 zip 파일 목록에서는 제외됨을 계약 검사하고, 8099→8910 연결·ref 선택·발화 재생 및 브라우저 4xx 0건을 Playwright로 검증 | src/test/editor-ref-url.test.mjs + Playwright E2E(2026-07-15) | Done |
-| TEST-F-011 | SPEC-011 | 캔버스 입력·비율 기반 플레이어 크기·`ditto_region`의 정확한 512×512 헤드 생성 결선을 계약 검사하고, 720×1280 및 비표준 비율 NVA를 Playwright로 로드해 실제 canvas 크기와 표시 비율을 확인 | src/test/editor-responsive-canvas.test.mjs + Playwright | Done |
+| TEST-F-001 | SPEC-001, SPEC-002 | 정상/비정상 manifest와 ZIP 경로·크기·압축·필수 자산을 검증한다 | src/test/nva-core.test.mjs + src/test/nva-bundle-loader.test.mjs | Done |
+| TEST-F-003 | SPEC-003 | 실제 Chromium에서 NVA 로드 뒤 idle 영상 표시와 canvas 비율을 확인한다 | src/test/standalone-player.e2e.py | Done |
+| TEST-F-017 | SPEC-016 | 완성 발화 영상의 음성 활성 재생과 종료·오류·중단 뒤 muted idle 복구를 검증한다 | src/test/nva-animation-player.test.mjs + src/test/standalone-player.e2e.py | Done (#14) |
+| TEST-F-018 | SPEC-017 | idle/action 파생과 action 종료·오류 뒤 idle 복구를 검증한다 | src/test/nva-animation-player.test.mjs + src/test/standalone-player.e2e.py | Done (#14) |
+| TEST-F-019 | SPEC-018 | 공개 파일 목록과 README에 Player만 있고 Editor·생성 실행 파일이 없음을 검사한다 | src/test/public-player-surface.test.mjs | Done (#14) |
+| TEST-F-020 | SPEC-019 | 카탈로그 스키마·같은 출처 제한·경로 해석·최신 로드 우선과 실제 4개 샘플 UI 로드를 검증한다 | src/test/sample-catalog.test.mjs + src/test/load-coordinator.test.mjs + src/test/local-samples.e2e.py | Done (#14) |
+| TEST-F-021 | SPEC-020 | 입력 디렉터리/파일 검증, 결정론적 ZIP, 절대경로 비노출, ignored 출력과 4개 카탈로그 항목을 검증한다 | src/test/local-sample-prep.test.py | Done (#14) |
+| TEST-F-022 | SPEC-021 | 결정론적 출력, v0.3 계약, 생성용 필드·미참조 자산 제거, 내장 음성 필수 조건을 검증한다 | src/test/final-nva.test.py | Done (#14) |
+| TEST-F-023 | SPEC-022 | v0.3 계약·번들 안전성·v0.2 `locale` 읽기 호환과 공개 제작 필드 차단을 검증한다 | src/test/nva-core.test.mjs + src/test/nva-bundle-loader.test.mjs | Done (#16) |
+| TEST-F-024 | SPEC-023 | 실제 Chromium에서 대기·발화·동작·배경 변경·idle 복귀와 외부 요청 0건을 검증한다 | src/test/standalone-player.e2e.py + src/test/local-samples.e2e.py + src/test/public-service-surface.test.mjs | Done (#16) |

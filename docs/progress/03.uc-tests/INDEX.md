@@ -1,15 +1,23 @@
-# 03. 시나리오 테스트 Registry (TEST-S) — V모델 03
+# 03. Scenario Tests Registry (TEST-S) — V-Model 03
 
-| ID | 검증대상(UC/REQ) | 시나리오 요약 | 형태 | test_ref | 상태 |
-|----|------------------|---------------|------|----------|------|
-| TEST-S-001 | UC-001, REQ-001, REQ-007 | 정상 NVA는 검증되고 경로 이탈·누락·크기 초과·변조 번들은 거부된다 | Node 통합 | src/test/nva-core.test.mjs + src/test/nva-bundle-loader.test.mjs | Done |
-| TEST-S-002 | UC-002, REQ-004, REQ-007 | NVA 로드 뒤 기본 idle 클립이 디코딩되고 Player에 표시된다 | Chromium | src/test/standalone-player.e2e.py | Done |
-| TEST-S-005 | NFR-001, NFR-002, NFR-005 | 정적 HTTP 서버와 Chromium만으로 Player가 로드되고 외부 서비스 없이 애니메이션을 표시한다 | Chromium | src/test/standalone-player.e2e.py | Done |
-| TEST-S-016 | UC-013, REQ-018, REQ-019, NFR-005, NFR-009 | 정적 Player에서 음성 내장 완성 발화를 재생·중단하고 idle 복귀, 외부 요청 0건, 실시간·생성 실행 파일 부재를 확인한다 | Node+Chromium | src/test/nva-animation-player.test.mjs + src/test/public-player-surface.test.mjs + src/test/standalone-player.e2e.py | Done (#14) |
-| TEST-S-017 | UC-014, REQ-020 | idle/action 파생과 action 완료·중단·오류 뒤 idle 복귀를 확인한다 | Node+Chromium | src/test/nva-animation-player.test.mjs + src/test/standalone-player.e2e.py | Done (#14) |
-| TEST-S-018 | UC-015, REQ-021, NFR-010 | ignored localhost 카탈로그에서 실제 4개 완성 NVA를 순서대로 열고 각 발화 영상을 음성과 함께 재생한 뒤 idle 복귀와 오류 0건을 확인한다 | Python+Node+Chromium | src/test/local-sample-prep.test.py + src/test/sample-catalog.test.mjs + src/test/local-samples.e2e.py | Done (#14) |
-| TEST-S-019 | UC-016, REQ-022 | 같은 입력은 동일 바이트 NVA를 만들고 생성용 필드·미참조 자산을 제외하며 음성 없는 발화 영상은 거부한다 | Python | src/test/final-nva.test.py | Done (#14) |
-| TEST-S-020 | UC-017, UC-018, REQ-023..REQ-026 | v0.3 completed-media NVA를 열면 manifest와 번들 경로를 검증하고 대기·내장 발화·동작 목록을 구성한다 | 통합(node) | src/test/nva-bundle-loader.test.mjs, src/test/nva-animation-player.test.mjs | Done (#16) |
-| TEST-S-021 | UC-017, UC-019, REQ-024, REQ-025, REQ-027 | 브라우저에서 NVA를 열어 대기→발화/동작→대기로 복귀하고 배경 색상·이미지를 변경한다 | 브라우저(Playwright) | src/test/standalone-player.e2e.py | Done (#16) |
-| TEST-S-022 | UC-018, REQ-023, REQ-026, NFR-011, NFR-012 | 공개 스키마는 v0.3을 정본으로 검증하고 기존 v0.2 `locale` manifest는 읽기 호환한다 | 계약(node) | src/test/nva-core.test.mjs | Done (#16) |
-| TEST-S-023 | NFR-013, NFR-014 | 공개 실행 코드·예제·UI에 create, 편집기, TTS, 실시간 생성, Cascade 진입점과 외부 런타임 의존성이 없다 | 정적 계약(node) | src/test/public-service-surface.test.mjs, src/test/security.test.mjs | Done (#16) |
+English | [한국어](./INDEX.ko.md)
+
+<!--
+Schema: Single-file registry. System/acceptance tests verifying UCs (02) and NFRs (01).
+Traceability: Every UC closes into ≥1 TEST-S. TEST-S points to ≥1 UC or NFR-REQ (back-trace, 0 orphans).
+Columns = | ID | Target (UC/REQ) | Scenario Summary | Type | test_ref | Status |
+-->
+
+| ID | Target (UC/REQ) | Scenario summary | Type | test_ref | Status |
+|----|-----------------|------------------|------|----------|--------|
+| TEST-S-001 | UC-001, REQ-001, REQ-007 | A valid NVA passes validation, while bundles with path escape, missing assets, oversize content, or tampering are rejected | Node integration | src/test/nva-core.test.mjs + src/test/nva-bundle-loader.test.mjs | Done |
+| TEST-S-002 | UC-002, REQ-004, REQ-007 | After an NVA loads, the default idle clip is decoded and shown in the Player | Chromium | src/test/standalone-player.e2e.py | Done |
+| TEST-S-005 | NFR-001, NFR-002, NFR-005 | The Player loads with only a static HTTP server and Chromium and shows animation without external services | Chromium | src/test/standalone-player.e2e.py | Done |
+| TEST-S-016 | UC-013, REQ-018, REQ-019, NFR-005, NFR-009 | In the static Player, finished speech with embedded audio plays and stops, idle is restored, there are zero external requests, and no real-time or generation executables exist | Node+Chromium | src/test/nva-animation-player.test.mjs + src/test/public-player-surface.test.mjs + src/test/standalone-player.e2e.py | Done (#14) |
+| TEST-S-017 | UC-014, REQ-020 | idle/action derivation and the return to idle after an action completes, is stopped, or fails | Node+Chromium | src/test/nva-animation-player.test.mjs + src/test/standalone-player.e2e.py | Done (#14) |
+| TEST-S-018 | UC-015, REQ-021, NFR-010 | Open the prepared NVA samples in order from the ignored localhost catalog, play each speech video with audio, then confirm the return to idle and zero errors | Python+Node+Chromium | src/test/local-sample-prep.test.py + src/test/sample-catalog.test.mjs + src/test/local-samples.e2e.py | Done (#14) |
+| TEST-S-019 | UC-016, REQ-022 | The same input yields a byte-identical NVA, generation fields and unreferenced assets are excluded, and speech videos without audio are rejected | Python | src/test/final-nva.test.py | Done (#14) |
+| TEST-S-020 | UC-017, UC-018, REQ-023..REQ-026 | Opening a v0.3 completed-media NVA validates the manifest and bundle paths and builds the idle, embedded speech, and action lists | Integration (node) | src/test/nva-bundle-loader.test.mjs, src/test/nva-animation-player.test.mjs | Done (#16) |
+| TEST-S-021 | UC-017, UC-019, REQ-024, REQ-025, REQ-027 | Open an NVA in the browser, go idle → speech/action → back to idle, and change the background color and image | Browser (Playwright) | src/test/standalone-player.e2e.py | Done (#16) |
+| TEST-S-022 | UC-018, REQ-023, REQ-026, NFR-011, NFR-012 | The public schema validates v0.3 as canonical and stays read-compatible with existing v0.2 `locale` manifests | Contract (node) | src/test/nva-core.test.mjs | Done (#16) |
+| TEST-S-023 | NFR-013, NFR-014 | Public executable code, examples, and UI contain no create, editor, TTS, real-time generation, or Cascade entry points and no external runtime dependencies | Static contract (node) | src/test/public-service-surface.test.mjs, src/test/security.test.mjs | Done (#16) |

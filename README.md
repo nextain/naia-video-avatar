@@ -1,5 +1,7 @@
 # NVA Avatar Player
 
+English | [한국어](READMES/README.ko.md)
+
 NVA is a ZIP-based video avatar format for GPU-free browser playback. An NVA
 v0.3 file contains completed idle, action, and speech videos plus a small JSON
 manifest. Speech videos already contain their audio, so the Player only decodes
@@ -24,7 +26,9 @@ python3 -m http.server 8099 --bind 127.0.0.1
 ```
 
 Open `http://127.0.0.1:8099/src/main/viewer.html`, choose an `.nva` file, then
-play one of its packaged speech videos or actions. No account, key, server-side
+play one of its packaged speech videos or actions. A background color or a
+local image can be chosen to preview the transparent character in a service
+layout. No account, key, server-side
 application, GPU, or network API is required after the file has loaded.
 
 ## NVA v0.3 layout
@@ -66,8 +70,8 @@ source paths:
 
 ```bash
 python3 scripts/prepare-local-samples.py \
-  --sample 'Jina=/path/to/jina-final.nva' \
-  --sample 'Minho=/path/to/minho-final.nva'
+  --sample 'First avatar=/path/to/first-final.nva' \
+  --sample 'Second avatar=/path/to/second-final.nva'
 ```
 
 Then open:

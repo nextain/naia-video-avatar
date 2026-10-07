@@ -1,5 +1,7 @@
 # NVA v0.3 completed-media format
 
+English | [한국어](./nva-format-guide.ko.md)
+
 An NVA file is a ZIP archive that a browser can play without GPU inference.
 Version 0.3 is a delivery format: all speech and animation media is already
 finished before packaging.
@@ -67,4 +69,5 @@ extending this public Player contract.
 
 The Player can still open existing v0.2 files for viewing. Authors should use
 v0.3 for new distributable NVA files because it omits generation-oriented and
-real-time fields.
+real-time fields. The v0.2 speech clip `locale` field is read as a read-only
+alias of `language`.

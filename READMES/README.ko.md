@@ -1,72 +1,103 @@
-# naia-video-avatar (nva)
+# NVA Avatar Player
 
 [English](../README.md) | 한국어
 
-**naia video clip avatar** — 비디오 클립 기반 토킹헤드 아바타의 **도구 중립 교환 포맷(nva)** + 제작 도구(에디터) + 데모.
+NVA는 GPU 없이 브라우저에서 재생하는 ZIP 기반 비디오 아바타 포맷입니다. NVA
+v0.3 파일에는 완성된 idle·action·발화 영상과 작은 JSON manifest가 들어 있습니다.
+발화 영상에는 음성이 이미 포함되어 있으므로 Player는 묶여 있는 미디어를 디코딩해
+재생하기만 합니다.
 
-> 캐릭터를 무엇으로 만들었든(실사 촬영 / VRM·메타휴먼 / AI 영상생성) 최종 산출은 "비디오 클립 + 메타"로 통일된다.
-> 포맷의 핵심은 비디오 파일이 아니라 **클립의 위치·조합·순서 = 상태머신**이다(게임 애니메이션 state machine 계보).
-> 글로벌에 비디오 토킹헤드 개방 교환 표준이 없어(VRM=3D, Live2D=2D 독점, D-ID/HeyGen=클라우드 독점) naia가 정의하는 **과도기 오픈 표준**.
+이 저장소에 들어 있는 것은 다음과 같습니다.
 
-## 📍 문서 색인 — "어디에 뭐가 있나"
+- 공개 NVA v0.3 completed-media 스키마와 검증기
+- 외부 의존성이 없는 ZIP 로더
+- 읽기 전용 웹 Player
+- 결정론적 로컬 패키징·검증 도구
 
-| 무엇 | 위치 |
-|------|------|
-| **의도 · 제작 가이드** | [`docs/nva-format-guide.ko.md`](../docs/nva-format-guide.ko.md) |
-| **포맷 필드 스펙** (states/transitions/scenarios/레이어) | [`src/main/nva-schema.json`](../src/main/nva-schema.json) |
-| **요구·UC·설계·테스트** (V모델) | [`docs/progress/01~05`](../docs/progress/README.ko.md) |
-| **헌장 / 구조 규칙** | [`AGENTS.md`](../AGENTS.md), [`docs/project-structure.ko.md`](../docs/project-structure.ko.md) |
-| **에디터 사용 안내** | 에디터 화면 우상단 **❔ 의도·사용법·구조** 버튼 |
+아바타 생성, 텍스트 음성 변환(TTS), 실시간 립싱크, 모델 추론, Editor는 의도적으로
+포함하지 않습니다.
 
-## 구조
+## Player 실행
 
-```
-src/main/
-  nva-schema.json          포맷 JSON Schema (v0.1)
-  nva-core.js              검증 + 상태머신 + 포즈 그래프 + 시나리오 (브라우저·node 양용, 정본 로직)
-  editor.html              ★ 제작 도구 — 리소스/구조 편집 + 미리보기 플레이 + .nva export (범용)
-  nva-cascade-adapter.js   cascade(/avatar) 연결 어댑터 (데모용)
-examples/
-  build-sample.sh          ffmpeg 더미 박스 캐릭터 생성
-  demo.nva/                샘플 번들 (manifest.json + clips/ ×7 + 시나리오 4)
-docs/                      포맷 가이드 + V모델(progress/01~05)
-src/test/nva-core.test.mjs 단위 테스트 (19 assert)
-```
-
-> **에디터(제작 도구) ↔ 데모(시연)는 분리**. 에디터는 범용 nva 제작용(특정 캐릭터 무관), 데모는 만든 nva를 cascade로 실행.
-
-## 포맷 요약 (nva manifest)
-
-- **state**: `talking`(말하기 안정 포즈, `face_bbox`=헤드토킹 위치) / `animation`(동작). 클립 + 포즈 메타.
-- **transition**: 포즈 간 이동 클립. `entry_pose`(from) → `exit_pose`(to).
-- **scenario**: 연출 — 상태/이벤트 + 대사(`say`) + 타이밍(`dwell_ms`) 시퀀스. 뷰어/데모가 자동 재생.
-- **포즈 연속성**: A→B 가능 ⟺ `A.exit_pose == B.entry_pose` (아니면 transition 자동 삽입).
-- **레이어**: 배경(`background`) + 캐릭터(알파/`chroma_key`) + 헤드토킹. 동시 알파 디코딩 ≤ 2.
-
-## 사용
+저장소를 정적 웹 서버로 제공합니다.
 
 ```bash
-# 로컬 서버 (file:// 는 fetch 제한 → http 권장)
-python3 -m http.server 8099
+python3 -m http.server 8099 --bind 127.0.0.1
 ```
-- **제작(에디터)**: `http://localhost:8099/src/main/editor.html`
-  → 데모 로드 / .nva 열기 → +말하기·+동작·+전환·+시나리오 → 클립 업로드·메타 편집 → 미리보기 → **.nva export**
-  → 화면 우상단 **❔ 의도·사용법·구조** 버튼에 안내 내장
+
+`http://127.0.0.1:8099/src/main/viewer.html`을 열고 `.nva` 파일을 선택한 뒤 포함된
+발화 영상이나 action을 재생합니다. 투명 캐릭터가 서비스 화면에서 어떻게 보이는지
+확인하도록 배경 색상이나 로컬 이미지를 고를 수 있습니다. 파일을 읽은 뒤에는 계정,
+키, 서버 애플리케이션, GPU, 네트워크 API가 필요하지 않습니다.
+
+## NVA v0.3 구조
+
+```text
+avatar.nva
+├── manifest.json
+├── clips/
+│   ├── idle.webm
+│   └── wave.webm
+└── speech/
+    ├── greeting-ko.mp4
+    └── greeting-en.mp4
+```
+
+`.nva` 확장자는 일반 ZIP 아카이브입니다. `manifest.json`은 `nva_version: "0.3"`과
+`profile: "completed-media"`를 사용합니다. 모든 `speech_clips` 항목은 음성이 내장된
+완성 MP4 또는 WebM과 BCP 47 언어 태그를 가리킵니다. 자세한 내용은
+[포맷 가이드](../docs/nva-format-guide.ko.md)를 참고하세요.
+
+## 최종 NVA 만들기
+
+패키징 도구는 기존 v0.2 NVA 디렉터리 또는 ZIP과 하나 이상의 완성 발화 영상을 받아
+결정론적인 v0.3 배포 파일로 변환합니다.
+
+```bash
+python3 scripts/build-final-nva.py \
+  --base /path/to/legacy-avatar.nva \
+  --speech 'hello-ko|ko-KR|Korean greeting|/path/to/hello-ko.mp4' \
+  --speech 'hello-en|en-US|English greeting|/path/to/hello-en.mp4' \
+  --output /path/to/avatar-final.nva
+```
+
+각 발화 입력은 NVA 캔버스 크기와 같아야 하며 영상과 내장 음성을 모두 포함해야 합니다.
+패키징 도구는 최종 공개 manifest가 참조하는 미디어만 남깁니다.
+
+비공개 샘플은 원본 경로를 기록하지 않고 localhost에서 사용할 수 있게 준비할 수 있습니다.
+
+```bash
+python3 scripts/prepare-local-samples.py \
+  --sample 'First avatar=/path/to/first-final.nva' \
+  --sample 'Second avatar=/path/to/second-final.nva'
+```
+
+그런 다음 다음 주소를 엽니다.
+
+```text
+http://127.0.0.1:8099/src/main/viewer.html?catalog=../../examples/.local/catalog.json
+```
+
+`examples/.local/`은 Git에서 제외됩니다.
 
 ## 검증
 
 ```bash
-node src/test/nva-core.test.mjs          # 단위 19 assert
-node scripts/check-traceability.mjs      # V모델 추적성 (orphan 0)
+node --test src/test/*.test.mjs
+python3 src/test/local-sample-prep.test.py
+python3 src/test/final-nva.test.py
+node scripts/check-traceability.mjs
+./scripts/enforce-root-structure.sh
 ```
-에디터/데모 렌더는 headless(playwright) 캡쳐로 검증.
 
-## 알파 메모
+브라우저 통합 테스트는 `src/test/standalone-player.e2e.py`와
+`src/test/local-samples.e2e.py`에 있습니다.
 
-ffmpeg 8.1 libvpx 알파가 이 환경에서 미동작(yuv420p 드롭) → 더미 샘플은 **크로마키**(`chroma_key`)로 우회.
-실배포는 trt(Ditto)가 VP9 yuva420p 알파 생성 — 포맷/도구는 알파·크로마 **둘 다 수용**.
+## 호환성
 
-## 권리 / 라이선스
+JavaScript 로더는 기존 NVA v0.2 파일의 읽기 호환을 유지합니다. 새로 배포하는 파일은
+더 작은 v0.3 completed-media 계약을 사용해야 합니다.
 
-- 포맷 명세 + 코어/에디터/데모 = **naia(nextain) 자산**. 명세=CC-BY-4.0 / 구현=Apache-2.0. (향후 오픈소스 배포)
-- nva 번들에 담기는 캐릭터 클립 = 각 제작자 자산(manifest `meta.owner`). TTS 레퍼런스 음성은 NVA 밖의 독립 런타임 설정이다.
+## 라이선스
+
+Apache License 2.0. NVA 파일 안의 미디어는 각자 명시한 라이선스를 따릅니다.

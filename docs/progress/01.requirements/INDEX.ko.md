@@ -12,20 +12,26 @@ scripts/check-traceability.mjs 가 이 표를 파싱한다.
 
 | ID | 영역 | 요구사항 | 상태 | UC | SPEC | TEST |
 |----|------|----------|------|----|----|------|
-| REQ-001 | format | nva(비디오 클립 아바타) 포맷을 JSON manifest 스키마로 정의 | Done | UC-001 | SPEC-001 | TEST-S-001 |
-| REQ-002 | state-machine | talking/animation state + transition + 포즈 연속성(entry/exit_pose) | Done | UC-002, UC-003 | SPEC-002 | TEST-S-002 |
-| REQ-003 | compositing | 배경+캐릭터+헤드토킹 레이어 합성, 동시 알파 디코딩 ≤ 2 | Done | UC-002 | SPEC-003 | TEST-S-003 |
-| REQ-004 | viewer | nva 번들 재생(상태 전환 시 transition 자동 삽입) | Done | UC-002 | SPEC-003 | TEST-S-002 |
-| REQ-005 | editor | manifest 편집 + 라이브 미리보기 | Done | UC-001 | SPEC-004 | TEST-S-004 |
-| REQ-006 | export | 단일 `.nva`(zip) 파일로 패키징/내보내기 | Done | UC-004 | SPEC-004 | TEST-S-004 |
-| REQ-007 | validation | 스키마+initial+포즈정합+face_bbox+연결성 유효성 검증 | Done | UC-001 | SPEC-002 | TEST-S-001 |
-| NFR-001 | deploy | GPU 없이 정적 웹(브라우저)에서 동작 | Done | — | — | TEST-S-005 |
-| NFR-002 | packaging | 뷰어·에디터는 자기완결 단일 HTML | Done | — | — | TEST-S-005 |
-| NFR-003 | alpha | 캐릭터 레이어는 알파(VP9) / 크로마키 둘 다 수용 | Done | — | — | TEST-S-003 |
-| NFR-004 | deps | nva-core 런타임 의존 0 (순수 JS) | Done | — | — | TEST-F-001 |
-| REQ-008 | scenario | 연출 시나리오(상태/이벤트/대사 시퀀스) 자동 재생 + 검증 | Done | UC-003 | SPEC-005 | TEST-S-002 |
-| REQ-009 | editor | 애니메이션 클립 입력 옆에 현재 미디어를 중앙 플레이어에서 즉시 재생하는 명시적 미리보기 제어를 제공 | Done | UC-005 | SPEC-007 | TEST-S-006 |
-| REQ-010 | compositing | 표준 720×1280 영상의 중앙 상단 `[104,0,512,512]`를 Ditto 발화 영역으로 사용하고, 정확한 512×512 픽셀 영역과 실제 얼굴 가이드를 분리 | Done | UC-006 | SPEC-008 | TEST-S-007 |
-| REQ-011 | editor | 크로마키 지움 색을 중앙 원본 영상 프레임에서 스포이드로 채취하고 manifest `chroma_key`에 즉시 저장 | Done | UC-007 | SPEC-009 | TEST-S-008 |
-| REQ-012 | cascade | `:8099` 에디터가 명시한 cascade URL(로컬 정본 `:8910`)에 현재 nva와 ref URL을 전송하고, 절대 ref URL을 zip 상대 파일로 재해석하지 않은 채 음성 포함 발화를 재생 | Done | UC-008 | SPEC-010 | TEST-S-009 |
-| REQ-013 | editor | manifest의 캔버스 폭·높이를 편집하고 실제 비율로 미리보며, 말하기용 `head_image`를 manifest의 `ditto_region`과 동일한 512×512 PNG로 생성 | Done | UC-009 | SPEC-011 | TEST-S-010 |
+| REQ-001 | format | NVA v0.3 완성 미디어 포맷을 JSON manifest와 ZIP 번들 소비 계약으로 정의한다 | Done | UC-001 | SPEC-001 | TEST-S-001 |
+| REQ-004 | player | Player가 단일 `.nva` 파일을 읽고 기본 idle 영상을 표시한다 | Done | UC-002 | SPEC-003 | TEST-S-002 |
+| REQ-007 | validation | Player는 manifest, 번들 상대경로, 필수 자산, 크기와 해시가 잘못된 NVA를 재생 전에 거부한다 | Done | UC-001, UC-002 | SPEC-001, SPEC-002 | TEST-S-001, TEST-S-002 |
+| NFR-001 | deploy | Player는 GPU 없이 정적 웹 서버와 지원 브라우저에서 동작한다 | Done | — | SPEC-003 | TEST-S-005 |
+| NFR-002 | packaging | Player는 빌드 단계 없이 직접 제공할 수 있는 정적 HTML 진입점을 가진다 | Done | — | SPEC-003 | TEST-S-005 |
+| NFR-004 | dependencies | NVA manifest 검증 코어는 런타임 외부 의존성이 없다 | Done | — | SPEC-002 | TEST-F-001 |
+| NFR-005 | gpu-free | 재생 경로는 생성 모델, CUDA 또는 생성용 VRAM을 요구하지 않는다 | Done (#14) | — | SPEC-003, SPEC-016, SPEC-017 | TEST-S-005, TEST-S-016 |
+| REQ-018 | oss-scope | 공개 제품은 NVA 소비 규격·스키마·검증기·읽기 전용 Player로 제한하며 Editor·Studio와 생성 서버 구현을 포함하지 않는다 | Done (#14) | UC-013 | SPEC-018 | TEST-S-016 |
+| REQ-019 | completed-speech | Player는 `.nva`에 포함된 음성 내장 완성 발화 영상을 나열·재생·중단하고 완료·중단·오류 뒤 idle로 복귀한다 | Done (#14) | UC-013 | SPEC-016 | TEST-S-016 |
+| REQ-020 | actions | Player는 NVA의 idle과 action을 나열·재생하고 action·발화 완료, 중단 또는 오류 뒤 idle로 복귀한다 | Done (#14) | UC-014 | SPEC-017 | TEST-S-017 |
+| NFR-009 | frontend-only | Player는 완성 NVA 재생에 외부 API·계정·키를 요구하지 않으며 실시간 음성·립싱크·생성 기능을 포함하지 않는다 | Done (#14) | — | SPEC-016, SPEC-018 | TEST-S-016 |
+| REQ-022 | final-package | 결정론적 패키징 도구는 기존 NVA와 음성 내장 완성 발화 영상을 받아 생성용 필드·미참조 자산을 제외한 v0.3 `.nva`를 만든다 | Done (#14) | UC-016 | SPEC-021 | TEST-S-019 |
+| REQ-021 | local-catalog | 로컬 정적 서버에서 같은 출처의 JSON 카탈로그를 읽어 준비된 NVA 샘플을 선택·로드할 수 있고, 수동 파일 선택 경로도 그대로 유지한다 | Done (#14) | UC-015 | SPEC-019, SPEC-020 | TEST-S-018 |
+| NFR-010 | local-privacy | 로컬 샘플 준비 결과는 Git에서 제외되며 카탈로그에는 원본 절대경로·얼굴·음성·생성 정보가 아니라 표시 이름과 같은 출처의 상대 NVA URL만 기록한다 | Done (#14) | — | SPEC-019, SPEC-020 | TEST-S-018 |
+| REQ-023 | format | 공개 NVA 정본은 `nva_version: 0.3`, `profile: completed-media`이며 대기·동작·음성이 포함된 완성 영상만 참조한다 | Approved (#16) | UC-017, UC-018 | SPEC-022 | TEST-S-020, TEST-S-022 |
+| REQ-024 | player | 단일 서비스형 웹 화면에서 로컬 `.nva` 또는 공개 샘플을 열고 대기·내장 발화·동작을 재생한다 | Approved (#16) | UC-017 | SPEC-023 | TEST-S-020, TEST-S-021 |
+| REQ-025 | playback | 일회성 발화·동작의 재생 완료 또는 오류 후 안전하게 대기 영상으로 복귀한다 | Approved (#16) | UC-017 | SPEC-023 | TEST-S-020, TEST-S-021 |
+| REQ-026 | validation | ZIP 경로·크기·manifest·미디어 참조를 브라우저에서 검증하고 실행 불가능한 패키지를 재생 전에 차단한다 | Approved (#16) | UC-018 | SPEC-022 | TEST-S-020, TEST-S-022 |
+| REQ-027 | presentation | 플레이어가 투명 캐릭터를 색상 및 사용자 선택 이미지 배경 위에서 미리 볼 수 있게 한다 | Approved (#16) | UC-019 | SPEC-023 | TEST-S-021 |
+| NFR-011 | compatibility | v0.2는 읽기 호환만 유지하고 신규 문서·스키마·예제는 v0.3을 사용한다 | Approved (#16) | — | — | TEST-S-022 |
+| NFR-012 | deploy | 정적 파일 서버와 일반 브라우저만으로 동작하며 계정·키·서버 API·GPU가 필요 없다 | Approved (#16) | — | — | TEST-S-021, TEST-S-022 |
+| NFR-013 | public-boundary | create, 편집기, TTS, 실시간 생성, Cascade, 제작 프롬프트와 내부 파이프라인을 공개 실행 코드·예제에서 제외한다 | Approved (#16) | — | — | TEST-S-023 |
+| NFR-014 | simplicity | 공개 기본 화면은 파일 열기·재생·배경 확인에 필요한 제어만 제공하고 노드 그래프나 제작 타임라인을 제공하지 않는다 | Approved (#16) | — | — | TEST-S-021, TEST-S-023 |
