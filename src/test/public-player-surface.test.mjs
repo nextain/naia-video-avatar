@@ -24,7 +24,7 @@ test("public runtime contains only completed-media format and Player surfaces", 
   for (const path of [
     "nva-schema.json", "nva-core.js", "viewer.html",
     "nva-animation-player.js", "nva-bundle-loader.js",
-    "sample-catalog.js", "load-coordinator.js",
+    "sample-catalog.js", "load-coordinator.js", "stage-background.js",
   ]) await access(new URL(path, main));
   for (const path of removed)
     await assert.rejects(access(new URL(path, main)), /ENOENT/);

@@ -62,13 +62,14 @@
 import { LoadCoordinator } from "./load-coordinator.js";
 import { loadNvaBundle } from "./nva-bundle-loader.js";
 import { NvaAnimationPlayer } from "./nva-animation-player.js";
+import { StageBackground } from "./stage-background.js";
 import { fetchNvaSample, loadSampleCatalog } from "./sample-catalog.js";
 
 const get = (id) => document.getElementById(id);
 const avatarLoads = new LoadCoordinator();
 let bundle = null;
 let animationPlayer = null;
-let backgroundUrl = null;
+const stageBackground = new StageBackground(get("stage"));
 
 function setStatus(message, error = false) {
   get("status").textContent = message;
@@ -155,18 +156,15 @@ get("playAction").addEventListener("click", async () => {
   }
 });
 get("stop").addEventListener("click", () => { void restoreIdle("Stopped; idle restored."); });
-get("backgroundColor").addEventListener("input", () => { get("stage").style.backgroundColor = get("backgroundColor").value; });
+get("backgroundColor").addEventListener("input", () => { stageBackground.setColor(get("backgroundColor").value); });
 get("backgroundImage").addEventListener("change", () => {
-  if (backgroundUrl) URL.revokeObjectURL(backgroundUrl);
   const image = get("backgroundImage").files[0];
-  backgroundUrl = image ? URL.createObjectURL(image) : null;
-  get("stage").style.backgroundImage = backgroundUrl ? `url("${backgroundUrl}")` : "none";
+  if (!image) return;
+  try { stageBackground.setImage(image); } catch (error) { setStatus(error.message, true); }
 });
 get("clearBackground").addEventListener("click", () => {
-  if (backgroundUrl) URL.revokeObjectURL(backgroundUrl);
-  backgroundUrl = null;
   get("backgroundImage").value = "";
-  get("stage").style.backgroundImage = "none";
+  stageBackground.setColor(get("backgroundColor").value);
 });
 get("animation").addEventListener("ended", () => {
   if (["action", "speech"].includes(animationPlayer?.state)) void restoreIdle("Playback complete; idle restored.");
@@ -195,7 +193,7 @@ void prepareSampleCatalog();
 window.addEventListener("beforeunload", () => {
   avatarLoads.cancel();
   animationPlayer?.dispose();
-  if (backgroundUrl) URL.revokeObjectURL(backgroundUrl);
+  stageBackground.dispose();
 });
 </script>
 </body>
