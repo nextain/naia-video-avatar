@@ -44,6 +44,7 @@ jobs:
           # main push: 이 커밋을 만든 병합 PR 이 'charter-approved' 라벨로 승인됐으면 같은 승인으로 본다.
           # PR 없이 main 에 직접 올린 헌장 변경, 병합 커밋 외 커밋이 섞인 push 는 계속 실패한다.
           if [ "${{ github.event_name }}" = "push" ] && [ -z "$CHARTER_APPROVED" ] \
+              && git merge-base --is-ancestor "${{ github.event.before }}" HEAD 2>/dev/null \
               && [ "$(git rev-list --count "${{ github.event.before }}..HEAD" 2>/dev/null)" = "1" ]; then
             if gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
                 --jq '[.[] | select(.merged_at != null and .merge_commit_sha == "${{ github.sha }}" and .base.ref == "main") | .labels[].name] | index("charter-approved") != null' \
