@@ -55,6 +55,7 @@ check("'incomplete'는 negation, 'complete' 단어경계 오탐 안 함 → 통�
 check("완료선언 없음 → 통과", checkCompletion("chore: 설정 변경", cfg).ok === true);
 check("하이픈 식별자 'completed-media'는 완료선언 아님 → 통과", checkCompletion("fix(player): gate idle rule to v0.3 completed-media", cfg).ok === true);
 check("문장 끝 'completed.'은 여전히 완료선언 → 실패", checkCompletion("feat: migration completed.", cfg).ok === false);
+check("앞 하이픈 'fully-completed.'은 완료선언 → 실패", checkCompletion("migration fully-completed.", cfg).ok === false);
 check("'closes #5' 증거 → 통과", checkCompletion("끝. closes #5", cfg).ok === true);
 
 // off level
