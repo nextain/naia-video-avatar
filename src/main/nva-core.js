@@ -197,10 +197,12 @@ export function validateManifest(m, opts = {}) {
   // A completed-media file always needs an idle loop.
   const hasIdle = Object.values(anims).some((a) => a.loop && !isTransition(a) && !a.can_talk);
   const hasTalk = Object.values(anims).some((a) => a.loop && !isTransition(a) && a.can_talk);
-  if (animKeys.length && !hasIdle)
-    E("대기 반복 영상(loop=true)이 필요함");
+  if (animKeys.length && !hasIdle) {
+    if (completedMedia) E("대기 반복 영상(loop=true)이 필요함");
+    else W("대기 base 루프(loop & !can_talk & 비전환) 없음 — cascade idle 클립 유도 실패");
+  }
   if (!completedMedia && animKeys.length && !hasTalk)
-    W("기존 v0.2 말하기 반복 영상이 없음");
+    W("말하기 base 루프(loop & can_talk) 없음 — 헤드토킹 대상 없음");
 
   // Optional completed speech videos. These are final media outputs with
   // embedded audio; the public contract intentionally contains no real-time

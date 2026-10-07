@@ -98,3 +98,26 @@ test("animation player rejects unknown actions", async () => {
   });
   await assert.rejects(() => player.playAction("missing"), /unknown NVA action/);
 });
+
+test("animation player never resumes stale playback after stop during media load", async () => {
+  const element = video();
+  const player = new NvaAnimationPlayer(element, {
+    urlApi: { createObjectURL: (() => { let n = 0; return () => `blob:${++n}`; })(), revokeObjectURL() {} },
+  });
+  const paths = ["idle", "wave", "sit"].map((name) => `clips/${name}.webm`).concat("speech/greeting.mp4");
+  await player.load({ manifest: manifest(), assets: new Map(paths.map((path) => [path, new Blob([path])])) });
+  const baseline = element.played;
+  let release;
+  element.load = () => { release = () => element.listeners.loadeddata?.(); };
+  const pending = player.playSpeech("greeting");
+  player.stop();
+  release();
+  await pending;
+  assert.equal(element.played, baseline, "stale speech must not play");
+  assert.equal(player.state, "ready");
+  const action = player.playAction("wave");
+  player.stop();
+  release();
+  await action;
+  assert.equal(element.played, baseline, "stale action must not play");
+});

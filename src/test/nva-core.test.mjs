@@ -98,3 +98,14 @@ test("scenario and pose helpers preserve deterministic playback order", () => {
   assert.equal(listScenarios(manifest).length, 1);
   assert.deepEqual(scenarioPlayOrder(manifest).map((item) => item.animation), ["idle"]);
 });
+
+test("v0.2 manifest with a single non-looping action stays valid (backward compatible)", () => {
+  const result = validateManifest({
+    nva_version: "0.2",
+    meta: { name: "legacy" },
+    canvas: { width: 720, height: 1280 },
+    background: { type: "transparent" },
+    animations: { wave: { clip: "clips/wave.webm", loop: false } },
+  });
+  assert.equal(result.ok, true, result.errors.join("; "));
+});

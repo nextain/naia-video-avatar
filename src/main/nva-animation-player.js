@@ -30,6 +30,7 @@ export class NvaAnimationPlayer {
     this.urlApi = urlApi;
     this.urls = new Map();
     this.state = "empty";
+    this.generation = 0;
     this.onEnded = () => { if (["action", "speech"].includes(this.state)) void this.playIdle(); };
     this.onError = () => { if (["action", "speech"].includes(this.state)) void this.playIdle(); };
     video.addEventListener("ended", this.onEnded);
@@ -76,12 +77,14 @@ export class NvaAnimationPlayer {
   }
 
   stop() {
+    this.generation += 1;
     this.video.pause();
     if (this.manifest && this.state !== "disposed") this.state = "ready";
   }
 
   dispose() {
     this.stop();
+    this.state = "disposed";
     this.video.removeEventListener("ended", this.onEnded);
     this.video.removeEventListener("error", this.onError);
     this.video.removeAttribute?.("src");
@@ -102,6 +105,7 @@ export class NvaAnimationPlayer {
   }
 
   async #showPath(path, loop, autoplay, muted) {
+    const generation = ++this.generation;
     const source = this.#urlFor(path);
     const changed = this.video.src !== source;
     this.video.loop = loop;
@@ -113,6 +117,9 @@ export class NvaAnimationPlayer {
     } else {
       this.video.currentTime = 0;
     }
+    // A stop(), load(), dispose() or newer play request during the await
+    // supersedes this one; never resume stale video or audio.
+    if (generation !== this.generation || this.state === "disposed") return;
     if (autoplay) await this.video.play();
   }
 
