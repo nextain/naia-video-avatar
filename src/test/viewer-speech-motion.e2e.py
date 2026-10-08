@@ -419,8 +419,8 @@ def run_e2e() -> None:
             assert page.locator("#animation").evaluate("el => el.style.display === 'none'")
             page.wait_for_timeout(200)
 
-            # Trigger error on #speechAudio
-            page.evaluate("() => document.querySelector('#speechAudio').dispatchEvent(new Event('error'))")
+            # Trigger a real browser media error on #speechAudio (unsupported source), not a synthetic event
+            page.evaluate("() => { const a = document.querySelector('#speechAudio'); a.src = 'data:audio/wav;base64,AAAA'; a.load(); }")
             page.locator("#status").filter(has_text="Playback failed: audio error").wait_for(timeout=5_000)
             status_text6 = page.locator("#status").inner_text()
             assert "Playback failed: audio error" in status_text6, f"unexpected status: {status_text6}"
@@ -432,8 +432,32 @@ def run_e2e() -> None:
             last_restore6 = page.evaluate("() => window.__lastRestore")
             assert_restored_state(snap6, last_restore6, "Case 6: Mid-playback audio error")
 
+            err_code6 = page.evaluate("() => document.querySelector('#speechAudio').error?.code ?? null")
+            assert err_code6 is not None, "Case 6: audio element has no real MediaError"
+
             page.evaluate("() => { const v = document.querySelector('#animation'); v.currentTime = 4.95; }")
             page.wait_for_function("() => window.__animationPlayer()?.state === 'idle'", timeout=5_000)
+
+            # Rebuild the speech player so later cases use a valid audio source again
+            # (a byte-identical copy under another name so the file input fires a change event)
+            rebuild_dir = Path(tempfile.mkdtemp(prefix="nva-rebuild-plan-"))
+            rebuild_plan = rebuild_dir / "rebuild.plan.json"
+            rebuild_plan.write_bytes(PLAN_PATH.read_bytes())
+            page.locator("#planFile").set_input_files(str(rebuild_plan))
+            page.locator("#status").filter(has_text="composed speech ready").wait_for(timeout=10_000)
+
+            # --- Case 6b: Stop while play() is pending (start race) ---
+            print("Testing Case 6b: Stop while play() is pending...")
+            page.evaluate("() => { window.__lastRestore = null; }")
+            snap6b = page.evaluate("() => window.__takeSnapshot()")
+            page.evaluate("() => { document.querySelector('#playComposed').click(); document.querySelector('#stopComposed').click(); }")
+            page.wait_for_timeout(1_000)
+            status_text6b = page.locator("#status").inner_text()
+            assert status_text6b.startswith("Stopped; original ready state restored."), f"Case 6b: unexpected status: {status_text6b}"
+            assert page.evaluate("() => document.querySelector('#speechAudio').paused"), "Case 6b: audio kept playing after stop"
+            assert page.locator("#stageCanvas").evaluate("el => el.style.display === 'none'")
+            last_restore6b = page.evaluate("() => window.__lastRestore")
+            assert_restored_state(snap6b, last_restore6b, "Case 6b: Stop while play pending")
 
             # --- Case 7: Mid-playback chunk decode error ---
             print("Testing Case 7: Mid-playback chunk decode error...")
