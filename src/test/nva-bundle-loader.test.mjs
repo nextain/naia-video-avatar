@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { deflateRawSync } from "node:zlib";
 
-import { loadNvaBundle } from "../main/nva-bundle-loader.js";
+import {
+  MAX_ARCHIVE_BYTES,
+  MAX_EXPANDED_BYTES,
+  loadNvaBundle,
+} from "../main/nva-bundle-loader.js";
 
 const encoder = new TextEncoder();
 
@@ -73,13 +77,18 @@ test("native NVA loader reads a stored manifest and assets without JSZip", async
   assert.equal(result.files, 2);
 });
 
-test("native NVA loader rejects traversal and expanded-size overflow before extraction", async () => {
+test("native NVA loader rejects traversal, archive overflow and expanded-size overflow separately", async () => {
+  assert.equal(MAX_ARCHIVE_BYTES, 200 * 1024 * 1024);
+  assert.equal(MAX_EXPANDED_BYTES, 400 * 1024 * 1024);
   await assert.rejects(loadNvaBundle(storedZip({
     "manifest.json": "{}", "../escape": "x",
   })), /file table/);
   await assert.rejects(loadNvaBundle(storedZip({
     "manifest.json": "{}", "speech/atlas.bin": "12345",
-  }), { maxBytes: 4 }), /100 MiB/);
+  }), { maxBytes: 4 }), /200 MiB/);
+  await assert.rejects(loadNvaBundle(storedZip({
+    "manifest.json": "{}", "speech/atlas.bin": "12345",
+  }), { maxBytes: 10_000, maxExpandedBytes: 4 }), /400 MiB/);
 });
 
 test("native NVA loader reads a deflated bundle built from the tracked naia example", async () => {

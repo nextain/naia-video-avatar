@@ -1,6 +1,7 @@
-const MAX_ARCHIVE_BYTES = 100 * 1024 * 1024;
-const MAX_MANIFEST_BYTES = 1024 * 1024;
-const MAX_FILES = 512;
+export const MAX_ARCHIVE_BYTES = 200 * 1024 * 1024;
+export const MAX_EXPANDED_BYTES = 400 * 1024 * 1024;
+export const MAX_MANIFEST_BYTES = 1024 * 1024;
+export const MAX_FILES = 512;
 const EOCD_SIGNATURE = 0x06054b50;
 const CENTRAL_SIGNATURE = 0x02014b50;
 const LOCAL_SIGNATURE = 0x04034b50;
@@ -40,10 +41,11 @@ async function inflate(method, compressed) {
 
 export async function loadNvaBundle(file, {
   maxBytes = MAX_ARCHIVE_BYTES,
+  maxExpandedBytes = MAX_EXPANDED_BYTES,
   maxFiles = MAX_FILES,
 } = {}) {
   if (!(file instanceof Blob) || file.size <= 0 || file.size > maxBytes)
-    throw new Error("NVA bundle exceeds the 100 MiB limit");
+    throw new Error("NVA bundle exceeds the 200 MiB limit");
   const bytes = new Uint8Array(await file.arrayBuffer());
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const eocd = findEocd(view);
@@ -83,8 +85,8 @@ export async function loadNvaBundle(file, {
     if (!safePath(path) || paths.has(path)) throw new Error("NVA ZIP file table is invalid");
     paths.add(path);
     expandedBytes += uncompressedSize;
-    if (!Number.isSafeInteger(expandedBytes) || expandedBytes > maxBytes)
-      throw new Error("expanded NVA assets exceed the 100 MiB limit");
+    if (!Number.isSafeInteger(expandedBytes) || expandedBytes > maxExpandedBytes)
+      throw new Error("expanded NVA assets exceed the 400 MiB limit");
     if (path === "manifest.json" && uncompressedSize > MAX_MANIFEST_BYTES)
       throw new Error("NVA manifest exceeds the 1 MiB limit");
     entries.push({ path, method, compressedSize, uncompressedSize, localOffset });

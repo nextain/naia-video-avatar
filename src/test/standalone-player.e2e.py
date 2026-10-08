@@ -60,6 +60,50 @@ def build_fixture(path: Path, temporary: Path) -> None:
             archive.writestr(name, value)
 
 
+def build_prop_fixture(path: Path) -> dict[int, str]:
+    enter_bytes = (ROOT / "examples/demo.nva/clips/nod.webm").read_bytes()
+    strum_bytes = (ROOT / "examples/demo.nva/clips/stand_up.webm").read_bytes()
+    exit_bytes = (ROOT / "examples/demo.nva/clips/sit_down.webm").read_bytes()
+    idle_bytes = (ROOT / "examples/demo.nva/clips/dance.webm").read_bytes()
+    assert len({len(enter_bytes), len(strum_bytes), len(exit_bytes), len(idle_bytes)}) == 4
+
+    files = {
+        "clips/idle.webm": idle_bytes,
+        "clips/strum.webm": strum_bytes,
+        "clips/strum_enter.webm": enter_bytes,
+        "clips/strum_exit.webm": exit_bytes,
+    }
+    manifest = {
+        "nva_version": "0.2",
+        "canvas": {"width": 720, "height": 1280, "fps": 25},
+        "background": {"type": "transparent"},
+        "animations": {
+            "idle": {"clip": "clips/idle.webm", "loop": True, "can_talk": False, "label": "Idle"},
+            "strum": {
+                "clip": "clips/strum.webm", "loop": True, "can_talk": False, "label": "연주",
+                "prop_sequence": {"enter": "strum__enter", "exit": "strum__exit"},
+            },
+            "strum__enter": {
+                "clip": "clips/strum_enter.webm", "loop": False, "can_talk": False, "label": "연주 시작",
+                "role": "prop_enter", "parent": "strum",
+            },
+            "strum__exit": {
+                "clip": "clips/strum_exit.webm", "loop": False, "can_talk": False, "label": "연주 종료",
+                "role": "prop_exit", "parent": "strum",
+            },
+        },
+    }
+    files["manifest.json"] = encoded(manifest)
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for name, value in files.items():
+            archive.writestr(name, value)
+    return {
+        len(enter_bytes): "enter",
+        len(strum_bytes): "strum",
+        len(exit_bytes): "exit",
+    }
+
+
 with tempfile.TemporaryDirectory(prefix="nva-player-e2e-") as temporary_name:
     temporary = Path(temporary_name)
     fixture = temporary / "completed-player.nva"
@@ -72,6 +116,27 @@ with tempfile.TemporaryDirectory(prefix="nva-player-e2e-") as temporary_name:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         page = browser.new_page(viewport={"width": 1280, "height": 900})
+        page.add_init_script("""
+            window.__blobSizes = {};
+            window.__endedBlobSizes = [];
+            const origCreate = URL.createObjectURL;
+            URL.createObjectURL = function(blob) {
+                const url = origCreate.call(this, blob);
+                if (blob && typeof blob.size === 'number') {
+                    window.__blobSizes[url] = blob.size;
+                }
+                return url;
+            };
+            window.addEventListener('DOMContentLoaded', () => {
+                const video = document.getElementById('animation');
+                if (video) {
+                    video.addEventListener('ended', () => {
+                        const size = window.__blobSizes[video.src];
+                        if (size) window.__endedBlobSizes.push(size);
+                    }, true);
+                }
+            });
+        """)
         console_errors: list[str] = []
         page_errors: list[str] = []
         external_requests: list[str] = []
@@ -170,9 +235,44 @@ with tempfile.TemporaryDirectory(prefix="nva-player-e2e-") as temporary_name:
 
         page.evaluate("() => { const element = document.querySelector('#animation'); delete element.play; }")
 
+        # Prop sequence verification: Studio v0.2 bundle with prop sequence
+        prop_fixture = temporary / "prop-fixture.nva"
+        size_to_name = build_prop_fixture(prop_fixture)
+        page.locator("#nvaFile").set_input_files(str(prop_fixture))
+        page.locator("#status").filter(has_text="Ready").wait_for(timeout=30_000)
+
+        # Action list must only contain strum, not enter or exit
+        assert page.locator("#action option").count() == 1
+        assert page.locator("#action option").first.evaluate("opt => opt.value") == "strum"
+
+        page.evaluate("""() => {
+            window.__endedBlobSizes = [];
+            window.__intermediateStatuses = [];
+            const statusEl = document.getElementById('status');
+            window.__statusObserver = new MutationObserver(() => {
+                window.__intermediateStatuses.push(statusEl.textContent);
+            });
+            window.__statusObserver.observe(statusEl, { childList: true, characterData: true, subtree: true });
+        }""")
+
+        page.locator("#playAction").click()
+        page.locator("#status").filter(has_text="Playing action").wait_for(timeout=5_000)
+        page.locator("#status").filter(has_text="Playback complete; idle restored.").wait_for(timeout=30_000)
+        page.evaluate("() => window.__statusObserver?.disconnect()")
+
+        # Verify no intermediate "Playback complete"
+        statuses = page.evaluate("() => window.__intermediateStatuses")
+        complete_statuses = [s for s in statuses if "Playback complete" in s]
+        assert len(complete_statuses) == 1, f"Playback complete appeared multiple times: {statuses}"
+
+        ended_sizes = page.evaluate("() => window.__endedBlobSizes")
+        ended_names = [size_to_name.get(s, f"unknown({s})") for s in ended_sizes]
+        assert ended_names == ["enter", "strum", "strum", "exit"], f"unexpected sequence: {ended_names}"
+        assert page.locator("#animation").evaluate("video => video.muted === true && video.loop === true")
+
         assert external_requests == [], external_requests
         assert console_errors == [], console_errors
         assert page_errors == [], page_errors
         browser.close()
 
-print("PASS: completed speech, action, idle restoration, external requests=0, browser errors=0, blocked-after-good controls disabled, superseded requests silent, stale recovery silent")
+print("PASS: completed speech, action, idle restoration, external requests=0, browser errors=0, blocked-after-good controls disabled, superseded requests silent, stale recovery silent, prop sequence")

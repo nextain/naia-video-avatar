@@ -31,8 +31,10 @@ scripts/check-traceability.mjs 가 이 표를 파싱한다.
 | REQ-025 | playback | 일회성 발화·동작의 재생 완료 또는 오류 후 안전하게 대기 영상으로 복귀한다 | Approved (#16) | UC-017 | SPEC-023 | TEST-S-020, TEST-S-021 |
 | REQ-026 | validation | ZIP 경로·크기·manifest·미디어 참조를 브라우저에서 검증하고 실행 불가능한 패키지를 재생 전에 차단한다 | Approved (#16) | UC-018 | SPEC-022 | TEST-S-020, TEST-S-022 |
 | REQ-027 | presentation | 플레이어가 투명 캐릭터를 색상 및 사용자 선택 이미지 배경 위에서 미리 볼 수 있게 한다 | Approved (#16) | UC-019 | SPEC-023 | TEST-S-021 |
-| NFR-011 | compatibility | v0.2는 읽기 호환만 유지하고 신규 문서·스키마·예제는 v0.3을 사용한다 | Approved (#16) | — | — | TEST-S-022 |
+| NFR-011 | compatibility | v0.2는 Studio 배포 파일의 읽기·재생을 지원하고 신규 문서·스키마·예제는 v0.3을 사용한다 | Approved (#16) | — | — | TEST-S-022 |
 | NFR-012 | deploy | 정적 파일 서버와 일반 브라우저만으로 동작하며 계정·키·서버 API·GPU가 필요 없다 | Approved (#16) | — | — | TEST-S-021, TEST-S-022 |
 | NFR-013 | public-boundary | create, 편집기, TTS, 실시간 생성, Cascade, 제작 프롬프트와 내부 파이프라인을 공개 실행 코드·예제에서 제외한다 | Approved (#16) | — | — | TEST-S-023 |
 | NFR-014 | simplicity | 공개 기본 화면은 파일 열기·재생·배경 확인에 필요한 제어만 제공하고 노드 그래프나 제작 타임라인을 제공하지 않는다 | Approved (#16) | — | — | TEST-S-021, TEST-S-023 |
 | REQ-028 | compatibility | Player가 v0.2 번들의 말하기 루프(loop·can_talk)를 재생하고, 알 수 없는 확장 키를 무시하며, 데모 예제를 정상 로드하고, 차단 로드 시 컨트롤을 비활성화하며 밀려난 재생 요청을 무시한다 (read compatibility under NFR-011) | Approved (#22) | UC-020 | SPEC-024 | TEST-S-024 |
+| REQ-029 | compatibility | Player가 Studio v0.2 소품 동작 순서를 복합 액션(enter 1회 → 본 동작 2회 → exit 1회 → 대기 복귀)으로 재생하고, 액션 메뉴에서 보조 클립을 숨기며, 중복 라벨을 구분 표기한다 | Approved (#25) | UC-021 | SPEC-025 | TEST-S-025 |
+| NFR-015 | resource-limits | 로더와 패키징 도구는 Studio v0.2 번들 수용을 위해 아카이브 200 MiB, 해제 자산 400 MiB까지 지원한다 | Approved (#25) | — | SPEC-002, SPEC-025 | TEST-S-025 |

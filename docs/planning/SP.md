@@ -95,6 +95,7 @@ Single-column stacked layout where the control panel moves above the stage card 
 | **Speech Playback** | `select#speechClip`<br>`button#playSpeech` | Select clip and click "Play packaged speech" | Sets `video.muted=false`, `video.loop=false`, and `state="speech"`. Updates `#status` to `"Playing packaged speech: <label>"`. When playback ends (`ended` event), returns to idle automatically with `"Playback complete; idle restored."`. |
 | **Talking Loop** | `button#playTalking` | Click "Play talking loop" | Enabled when a v0.2 bundle has a talking loop: a looping, non-transition animation with `can_talk` (the scenario start animation first, otherwise the first in manifest order). Sets `video.muted=true`, `video.loop=true`, and `state="talking"`. `#status` shows `"Playing talking loop."`. |
 | **Action Playback** | `select#action`<br>`button#playAction` | Select action and click "Play action" | Sets `video.muted=true`, `video.loop=false`, and `state="action"`. When the clip ends, restores idle automatically. |
+| **Prop Action Playback** | `select#action`<br>`button#playAction` | Select prop action and click "Play action" | Presented as a single item in the action dropdown. Executes composite sequence: enter (1x, if present) → main loop (2x) → exit (1x, if present). Intermediate steps suppress completion status messages; final step restores idle automatically. |
 | **Stop** | `button#stop` | Click "Stop and return to idle" | Stops current action, talking loop, or speech video. Immediately resumes muted idle loop (`state="idle"`). Sets `#status` to `"Stopped; idle restored."`. |
 
 ---
@@ -121,6 +122,7 @@ This screen plan realizes the following user scenarios:
 - `UC-017`: Standalone browser preview without GPU or external APIs.
 - `UC-019`: Interactive background color and image composition.
 - `UC-020`: Studio 0.2 backward compatibility (talking loop and actions).
+- `UC-021`: Play Studio v0.2 prop sequences as a composite action.
 
 ---
 

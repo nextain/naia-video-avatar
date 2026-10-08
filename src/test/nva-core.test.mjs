@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 
 import {
   NVA_VERSION, animKind, derive, findTransitionPath, isTransition,
-  listScenarios, scenarioPlayOrder, validateManifest,
+  listScenarios, propActions, scenarioPlayOrder, validateManifest,
 } from "../main/nva-core.js";
 
 function completedManifest() {
@@ -137,5 +137,99 @@ test("examples/demo.nva manifest passes validation and derives idle and talking 
   const derived = derive(demoManifest);
   assert.equal(derived.idleKey, "stand_idle");
   assert.equal(derived.talkKey, "stand_talk");
+});
+
+test("Studio v0.2 profile manifest validates prop actions, derive excludes props, and propActions returns entries", () => {
+  const manifest = {
+    nva_version: "0.2",
+    canvas: { width: 720, height: 1280, fps: 25 },
+    background: { type: "transparent" },
+    expressions: { neutral: "idle", listening: "idle", speaking: "talking" },
+    thumbnail: "thumbnail.png",
+    meta: { name: "StudioAvatar", tagline: "Tagline", persona: "Persona", voice: "ko-KR-Standard-A" },
+    speech_set: { version: "1.0", items: [] },
+    animations: {
+      idle: {
+        clip: "clips/idle.webm", loop: true, can_talk: false, label: "대기",
+        loop_crossfade_frames: 5, sha256: "abc", frames: 50, duration_s: 2.0,
+      },
+      talking: {
+        clip: "clips/talking.webm", loop: true, can_talk: true, label: "말하기",
+        loop_crossfade_frames: 5, sha256: "def", frames: 50, duration_s: 2.0,
+        face_bbox: [0.2, 0.1, 0.6, 0.8],
+      },
+      strum: {
+        clip: "clips/strum.webm", loop: true, can_talk: false, label: "연주",
+        loop_crossfade_frames: 0, sha256: "ghi", frames: 60, duration_s: 2.4,
+        prop_sequence: { enter: "strum__enter", exit: "strum__exit" },
+      },
+      strum__enter: {
+        clip: "clips/strum_enter.webm", loop: false, can_talk: false, label: "연주 시작",
+        role: "prop_enter", parent: "strum",
+        loop_crossfade_frames: 0, sha256: "jkl", frames: 25, duration_s: 1.0,
+      },
+      strum__exit: {
+        clip: "clips/strum_exit.webm", loop: false, can_talk: false, label: "연주 종료",
+        role: "prop_exit", parent: "strum",
+        loop_crossfade_frames: 0, sha256: "mno", frames: 25, duration_s: 1.0,
+      },
+      wave: {
+        clip: "clips/wave.webm", loop: true, can_talk: false, label: "손흔들기",
+        loop_crossfade_frames: 0, sha256: "pqr", frames: 40, duration_s: 1.6,
+        prop_sequence: {},
+      },
+      gesture_a: { clip: "clips/nod.webm", loop: false, can_talk: false, label: "동작" },
+      gesture_b: { clip: "clips/shake.webm", loop: false, can_talk: false, label: "동작" },
+    },
+  };
+
+  const result = validateManifest(manifest);
+  assert.equal(result.ok, true, result.errors.join("; "));
+  assert.equal(result.errors.length, 0);
+  assert.ok(result.warnings.some((w) => w.includes("중복")));
+
+  const derived = derive(manifest);
+  assert.equal(derived.idleKey, "idle");
+  assert.equal(derived.talkKey, "talking");
+  assert.equal("strum" in derived.events, false);
+  assert.equal("strum__enter" in derived.events, false);
+  assert.equal("strum__exit" in derived.events, false);
+  assert.equal("wave" in derived.events, false);
+
+  assert.deepEqual(propActions(manifest), [
+    { key: "strum", label: "연주", enter: "strum__enter", exit: "strum__exit" },
+    { key: "wave", label: "손흔들기", enter: null, exit: null },
+  ]);
+});
+
+test("v0.2 prop_sequence with missing enter/exit keys produces warnings and null actions", () => {
+  const manifest = {
+    nva_version: "0.2",
+    canvas: { width: 720, height: 1280 },
+    background: { type: "transparent" },
+    animations: {
+      idle: { clip: "clips/idle.webm", loop: true, can_talk: false, label: "Idle" },
+      prop_missing: {
+        clip: "clips/prop.webm", loop: true, can_talk: false, label: "Prop",
+        prop_sequence: { enter: "nonexistent_enter", exit: "nonexistent_exit" },
+      },
+    },
+  };
+  const result = validateManifest(manifest);
+  assert.equal(result.ok, true);
+  assert.ok(result.warnings.some((w) => w.includes("nonexistent_enter")));
+  assert.ok(result.warnings.some((w) => w.includes("nonexistent_exit")));
+  assert.deepEqual(propActions(manifest), [
+    { key: "prop_missing", label: "Prop", enter: null, exit: null },
+  ]);
+});
+
+test("v0.3 manifest with duplicate labels is rejected with an error", () => {
+  const current = completedManifest();
+  current.animations.wave.label = "Wave";
+  current.animations.gesture = { clip: "clips/gesture.webm", loop: false, label: "Wave" };
+  const result = validateManifest(current);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((e) => e.includes("중복")));
 });
 

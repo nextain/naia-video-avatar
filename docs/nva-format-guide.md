@@ -53,7 +53,8 @@ finished before packaging.
 
 ## Limits
 
-- archive and expanded content: 100 MiB maximum;
+- archive: 200 MiB maximum;
+- expanded content: 400 MiB maximum;
 - file count: 512 maximum;
 - manifest: 1 MiB maximum;
 - speech text metadata: 10,000 characters maximum.
@@ -65,9 +66,41 @@ define how avatars, speech videos, audio, timing, or lip movement are produced.
 Applications needing live generation use a separate private runtime rather than
 extending this public Player contract.
 
-## v0.2 compatibility
+## Studio v0.2 profile
 
-The Player can still open existing v0.2 files for viewing. Authors should use
-v0.3 for new distributable NVA files because it omits generation-oriented and
-real-time fields. The v0.2 speech clip `locale` field is read as a read-only
-alias of `language`.
+The Player supports reading and playback of Studio v0.2 distribution files.
+Newly authored public packages should use v0.3 completed-media.
+
+### Manifest fields and Player behavior
+
+| Field | Description | Player behavior |
+|---|---|---|
+| `nva_version` | Format version string (`"0.2"`). | Used for playback (activates v0.2 compatibility profile). |
+| `canvas` | Dimensions and frame rate `{ width, height, fps }`. | Used for playback (canvas dimensions set aspect ratio; `fps` is informational). |
+| `background` | Background styling `{ type, color, src }`. | Used for playback (configures transparent or solid preview). |
+| `expressions` | State-to-animation mapping `{ neutral, listening, speaking }`. | Producer metadata (ignored by Player). |
+| `thumbnail` | Relative image path within the ZIP archive. | Display only (preview image). |
+| `meta` | Metadata `{ name, tagline, persona, voice, ... }`. | Display only (`name` displayed in UI status; other fields are producer metadata ignored by Player). |
+| `speech_set` | Producer speech definitions. | Producer data (not read by Player / ignored). |
+| `speech_clips.*.locale` | Legacy BCP 47 language code. | Read-only alias of `language`. |
+
+### Animation fields and prop sequence rules
+
+- **Common animation fields**:
+  - `clip`: relative path to WebM/MP4 clip (Used for playback).
+  - `loop`: boolean loop flag (Used for playback).
+  - `can_talk`: indicates talking capability (Used for playback: distinguishes idle from talking loop).
+  - `label`: UI action label (Display only: duplicate labels in v0.2 produce warnings and display as `label (key)`).
+  - `loop_crossfade_frames`: crossfade frame count already blended into the clip (Informational: frames are already baked into the clip; the Player does not perform additional crossfading).
+  - `sha256`, `frames`, `duration_s`: media metrics (Producer data: not read by Player / ignored).
+  - `face_bbox`: `[x, y, w, h]` normalized face bounding box on talking clip (Producer data: not read by Player / ignored).
+  - `idle`, `talking`: base looping animations (`idle` is always first; `talking` is played via `playTalking`).
+
+- **Prop action sequence rules**:
+  - Main action `X`: `loop: true`, `can_talk: false`, `prop_sequence: { enter: "X__enter", exit: "X__exit" }`.
+  - Auxiliary clips `X__enter` / `X__exit`: `loop: false`, `role: "prop_enter"|"prop_exit"`, `parent: "X"`.
+  - Sequence playback: `enter` (if present) 1x → `X` 2x (`loop: false` for both) → `exit` (if present) 1x → automatic idle restoration.
+  - If a producer provides `prop_sequence` without `enter` or `exit` clips, playback executes `X` 2x (`loop: false`) and returns to idle.
+  - Auxiliary clips and the raw prop action are excluded from standard action lists; the prop action appears as a single item in the action selector.
+  - Any reference in `prop_sequence` to a missing animation key emits a warning during validation rather than a fatal error.
+  - Producer metadata outside the fields above is producer data; the Player does not read it.

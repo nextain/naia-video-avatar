@@ -3,16 +3,22 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import subprocess
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts/prepare-local-samples.py"
+
+spec = importlib.util.spec_from_file_location("prepare_local_samples", SCRIPT)
+prepare_local_samples = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(prepare_local_samples)
 
 
 class LocalSamplePrepTest(unittest.TestCase):
@@ -72,6 +78,17 @@ class LocalSamplePrepTest(unittest.TestCase):
             result = self.run_tool(output, ("Bad", bad), check=False)
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(previous, (output / "catalog.json").read_bytes())
+
+    def test_oversized_prepared_archive_is_rejected_and_cleaned_up(self):
+        with tempfile.TemporaryDirectory(prefix="nva-prep-test-") as temporary:
+            root = Path(temporary)
+            good = self.fixture(root, "good")
+            destination = root / "out.nva"
+            with patch.object(prepare_local_samples, "MAX_ARCHIVE_BYTES", 50):
+                with self.assertRaises(ValueError) as ctx:
+                    prepare_local_samples.write_directory_bundle(good, destination)
+                self.assertIn("prepared NVA archive exceeds the 200 MiB limit", str(ctx.exception))
+            self.assertFalse(destination.exists())
 
 
 if __name__ == "__main__":

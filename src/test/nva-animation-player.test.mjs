@@ -302,3 +302,224 @@ test("clip decode error rejects with NVA animation decode failed despite onError
   assert.equal(player.state, "idle");
 });
 
+function propManifest() {
+  return {
+    nva_version: "0.2",
+    meta: { name: "prop-test" },
+    canvas: { width: 720, height: 1280 },
+    background: { type: "transparent" },
+    animations: {
+      idle: { clip: "clips/idle.webm", loop: true, can_talk: false, label: "Idle" },
+      strum: {
+        clip: "clips/strum.webm", loop: true, can_talk: false, label: "연주",
+        prop_sequence: { enter: "strum__enter", exit: "strum__exit" },
+      },
+      strum__enter: {
+        clip: "clips/strum_enter.webm", loop: false, can_talk: false, label: "연주 시작",
+        role: "prop_enter", parent: "strum",
+      },
+      strum__exit: {
+        clip: "clips/strum_exit.webm", loop: false, can_talk: false, label: "연주 종료",
+        role: "prop_exit", parent: "strum",
+      },
+      wave: {
+        clip: "clips/wave.webm", loop: true, can_talk: false, label: "손흔들기",
+        prop_sequence: {},
+      },
+      act1: { clip: "clips/act1.webm", loop: false, can_talk: false, label: "인사" },
+      act2: { clip: "clips/act2.webm", loop: false, can_talk: false, label: "인사" },
+    },
+  };
+}
+
+test("animation player handles prop sequence, duplicate labels, cancellation, and error recovery", async () => {
+  const element = video();
+  let nextUrl = 0;
+  const player = new NvaAnimationPlayer(element, {
+    urlApi: { createObjectURL: () => `blob:${++nextUrl}`, revokeObjectURL() {} },
+  });
+  const paths = [
+    "clips/idle.webm", "clips/strum.webm", "clips/strum_enter.webm",
+    "clips/strum_exit.webm", "clips/wave.webm", "clips/act1.webm", "clips/act2.webm",
+  ];
+  const assets = new Map(paths.map((p) => [p, new Blob([p])]));
+  const result = await player.load({ manifest: propManifest(), assets });
+
+  // 1. Actions list hides aux clips, appends prop actions, disambiguates duplicate labels
+  assert.deepEqual(result.actions, [
+    { key: "act1", label: "인사 (act1)" },
+    { key: "act2", label: "인사 (act2)" },
+    { key: "strum", label: "연주" },
+    { key: "wave", label: "손흔들기" },
+  ]);
+
+  // 2. Prop sequence with enter and exit: enter -> X -> X -> exit -> idle
+  // States: prop -> prop -> prop -> action -> idle
+  const states = [];
+  await player.playAction("strum");
+  states.push(player.state);
+  assert.equal(element.src, "blob:2"); // strum_enter
+  assert.equal(element.loop, false);
+
+  element.dispatchEvent("ended");
+  await new Promise((r) => setImmediate(r));
+  states.push(player.state);
+  assert.equal(element.src, "blob:3"); // strum 1st
+  assert.equal(element.loop, false);
+
+  element.dispatchEvent("ended");
+  await new Promise((r) => setImmediate(r));
+  states.push(player.state);
+  assert.equal(element.src, "blob:3"); // strum 2nd
+  assert.equal(element.loop, false);
+
+  element.dispatchEvent("ended");
+  await new Promise((r) => setImmediate(r));
+  states.push(player.state);
+  assert.equal(element.src, "blob:4"); // strum_exit (last step: state is action)
+  assert.equal(element.loop, false);
+
+  element.dispatchEvent("ended");
+  await new Promise((r) => setImmediate(r));
+  states.push(player.state);
+  assert.equal(element.src, "blob:1"); // idle restored
+  assert.equal(element.loop, true);
+  assert.deepEqual(states, ["prop", "prop", "prop", "action", "idle"]);
+
+  // 3. Prop sequence without enter/exit: X 2회 -> idle
+  // States: prop -> action -> idle
+  const waveStates = [];
+  await player.playAction("wave");
+  waveStates.push(player.state);
+  assert.equal(element.src, "blob:5"); // wave 1st
+  assert.equal(element.loop, false);
+
+  element.dispatchEvent("ended");
+  await new Promise((r) => setImmediate(r));
+  waveStates.push(player.state);
+  assert.equal(element.src, "blob:5"); // wave 2nd (last step: state is action)
+  assert.equal(element.loop, false);
+
+  element.dispatchEvent("ended");
+  await new Promise((r) => setImmediate(r));
+  waveStates.push(player.state);
+  assert.equal(element.src, "blob:1"); // idle restored
+  assert.equal(element.loop, true);
+  assert.deepEqual(waveStates, ["prop", "action", "idle"]);
+
+  // 4. stop() cancels active prop sequence
+  await player.playAction("strum");
+  assert.equal(player.state, "prop");
+  player.stop();
+  assert.equal(player.state, "ready");
+  const playCount = element.played;
+  element.dispatchEvent("ended");
+  await new Promise((r) => setImmediate(r));
+  assert.equal(element.played, playCount, "stopped prop sequence must not advance");
+
+  // 5. another playAction cancels active prop sequence
+  await player.playAction("strum");
+  assert.equal(player.state, "prop");
+  await player.playAction("act1");
+  assert.equal(player.state, "action");
+  element.dispatchEvent("ended");
+  await new Promise((r) => setImmediate(r));
+  assert.equal(player.state, "idle");
+
+  // 6. error during sequence restores idle
+  await player.playAction("strum");
+  assert.equal(player.state, "prop");
+  element.dispatchEvent("error");
+  assert.equal(player.state, "idle");
+  await new Promise((r) => setImmediate(r));
+  assert.equal(element.src, "blob:1");
+
+  // 7. failure during step advance in ended restores idle without unhandled rejection
+  await player.playAction("strum");
+  assert.equal(player.state, "prop");
+  element.play = async () => { throw new Error("Step play failed"); };
+  element.dispatchEvent("ended");
+  await new Promise((r) => setImmediate(r));
+  assert.equal(player.state, "idle");
+});
+
+test("prop action playback rejection on first step recovers to idle", async () => {
+  const element = video();
+  let nextUrl = 0;
+  const player = new NvaAnimationPlayer(element, {
+    urlApi: { createObjectURL: () => `blob:${++nextUrl}`, revokeObjectURL() {} },
+  });
+  const paths = [
+    "clips/idle.webm", "clips/strum.webm", "clips/strum_enter.webm",
+    "clips/strum_exit.webm", "clips/wave.webm", "clips/act1.webm", "clips/act2.webm",
+  ];
+  const assets = new Map(paths.map((p) => [p, new Blob([p])]));
+  await player.load({ manifest: propManifest(), assets });
+  assert.equal(element.src, "blob:1");
+
+  const notAllowed = new Error("Play not allowed");
+  notAllowed.name = "NotAllowedError";
+  element.play = async () => {
+    if (element.src !== "blob:1") throw notAllowed;
+  };
+
+  await assert.rejects(() => player.playAction("strum"), (err) => err === notAllowed);
+  assert.equal(player.state, "idle");
+  assert.equal(element.src, "blob:1");
+});
+
+test("invalid play request during prop sequence rejects without breaking sequence progression", async () => {
+  const element = video();
+  let nextUrl = 0;
+  const player = new NvaAnimationPlayer(element, {
+    urlApi: { createObjectURL: () => `blob:${++nextUrl}`, revokeObjectURL() {} },
+  });
+  const paths = [
+    "clips/idle.webm", "clips/strum.webm", "clips/strum_enter.webm",
+    "clips/strum_exit.webm", "clips/wave.webm", "clips/act1.webm", "clips/act2.webm",
+  ];
+  const assets = new Map(paths.map((p) => [p, new Blob([p])]));
+  await player.load({ manifest: propManifest(), assets });
+
+  await player.playAction("strum");
+  assert.equal(player.state, "prop");
+  assert.equal(element.src, player.urls.get("clips/strum_enter.webm"));
+
+  await assert.rejects(() => player.playTalking(), /NVA has no talking animation/);
+  await assert.rejects(() => player.playSpeech("missing"), /unknown packaged speech video/);
+
+  element.dispatchEvent("ended");
+  await new Promise((r) => setImmediate(r));
+  assert.equal(player.state, "prop");
+  assert.equal(element.src, player.urls.get("clips/strum.webm"));
+});
+
+test("duplicate action label disambiguation does not collide with existing labels", async () => {
+  const element = video();
+  const player = new NvaAnimationPlayer(element, {
+    urlApi: { createObjectURL: (() => { let n = 0; return () => `blob:${++n}`; })(), revokeObjectURL() {} },
+  });
+  const manifest = {
+    nva_version: "0.2",
+    meta: { name: "dedup-test" },
+    canvas: { width: 720, height: 1280 },
+    background: { type: "transparent" },
+    animations: {
+      idle: { clip: "clips/idle.webm", loop: true, can_talk: false, label: "Idle" },
+      strum: { clip: "clips/strum.webm", loop: false, can_talk: false, label: "Guitar" },
+      wave: { clip: "clips/wave.webm", loop: false, can_talk: false, label: "Guitar" },
+      clap: { clip: "clips/clap.webm", loop: false, can_talk: false, label: "Guitar (strum)" },
+    },
+  };
+  const paths = ["clips/idle.webm", "clips/strum.webm", "clips/wave.webm", "clips/clap.webm"];
+  const assets = new Map(paths.map((p) => [p, new Blob([p])]));
+  const result = await player.load({ manifest, assets });
+
+  const labels = result.actions.map((a) => a.label);
+  const uniqueLabels = new Set(labels);
+  assert.equal(uniqueLabels.size, 3, "all three action labels must be distinct");
+  assert.equal(result.actions.find((a) => a.key === "clap")?.label, "Guitar (strum)");
+  assert.equal(result.actions.find((a) => a.key === "strum")?.label, "Guitar (strum) 2");
+  assert.equal(result.actions.find((a) => a.key === "wave")?.label, "Guitar (wave)");
+});
+
