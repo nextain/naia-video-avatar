@@ -18,6 +18,7 @@
   input[type=file],select{border:1px solid #d0d5dd;background:#fff;border-radius:9px;padding:9px;color:#344054}
   button{margin-top:10px;border:0;border-radius:9px;padding:10px 12px;background:#6d5ce7;color:#fff;font-weight:650;cursor:pointer}button.secondary{background:#f2f4f7;color:#344054}button:disabled{opacity:.45;cursor:default}
   .section{padding-top:12px;margin-top:16px;border-top:1px solid #eaecf0}.background-row{display:grid;grid-template-columns:52px 1fr;gap:8px}.background-row input{height:40px;border:1px solid #d0d5dd;border-radius:9px;padding:3px;background:#fff}
+  .badge{display:inline-block;border-radius:999px;background:#26344b;color:#bcd0ee;padding:3px 9px;font-size:11px;margin-top:10px}.badge.aligned{background:#123d31;color:#72e5bd}.badge.approximate{background:#4a3414;color:#ffd384}
   #status{font-size:12px;line-height:1.5;color:#475467;background:#f8f9fb;border-radius:9px;padding:10px;margin-top:16px;min-height:54px}
   @media(max-width:820px){header{padding:0 18px}.layout{grid-template-columns:1fr;padding:16px}.panel{grid-row:1}.stage{min-height:460px}.media{max-height:460px}}
 </style>
@@ -25,7 +26,16 @@
 <body>
 <header><div class="brand">NVA Player</div><div class="version">NVA v0.3</div></header>
 <div class="layout">
-<section class="stage-card"><div id="stage" class="stage"><video id="animation" class="media" playsinline></video></div></section>
+<section class="stage-card">
+  <div id="stage" class="stage">
+    <video id="animation" class="media" playsinline></video>
+    <canvas id="stageCanvas" width="720" height="1280" class="media" style="display:none"></canvas>
+    <audio id="speechAudio" style="display:none"></audio>
+    <video id="bodyVideo" muted playsinline style="display:none"></video>
+    <video id="speechVideoA" muted playsinline style="display:none"></video>
+    <video id="speechVideoB" muted playsinline style="display:none"></video>
+  </div>
+</section>
 <aside class="panel">
   <h1>NVA Avatar Player</h1>
   <p class="sub">Open a finished avatar and preview its packaged speech and actions.</p>
@@ -55,6 +65,15 @@
     <select id="action" disabled><option value="">No actions loaded</option></select>
     <button id="playAction" class="secondary" disabled>Play action</button>
   </div>
+  <div id="speechMotionSection" class="section" style="display:none">
+    <label for="audioFile">Audio</label>
+    <input id="audioFile" type="file" accept="audio/*">
+    <label for="planFile">SpeechPlan v1</label>
+    <input id="planFile" type="file" accept=".json,application/json">
+    <div id="quality" class="badge" style="display:none">not loaded</div>
+    <button id="playComposed" disabled>Play composed speech</button>
+    <button id="stopComposed" class="secondary" disabled>Stop composed speech</button>
+  </div>
   <button id="stop" class="secondary" disabled>Stop and return to idle</button>
   <div id="status">Choose an NVA avatar.</div>
 </aside>
@@ -65,11 +84,15 @@ import { loadNvaBundle } from "./nva-bundle-loader.js";
 import { NvaAnimationPlayer } from "./nva-animation-player.js";
 import { StageBackground } from "./stage-background.js";
 import { fetchNvaSample, loadSampleCatalog } from "./sample-catalog.js";
+import { SpeechPlayer } from "./speech-player.js";
 
 const get = (id) => document.getElementById(id);
 const avatarLoads = new LoadCoordinator();
 let bundle = null;
 let animationPlayer = null;
+let player = null;
+let preComposedSnapshot = null;
+let composedPlayActive = false;
 let playRequest = 0;
 const stageBackground = new StageBackground(get("stage"));
 
@@ -99,9 +122,60 @@ async function restoreIdle(message = "Idle restored.", request = undefined, isEr
   setStatus(message, isError);
 }
 
+function takeAnimationPlayerSnapshot() {
+  const video = get("animation");
+  return {
+    state: animationPlayer?.state,
+    src: video.src,
+    currentTime: video.currentTime,
+    loop: video.loop,
+    muted: video.muted,
+    paused: video.paused,
+    backgroundColor: get("backgroundColor").value,
+    stageBgColor: get("stage").style.backgroundColor,
+    stageBgImage: get("stage").style.backgroundImage,
+  };
+}
+
+function restoreFromSnapshot(snapshot) {
+  if (!snapshot) return;
+  const video = get("animation");
+  const canvas = get("stageCanvas");
+
+  canvas.style.display = "none";
+  video.style.display = "";
+
+  if (animationPlayer) {
+    animationPlayer.state = snapshot.state;
+  }
+  video.loop = snapshot.loop;
+  video.muted = snapshot.muted;
+  if (snapshot.src && video.src !== snapshot.src) {
+    video.src = snapshot.src;
+  }
+  video.currentTime = snapshot.currentTime;
+  if (!snapshot.paused) {
+    video.play().catch(() => {});
+  } else {
+    video.pause();
+  }
+
+  if (snapshot.stageBgColor !== undefined) get("stage").style.backgroundColor = snapshot.stageBgColor;
+  if (snapshot.stageBgImage !== undefined) get("stage").style.backgroundImage = snapshot.stageBgImage;
+}
+
 async function openNva(loadSource, label) {
   const request = ++playRequest;
   const { generation, signal } = avatarLoads.begin();
+  player?.stop("cancel");
+  player?.dispose();
+  player = null;
+  preComposedSnapshot = null;
+  composedPlayActive = false;
+  get("stageCanvas").style.display = "none";
+  get("animation").style.display = "";
+  get("speechMotionSection").style.display = "none";
+
   get("playSpeech").disabled = true;
   get("playAction").disabled = true;
   get("playTalking").disabled = true;
@@ -131,6 +205,16 @@ async function openNva(loadSource, label) {
     get("playAction").disabled = !loaded.actions.length;
     get("playTalking").disabled = !loaded.talking;
     get("stop").disabled = false;
+
+    if (bundle.manifest?.speech_motion) {
+      get("speechMotionSection").style.display = "";
+      get("audioFile").value = "";
+      get("planFile").value = "";
+      get("playComposed").disabled = true;
+      get("stopComposed").disabled = true;
+      get("quality").style.display = "none";
+    }
+
     const avatarName = bundle.manifest.meta?.name || label;
     setStatus(`Ready · ${avatarName} · ${loaded.speechClips.length} packaged speech videos · ${loaded.actions.length} actions`);
   } catch (error) {
@@ -138,10 +222,53 @@ async function openNva(loadSource, label) {
       animationPlayer?.dispose();
       animationPlayer = null;
       bundle = null;
+      get("speechMotionSection").style.display = "none";
       get("speechClip").replaceChildren(...selectOptions([], "No speech videos loaded"));
       get("action").replaceChildren(...selectOptions([], "No actions loaded"));
       setStatus(`Blocked: ${error.message}`, true);
     }
+  }
+}
+
+async function prepareSpeechPlayer() {
+  if (!get("audioFile").files[0] || !get("planFile").files[0] || !bundle?.manifest?.speech_motion) return;
+  if (composedPlayActive) {
+    player?.stop("cancel");
+    restoreFromSnapshot(preComposedSnapshot);
+    preComposedSnapshot = null;
+    composedPlayActive = false;
+  }
+  get("playComposed").disabled = true;
+  get("stopComposed").disabled = true;
+  setStatus("Validating bundle, atlas, audio, and SpeechPlan…");
+  try {
+    const plan = JSON.parse(await get("planFile").files[0].text());
+    player?.stop("cancel");
+    player?.dispose();
+    player = new SpeechPlayer({
+      audio: get("speechAudio"),
+      canvas: get("stageCanvas"),
+      bodyVideo: get("bodyVideo"),
+      speechVideos: [get("speechVideoA"), get("speechVideoB")],
+    });
+    const result = await player.load({
+      manifest: bundle.manifest,
+      assets: bundle.assets,
+      plan,
+      audioBlob: get("audioFile").files[0],
+    });
+    get("quality").className = `badge ${result.quality_mode}`;
+    get("quality").textContent = result.quality_mode === "aligned" ? "aligned quality path" : "approximate preview";
+    get("quality").style.display = "";
+    get("playComposed").disabled = false;
+    get("stopComposed").disabled = false;
+    setStatus(`Ready · composed speech ready (${result.transitions} transitions) · no GPU/model runtime`);
+  } catch (error) {
+    player?.stop("cancel");
+    player?.dispose();
+    player = null;
+    get("quality").style.display = "none";
+    setStatus(`Blocked: ${error.message}`, true);
   }
 }
 
@@ -153,7 +280,16 @@ get("loadSample").addEventListener("click", () => {
   const option = get("sample").selectedOptions[0];
   if (option?.value) void openNva((signal) => fetchNvaSample(option.value, { signal }), option.textContent);
 });
+get("audioFile").addEventListener("change", prepareSpeechPlayer);
+get("planFile").addEventListener("change", prepareSpeechPlayer);
+
 get("playSpeech").addEventListener("click", async () => {
+  if (composedPlayActive) {
+    player?.stop("cancel");
+    restoreFromSnapshot(preComposedSnapshot);
+    preComposedSnapshot = null;
+    composedPlayActive = false;
+  }
   const request = ++playRequest;
   try {
     await animationPlayer.playSpeech(get("speechClip").value);
@@ -165,6 +301,12 @@ get("playSpeech").addEventListener("click", async () => {
   }
 });
 get("playTalking").addEventListener("click", async () => {
+  if (composedPlayActive) {
+    player?.stop("cancel");
+    restoreFromSnapshot(preComposedSnapshot);
+    preComposedSnapshot = null;
+    composedPlayActive = false;
+  }
   const request = ++playRequest;
   try {
     await animationPlayer.playTalking();
@@ -176,6 +318,12 @@ get("playTalking").addEventListener("click", async () => {
   }
 });
 get("playAction").addEventListener("click", async () => {
+  if (composedPlayActive) {
+    player?.stop("cancel");
+    restoreFromSnapshot(preComposedSnapshot);
+    preComposedSnapshot = null;
+    composedPlayActive = false;
+  }
   const request = ++playRequest;
   try {
     await animationPlayer.playAction(get("action").value);
@@ -186,7 +334,70 @@ get("playAction").addEventListener("click", async () => {
     await restoreIdle(`Action failed: ${error.message}`, request, true);
   }
 });
+
+get("playComposed").addEventListener("click", async () => {
+  if (!player) return;
+  if (composedPlayActive) {
+    player?.stop("cancel");
+    restoreFromSnapshot(preComposedSnapshot);
+    preComposedSnapshot = null;
+    composedPlayActive = false;
+    setStatus("Interrupted; original ready state restored.");
+    return;
+  }
+  preComposedSnapshot = takeAnimationPlayerSnapshot();
+  get("animation").pause();
+  get("animation").style.display = "none";
+  get("stageCanvas").style.display = "";
+  composedPlayActive = true;
+  try {
+    await player.play();
+    setStatus("Playing from the audio clock.");
+  } catch (error) {
+    player?.stop("cancel");
+    restoreFromSnapshot(preComposedSnapshot);
+    preComposedSnapshot = null;
+    composedPlayActive = false;
+    setStatus(`Playback failed: ${error.message}`, true);
+  }
+});
+
+get("stopComposed").addEventListener("click", () => {
+  player?.stop("cancel");
+  if (preComposedSnapshot) {
+    restoreFromSnapshot(preComposedSnapshot);
+    preComposedSnapshot = null;
+  }
+  composedPlayActive = false;
+  setStatus("Stopped; original ready state restored.");
+});
+
+get("speechAudio").addEventListener("ended", () => {
+  if (composedPlayActive) {
+    player?.stop("complete");
+    restoreFromSnapshot(preComposedSnapshot);
+    preComposedSnapshot = null;
+    composedPlayActive = false;
+    setStatus("Playback complete; idle restored.");
+  }
+});
+get("speechAudio").addEventListener("error", () => {
+  if (composedPlayActive) {
+    player?.stop("error");
+    restoreFromSnapshot(preComposedSnapshot);
+    preComposedSnapshot = null;
+    composedPlayActive = false;
+    setStatus("Playback failed: audio error", true);
+  }
+});
+
 get("stop").addEventListener("click", async () => {
+  if (composedPlayActive) {
+    player?.stop("cancel");
+    restoreFromSnapshot(preComposedSnapshot);
+    preComposedSnapshot = null;
+    composedPlayActive = false;
+  }
   const request = ++playRequest;
   await animationPlayer?.playIdle();
   if (request === playRequest) setStatus("Stopped; idle restored.");
@@ -228,8 +439,17 @@ void prepareSampleCatalog();
 window.addEventListener("beforeunload", () => {
   avatarLoads.cancel();
   animationPlayer?.dispose();
+  player?.stop("cancel");
+  player?.dispose();
   stageBackground.dispose();
 });
+
+// Test inspection hooks
+window.__animationPlayer = () => animationPlayer;
+window.__player = () => player;
+window.__getSnapshot = () => preComposedSnapshot;
+window.__takeSnapshot = takeAnimationPlayerSnapshot;
+window.__restoreSnapshot = restoreFromSnapshot;
 </script>
 </body>
 </html>

@@ -88,6 +88,48 @@
         }
       }
     },
+    "speech_motion": {
+      "type": "object",
+      "description": "선택적 GPU 없는 다국어 발화 확장. 생성 모델이 아닌 언어 비종속 자산 참조만 포함한다.",
+      "required": ["version", "representation", "inventory_version", "inventory", "neutral_head", "atlas", "atlas_index", "validation_report", "quality_report", "provenance"],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "type": "string", "const": "1" },
+        "representation": { "type": "string", "enum": ["factorized-difference-layer", "whole-head-layer"] },
+        "region": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "inventory_version": { "type": "string", "const": "1.0.0" },
+        "inventory": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "sil" }, { "const": "closed" }, { "const": "labiodental" },
+            { "const": "dental" }, { "const": "alveolar" }, { "const": "postalveolar" },
+            { "const": "palatal" }, { "const": "velar" }, { "const": "glottal" },
+            { "const": "vowel-open" }, { "const": "vowel-mid" },
+            { "const": "vowel-spread" }, { "const": "vowel-round" }
+          ],
+          "items": false,
+          "minItems": 13,
+          "maxItems": 13
+        },
+        "neutral_head": { "$ref": "#/$defs/bundlePath" },
+        "atlas": { "$ref": "#/$defs/bundlePath" },
+        "atlas_index": { "$ref": "#/$defs/bundlePath" },
+        "validation_report": { "$ref": "#/$defs/bundlePath" },
+        "quality_report": { "$ref": "#/$defs/bundlePath" },
+        "provenance": { "$ref": "#/$defs/bundlePath" }
+      },
+      "if": {
+        "properties": { "representation": { "const": "whole-head-layer" } }
+      },
+      "then": {
+        "required": ["region"]
+      }
+    },
     "expressions": {
       "type": "object",
       "additionalProperties": { "type": "string" }

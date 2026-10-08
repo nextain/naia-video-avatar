@@ -139,3 +139,96 @@ test("examples/demo.nva manifest passes validation and derives idle and talking 
   assert.equal(derived.talkKey, "stand_talk");
 });
 
+test("(가) speech_motion 없는 기존 예시 번들 검증 결과가 바뀌지 않음", async () => {
+  const demoUrl = new URL("../../examples/demo.nva/manifest.json", import.meta.url);
+  const demoManifest = JSON.parse(await readFile(demoUrl, "utf8"));
+  assert.equal(demoManifest.speech_motion, undefined);
+  const result = validateManifest(demoManifest);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.errors, []);
+
+  const v3 = completedManifest();
+  assert.equal(v3.speech_motion, undefined);
+  const v3Result = validateManifest(v3, {
+    clipFiles: ["clips/idle.webm", "clips/wave.webm", "clips/raise.webm", "speech/hello.mp4"],
+  });
+  assert.equal(v3Result.ok, true);
+  assert.deepEqual(v3Result.errors, []);
+});
+
+test("(나) speech_motion 이 있는 번들 승인", () => {
+  const v3 = completedManifest();
+  v3.speech_motion = {
+    version: "1",
+    representation: "whole-head-layer",
+    region: [100, 100, 200, 200],
+    inventory_version: "1.0.0",
+    inventory: [
+      "sil", "closed", "labiodental", "dental", "alveolar", "postalveolar",
+      "palatal", "velar", "glottal", "vowel-open", "vowel-mid", "vowel-spread", "vowel-round",
+    ],
+    neutral_head: "speech/neutral-head.png",
+    atlas: "speech/atlas.bin",
+    atlas_index: "speech/atlas-index.json",
+    validation_report: "speech/validation-report.json",
+    quality_report: "speech/quality-report.json",
+    provenance: "speech/generation-result.json",
+  };
+  const clipFiles = [
+    "clips/idle.webm", "clips/wave.webm", "clips/raise.webm", "speech/hello.mp4",
+    "speech/neutral-head.png", "speech/atlas.bin", "speech/atlas-index.json",
+    "speech/validation-report.json", "speech/quality-report.json", "speech/generation-result.json",
+  ];
+  const result = validateManifest(v3, { clipFiles });
+  assert.equal(result.ok, true, result.errors.join("; "));
+});
+
+test("(다) 영수증 자산 해시가 다른 번들 거부", async () => {
+  const { verifySpeechMotionBundle, speechMotionFromGenerationResult } = await import("../main/speech-bundle.js");
+  const sha = "a".repeat(64);
+  const fakeResult = {
+    version: "1",
+    job_id: "job_01JINA2Y7Q0M8T6R4P2N",
+    assets: [
+      { role: "neutral_head", path: "speech/neutral-head.png", sha256: sha, bytes: 10 },
+      { role: "speech_atlas", path: "speech/atlas.bin", sha256: sha, bytes: 10 },
+      { role: "speech_atlas_index", path: "speech/atlas-index.json", sha256: sha, bytes: 10 },
+      { role: "validation_report", path: "speech/validation-report.json", sha256: sha, bytes: 10 },
+      { role: "quality_report", path: "speech/quality-report.json", sha256: sha, bytes: 10 },
+    ],
+    provenance: {
+      generator: { kind: "ditto", version: "test" },
+      representation: "whole-head-layer",
+      region: [100, 100, 200, 200],
+      input_sha256: sha, settings_sha256: sha,
+      inventory_version: "1.0.0",
+      inventory: [
+        "sil", "closed", "labiodental", "dental", "alveolar", "postalveolar",
+        "palatal", "velar", "glottal", "vowel-open", "vowel-mid", "vowel-spread", "vowel-round",
+      ],
+      validation: { status: "passed", report_sha256: sha },
+    },
+    quality: {
+      report_sha256: sha,
+      sync: { status: "not_evaluated" },
+      continuity: { status: "not_evaluated" },
+      naturalness: { status: "not_evaluated" },
+      performance: { status: "not_evaluated" },
+      bundle: { status: "not_evaluated" },
+    },
+    source_deleted_at: null,
+    source_retention: "local-operator-file",
+  };
+  const motion = speechMotionFromGenerationResult(fakeResult);
+  const assets = new Map();
+  const badBlob = new Blob(["mismatched content"]);
+  for (const asset of fakeResult.assets) {
+    assets.set(asset.path, badBlob);
+  }
+  assets.set("speech/generation-result.json", new Blob([JSON.stringify(fakeResult)]));
+  await assert.rejects(
+    () => verifySpeechMotionBundle(motion, assets),
+    /generated asset (size|hash) mismatch/
+  );
+});
+
