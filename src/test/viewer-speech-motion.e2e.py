@@ -540,6 +540,25 @@ def run_e2e() -> None:
             page.locator("#stopComposed").click()
             page.locator("#status").filter(has_text="Stopped; original ready state restored.").wait_for(timeout=5_000)
 
+            # Case 6h: switching clips while a prepared (never played) session is held discards it; the next play rebuilds
+            print("Testing Case 6h: Clip switch discards the prepared session...")
+            plan6h = rebuild_dir / "case6h.plan.json"
+            plan6h.write_bytes(PLAN_PATH.read_bytes())
+            page.locator("#planFile").set_input_files(str(plan6h))
+            page.locator("#status").filter(has_text="composed speech ready").wait_for(timeout=10_000)
+            page.evaluate("() => { window.__readyAudio = window.__player()?.audio ?? document.querySelector('#speechAudio'); }")
+            page.locator("#playAction").click()
+            page.wait_for_timeout(300)
+            assert page.evaluate("() => window.__player() === null"), "Case 6h: prepared session still held after clip switch"
+            assert page.evaluate("() => window.__readyAudio.muted && window.__readyAudio.paused && !window.__readyAudio.isConnected"), "Case 6h: prepared session audio not discarded on clip switch"
+            page.wait_for_function("() => window.__animationPlayer()?.state === 'action'", timeout=5_000)
+            page.evaluate("() => { const v = document.querySelector('#animation'); v.currentTime = 4.95; }")
+            page.wait_for_function("() => window.__animationPlayer()?.state === 'idle'", timeout=5_000)
+            page.locator("#playComposed").click()
+            page.locator("#status").filter(has_text="Playing from the audio clock.").wait_for(timeout=10_000)
+            page.locator("#stopComposed").click()
+            page.locator("#status").filter(has_text="Stopped; original ready state restored.").wait_for(timeout=5_000)
+
             # --- Case 7: Mid-playback chunk decode error ---
             print("Testing Case 7: Mid-playback chunk decode error...")
             page.locator("#action").select_option(value="motion")
@@ -622,6 +641,34 @@ def run_e2e() -> None:
             assert page.evaluate("() => window.__reopenAudio.muted && window.__reopenAudio.paused && !window.__reopenAudio.isConnected"), "Case 9: session audio not discarded on NVA reopen"
             assert page.locator("#stageCanvas").evaluate("el => el.style.display === 'none'")
             assert page.locator("#animation").evaluate("el => el.style.display !== 'none'")
+
+            # Case 9b: reopening an NVA while a SpeechPlan validation is still in flight must not let the stale
+            # validation register a session or touch the new NVA's state (plan read delayed 1.5 s)
+            print("Testing Case 9b: Reopen NVA during in-flight SpeechPlan validation...")
+            page.evaluate("""() => {
+                window.__origBlobText = Blob.prototype.text;
+                Blob.prototype.text = function () {
+                    const read = window.__origBlobText.call(this);
+                    if (!(this.name || '').endsWith('.plan.json')) return read;
+                    return new Promise((resolve, reject) => setTimeout(() => read.then(resolve, reject), 1500));
+                };
+            }""")
+            page.locator("#audioFile").set_input_files(str(AUDIO_PATH))
+            plan9b = rebuild_dir / "case9b.plan.json"
+            plan9b.write_bytes(PLAN_PATH.read_bytes())
+            page.locator("#planFile").set_input_files(str(plan9b))
+            page.locator("#status").filter(has_text="Validating").wait_for(timeout=5_000)
+            reopen2 = rebuild_dir / "reopen2.nva"
+            reopen2.write_bytes(NVA_PATH.read_bytes())
+            page.locator("#nvaFile").set_input_files(str(reopen2))
+            page.locator("#status").filter(has_text="Ready ·").wait_for(timeout=15_000)
+            page.wait_for_timeout(2500)
+            page.evaluate("() => { Blob.prototype.text = window.__origBlobText; }")
+            status9b = page.locator("#status").inner_text()
+            assert status9b.startswith("Ready ·") and "composed speech ready" not in status9b, f"Case 9b: stale validation changed the status: {status9b}"
+            assert page.evaluate("() => window.__player() === null"), "Case 9b: stale validation registered a session"
+            assert page.locator("#playComposed").is_disabled(), "Case 9b: stale validation enabled composed play"
+            assert page.locator("#quality").evaluate("el => el.style.display === 'none'"), "Case 9b: stale validation showed a quality badge"
 
             # Assert clean network and browser runtime
             assert external_requests == [], f"external requests detected: {external_requests}"

@@ -282,6 +282,7 @@ async function openNva(loadSource, label) {
   const request = ++playRequest;
   const { generation, signal } = avatarLoads.begin();
   composedSession++;
+  prepareToken++; // invalidate any in-flight SpeechPlan validation for the previous NVA
   clearSpeechMonitor();
   disposeSession(activeSession);
   disposeSession(readySession);
@@ -393,6 +394,7 @@ get("planFile").addEventListener("change", prepareSpeechPlayer);
 
 get("playSpeech").addEventListener("click", async () => {
   cancelComposed();
+  disposeSession(readySession); // clip switch: drop the prepared session too; the next composed play rebuilds
   const request = ++playRequest;
   try {
     await animationPlayer.playSpeech(get("speechClip").value);
@@ -405,6 +407,7 @@ get("playSpeech").addEventListener("click", async () => {
 });
 get("playTalking").addEventListener("click", async () => {
   cancelComposed();
+  disposeSession(readySession);
   const request = ++playRequest;
   try {
     await animationPlayer.playTalking();
@@ -417,6 +420,7 @@ get("playTalking").addEventListener("click", async () => {
 });
 get("playAction").addEventListener("click", async () => {
   cancelComposed();
+  disposeSession(readySession);
   const request = ++playRequest;
   try {
     await animationPlayer.playAction(get("action").value);
