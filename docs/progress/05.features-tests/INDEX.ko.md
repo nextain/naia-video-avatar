@@ -20,4 +20,4 @@
 | TEST-F-022 | SPEC-021 | 결정론적 출력, v0.3 계약, 생성용 필드·미참조 자산 제거, 내장 음성 필수 조건을 검증한다 | src/test/final-nva.test.py | Done (#14) |
 | TEST-F-023 | SPEC-022 | v0.3 계약·번들 안전성·v0.2 `locale` 읽기 호환과 공개 제작 필드 차단을 검증한다 | src/test/nva-core.test.mjs + src/test/nva-bundle-loader.test.mjs | Done (#16) |
 | TEST-F-024 | SPEC-023 | 실제 Chromium에서 대기·발화·동작·배경 변경·idle 복귀와 외부 요청 0건을 검증한다 | src/test/standalone-player.e2e.py + src/test/local-samples.e2e.py + src/test/public-service-surface.test.mjs | Done (#16) |
-| TEST-F-025 | SPEC-024 | playTalking() 상태 및 오류 복구, load() talking·idles 필드, 확장 키 허용, demo.nva idle 파생 및 #playTalking 버튼을 검증한다 | src/test/nva-animation-player.test.mjs + src/test/nva-core.test.mjs + src/test/public-player-surface.test.mjs | Approved (#22) |
+| TEST-F-025 | SPEC-024 | playTalking() 상태 및 오류 복구, load() talking·idles 필드, 확장 키 허용, demo.nva idle 파생, #playTalking 버튼, 밀려난 재생 AbortError 무시 및 디코드 오류 전달을 검증한다 | src/test/nva-animation-player.test.mjs + src/test/nva-core.test.mjs + src/test/public-player-surface.test.mjs | Approved (#22) |

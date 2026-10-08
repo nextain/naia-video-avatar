@@ -104,9 +104,38 @@ with tempfile.TemporaryDirectory(prefix="nva-player-e2e-") as temporary_name:
         page.locator("#stop").click()
         page.locator("#status").filter(has_text="Stopped; idle restored.").wait_for(timeout=5_000)
         assert page.locator("#animation").evaluate("video => video.muted === true && video.loop === true")
+
+        # B1 regression check: blocked load after good avatar must disable all playback controls
+        broken = temporary / "broken.nva"
+        broken.write_text("not a zip", encoding="utf-8")
+        page.locator("#nvaFile").set_input_files(str(broken))
+        page.wait_for_function("() => (document.getElementById('status')?.textContent || '').startsWith('Blocked:')", timeout=5_000)
+        for selector in ["#speechClip", "#playSpeech", "#playTalking", "#action", "#playAction", "#stop"]:
+            assert page.locator(selector).is_disabled(), f"{selector} should be disabled after blocked load"
+        assert page.locator("#animation").evaluate("video => !video.hasAttribute('src') || video.getAttribute('src') === ''")
+
+        # Reopen original fixture and verify recovery
+        page.locator("#nvaFile").set_input_files(str(fixture))
+        page.locator("#status").filter(has_text="Ready").wait_for(timeout=30_000)
+        assert page.locator("#stop").is_enabled()
+
+        # N1 UI regression check: superseded play requests stay silent and do not report failures
+        page.evaluate("() => { document.querySelector('#playSpeech').click(); document.querySelector('#stop').click(); }")
+        page.wait_for_timeout(1500)
+        status_text = page.locator("#status").inner_text()
+        assert status_text == "Stopped; idle restored.", f"unexpected status: {status_text}"
+        assert "Playing" not in status_text and "failed" not in status_text, f"unexpected status: {status_text}"
+        assert page.locator("#animation").evaluate("video => video.muted === true && video.loop === true")
+
+        page.evaluate("() => { document.querySelector('#playAction').click(); document.querySelector('#playSpeech').click(); }")
+        page.wait_for_timeout(1500)
+        status_text = page.locator("#status").inner_text()
+        assert any(expected in status_text for expected in ["Playing packaged speech", "Playback complete; idle restored."]), f"unexpected status: {status_text}"
+        assert "failed" not in status_text, f"unexpected status: {status_text}"
+
         assert external_requests == [], external_requests
         assert console_errors == [], console_errors
         assert page_errors == [], page_errors
         browser.close()
 
-print("PASS: completed speech, action, idle restoration, external requests=0, browser errors=0")
+print("PASS: completed speech, action, idle restoration, external requests=0, browser errors=0, blocked-after-good controls disabled, superseded requests silent")

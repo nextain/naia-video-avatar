@@ -21,4 +21,4 @@
 | SPEC-021 | UC-016 | 기존 v0.2 입력과 완성 발화 영상을 공개 v0.3 소비 패키지로 정리하는 결정론적 패키징 도구 | scripts/build-final-nva.py | Done (#14) | TEST-F-022 |
 | SPEC-022 | UC-017, UC-018 | v0.3 completed-media 검증과 v0.2 `locale` 읽기 호환을 포함한 안전한 NVA 번들 로드 | src/main/nva-schema.json + src/main/nva-core.js + src/main/nva-bundle-loader.js | Done (#16) | TEST-F-023 |
 | SPEC-023 | UC-017, UC-019 | 파일·공개 샘플 열기, 대기·발화·동작 재생, 배경 미리보기만 제공하는 단순 서비스 Player | src/main/viewer.html + src/main/nva-animation-player.js + src/main/stage-background.js | Done (#16) | TEST-F-024 |
-| SPEC-024 | UC-020 | `playTalking()`, 로드 결과 `talking`·`idles`, `#playTalking` 버튼, demo manifest idle 항목 | src/main/nva-animation-player.js + src/main/viewer.html + examples/demo.nva | Approved (#22) | TEST-F-025 |
+| SPEC-024 | UC-020 | `playTalking()`, 로드 결과 `talking`·`idles`, `#playTalking` 버튼, demo manifest idle 항목, 차단 로드 후 컨트롤 비활성화·무대 정리(B1), 밀려난 재생 요청 무시(N1) | src/main/nva-animation-player.js + src/main/viewer.html + examples/demo.nva | Approved (#22) | TEST-F-025 |

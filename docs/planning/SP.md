@@ -93,7 +93,7 @@ Single-column stacked layout where the control panel moves above the stage card 
 | **Background Image** | `input#backgroundImage[type=file]` | User selects image file | Creates a local Blob URL, revokes previous URL, and sets `#stage` background image (`cover no-repeat center`). |
 | **Clear Background** | `button#clearBackground` | Click button | Removes background image, resets input, and restores the active solid background color. |
 | **Speech Playback** | `select#speechClip`<br>`button#playSpeech` | Select clip and click "Play packaged speech" | Sets `video.muted=false`, `video.loop=false`, and `state="speech"`. Updates `#status` to `"Playing packaged speech: <label>"`. When playback ends (`ended` event), returns to idle automatically with `"Playback complete; idle restored."`. |
-| **Talking Loop** | `button#playTalking` | Click "Play talking loop" | Enabled when a v0.2 bundle contains a `talking` clip. Sets `video.muted=true`, `video.loop=true`, and `state="talking"`. `#status` shows `"Playing talking loop."`. |
+| **Talking Loop** | `button#playTalking` | Click "Play talking loop" | Enabled when a v0.2 bundle has a talking loop: a looping, non-transition animation with `can_talk` (the scenario start animation first, otherwise the first in manifest order). Sets `video.muted=true`, `video.loop=true`, and `state="talking"`. `#status` shows `"Playing talking loop."`. |
 | **Action Playback** | `select#action`<br>`button#playAction` | Select action and click "Play action" | Sets `video.muted=true`, `video.loop=false`, and `state="action"`. When the clip ends, restores idle automatically. |
 | **Stop** | `button#stop` | Click "Stop and return to idle" | Stops current action, talking loop, or speech video. Immediately resumes muted idle loop (`state="idle"`). Sets `#status` to `"Stopped; idle restored."`. |
 
@@ -102,7 +102,7 @@ Single-column stacked layout where the control panel moves above the stage card 
 ## 4. Error Display and Recovery
 
 Errors are displayed directly in the `#status` box with alert styling (text color `#ff8d8d`):
-- **Invalid bundle or manifest error**: Shows `"Blocked: <reason>"`. Playback controls remain disabled.
+- **Invalid bundle or manifest error**: Shows `"Blocked: <reason>"`. All playback controls (speech and action selectors, the three play buttons, and Stop) are disabled, and the previously loaded avatar is cleared from the stage.
 - **Speech video decode/playback failure**: Automatically invokes `restoreIdle()` and sets `#status` to `"Speech video failed: <reason>"`.
 - **Talking loop failure**: Restores idle and sets `#status` to `"Talking failed: <reason>"`.
 - **Action failure**: Restores idle and sets `#status` to `"Action failed: <reason>"`.

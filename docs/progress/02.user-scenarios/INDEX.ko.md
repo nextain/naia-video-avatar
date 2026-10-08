@@ -20,4 +20,4 @@ NFR(비기능)은 UC로 안 내려가고 REQ→TEST-S 직결한다.
 | UC-017 | playback | 방문자가 계정·서버·GPU 없이 완성된 `.nva` 파일을 열어 대기·내장 발화·동작을 한 화면에서 확인한다 | REQ-023, REQ-024, REQ-025 | Approved (#16) | TEST-S-020, TEST-S-021 |
 | UC-018 | integration | 개발자가 공개 NVA v0.3 규격으로 만든 completed-media 패키지를 검증하고 웹 서비스에 재생기로 연결한다 | REQ-023, REQ-026 | Approved (#16) | TEST-S-020, TEST-S-022 |
 | UC-019 | evaluation | 방문자가 캐릭터의 투명 배경을 색상·이미지 위에서 바꿔 보며 실제 서비스 배치 적합성을 판단한다 | REQ-027 | Approved (#16) | TEST-S-021 |
-| UC-020 | playback | 방문자가 Studio 0.2 아바타를 열어 대기 영상, 액션, 말하기 루프를 재생하고 정지하면 대기로 돌아온다 | REQ-028 | Approved (#22) | TEST-S-024 |
+| UC-020 | playback | 방문자가 Studio 0.2 아바타를 열어 대기 영상, 액션, 말하기 루프를 재생하고 정지 시 대기로 복귀하며 차단 로드 시 컨트롤이 비활성화된다 | REQ-028 | Approved (#22) | TEST-S-024 |

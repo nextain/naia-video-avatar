@@ -70,6 +70,7 @@ const get = (id) => document.getElementById(id);
 const avatarLoads = new LoadCoordinator();
 let bundle = null;
 let animationPlayer = null;
+let playRequest = 0;
 const stageBackground = new StageBackground(get("stage"));
 
 function setStatus(message, error = false) {
@@ -98,10 +99,14 @@ async function restoreIdle(message = "Idle restored.") {
 }
 
 async function openNva(loadSource, label) {
+  const request = ++playRequest;
   const { generation, signal } = avatarLoads.begin();
   get("playSpeech").disabled = true;
   get("playAction").disabled = true;
   get("playTalking").disabled = true;
+  get("speechClip").disabled = true;
+  get("action").disabled = true;
+  get("stop").disabled = true;
   setStatus(`Loading ${label}…`);
   try {
     animationPlayer?.stop();
@@ -128,7 +133,14 @@ async function openNva(loadSource, label) {
     const avatarName = bundle.manifest.meta?.name || label;
     setStatus(`Ready · ${avatarName} · ${loaded.speechClips.length} packaged speech videos · ${loaded.actions.length} actions`);
   } catch (error) {
-    if (avatarLoads.isCurrent(generation) && error.name !== "AbortError") setStatus(`Blocked: ${error.message}`, true);
+    if (avatarLoads.isCurrent(generation) && error.name !== "AbortError") {
+      animationPlayer?.dispose();
+      animationPlayer = null;
+      bundle = null;
+      get("speechClip").replaceChildren(...selectOptions([], "No speech videos loaded"));
+      get("action").replaceChildren(...selectOptions([], "No actions loaded"));
+      setStatus(`Blocked: ${error.message}`, true);
+    }
   }
 }
 
@@ -141,33 +153,46 @@ get("loadSample").addEventListener("click", () => {
   if (option?.value) void openNva((signal) => fetchNvaSample(option.value, { signal }), option.textContent);
 });
 get("playSpeech").addEventListener("click", async () => {
+  const request = ++playRequest;
   try {
     await animationPlayer.playSpeech(get("speechClip").value);
+    if (request !== playRequest) return;
     setStatus(`Playing packaged speech: ${get("speechClip").selectedOptions[0].textContent}`);
   } catch (error) {
+    if (request !== playRequest) return;
     await restoreIdle(`Speech video failed: ${error.message}`);
     get("status").style.color = "#ff8d8d";
   }
 });
 get("playTalking").addEventListener("click", async () => {
+  const request = ++playRequest;
   try {
     await animationPlayer.playTalking();
+    if (request !== playRequest) return;
     setStatus("Playing talking loop.");
   } catch (error) {
+    if (request !== playRequest) return;
     await restoreIdle("Talking failed: " + error.message);
     get("status").style.color = "#ff8d8d";
   }
 });
 get("playAction").addEventListener("click", async () => {
+  const request = ++playRequest;
   try {
     await animationPlayer.playAction(get("action").value);
+    if (request !== playRequest) return;
     setStatus(`Playing action: ${get("action").selectedOptions[0].textContent}`);
   } catch (error) {
+    if (request !== playRequest) return;
     await restoreIdle(`Action failed: ${error.message}`);
     get("status").style.color = "#ff8d8d";
   }
 });
-get("stop").addEventListener("click", () => { void restoreIdle("Stopped; idle restored."); });
+get("stop").addEventListener("click", async () => {
+  const request = ++playRequest;
+  await animationPlayer?.playIdle();
+  if (request === playRequest) setStatus("Stopped; idle restored.");
+});
 get("backgroundColor").addEventListener("input", () => { stageBackground.setColor(get("backgroundColor").value); });
 get("backgroundImage").addEventListener("change", () => {
   const image = get("backgroundImage").files[0];

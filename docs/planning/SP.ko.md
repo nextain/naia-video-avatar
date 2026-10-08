@@ -93,7 +93,7 @@
 | **배경 이미지** | `input#backgroundImage[type=file]` | 로컬 이미지 파일 선택 | Blob URL을 생성하고 이전 URL을 해제한 뒤 `#stage` 배경 이미지로 지정. |
 | **배경 초기화** | `button#clearBackground` | 버튼 클릭 | 배경 이미지를 제거하고 지정된 단색 배경으로 복원. |
 | **발화 영상** | `select#speechClip`<br>`button#playSpeech` | 클립 선택 후 버튼 클릭 | 음성을 켜고 1회 재생 (`muted=false`, `loop=false`, `state="speech"`). 재생 종료 시 자동으로 무음 대기 영상으로 복귀하며 `"Playback complete; idle restored."` 표시. |
-| **말하기 루프** | `button#playTalking` | 버튼 클릭 | Studio 0.2 번들의 `talking` 클립이 있을 때 활성화. 무음 루프 재생 (`muted=true`, `loop=true`, `state="talking"`). `#status`에 `"Playing talking loop."` 표시. |
+| **말하기 루프** | `button#playTalking` | 버튼 클릭 | Studio 0.2 번들에 말하기 루프(루프형이고 전환이 아니며 `can_talk` 속성을 가진 애니메이션. 시나리오 시작 애니메이션 우선, 없으면 매니페스트 순서상 첫 번째)가 있을 때 활성화. 무음 루프 재생 (`muted=true`, `loop=true`, `state="talking"`). `#status`에 `"Playing talking loop."` 표시. |
 | **액션 재생** | `select#action`<br>`button#playAction` | 액션 선택 후 버튼 클릭 | 무음 1회 재생 (`muted=true`, `loop=false`, `state="action"`). 클립 종료 시 자동으로 무음 대기 영상 복귀. |
 | **정지** | `button#stop` | 버튼 클릭 | 진행 중인 발화·말하기 루프·액션을 즉시 중단하고 무음 대기 영상(`state="idle"`)으로 복귀. `#status`에 `"Stopped; idle restored."` 표시. |
 
@@ -102,7 +102,7 @@
 ## 4. 오류 표시 및 복구
 
 모든 오류는 `#status` 영역에 적색 텍스트(색상 `#ff8d8d`)로 표시된다:
-- **매니페스트/번들 검증 오류**: `"Blocked: <사유>"` 표시, 재생 컨트롤은 비활성 유지.
+- **매니페스트/번들 검증 오류**: `"Blocked: <사유>"` 표시. 모든 재생 컨트롤(발화·액션 선택기, 재생 버튼 3개, 정지 버튼)은 비활성화되고, 이전에 로드된 아바타는 무대에서 제거된다.
 - **발화 영상 재생 실패**: 대기 상태로 복귀 후 `"Speech video failed: <사유>"` 표시.
 - **말하기 루프 실패**: 대기 상태로 복귀 후 `"Talking failed: <사유>"` 표시.
 - **액션 클립 실패**: 대기 상태로 복귀 후 `"Action failed: <사유>"` 표시.

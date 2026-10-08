@@ -63,3 +63,5 @@ Explicit numerical table preventing false completion claims:
 
 - [RECEIPT-IT-22-20261008-01.md](./RECEIPT-IT-22-20261008-01.md) ([한국어](./RECEIPT-IT-22-20261008-01.ko.md)) — IT Receipt for #22 (Loader, Core, Player, Coordinator, Catalog module test)
 - [RECEIPT-E2E-22-20261008-01.md](./RECEIPT-E2E-22-20261008-01.md) ([한국어](./RECEIPT-E2E-22-20261008-01.ko.md)) — E2E Receipt for #22 (Playwright browser test for public demo and naia examples)
+- [RECEIPT-IT-22-20261008-02.md](./RECEIPT-IT-22-20261008-02.md) ([한국어](./RECEIPT-IT-22-20261008-02.ko.md)) — IT Receipt for #22 (Full unit test suite, including B1/N1 AbortError and decode error tests)
+- [RECEIPT-E2E-22-20261008-02.md](./RECEIPT-E2E-22-20261008-02.md) ([한국어](./RECEIPT-E2E-22-20261008-02.ko.md)) — E2E Receipt for #22 (Playwright browser test for QC-01 B1/N1 regression fixes)

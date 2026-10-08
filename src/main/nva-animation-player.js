@@ -133,7 +133,16 @@ export class NvaAnimationPlayer {
     // A stop(), load(), dispose() or newer play request during the await
     // supersedes this one; never resume stale video or audio.
     if (generation !== this.generation || this.state === "disposed") return;
-    if (autoplay) await this.video.play();
+    if (autoplay) {
+      try {
+        await this.video.play();
+      } catch (error) {
+        if (error?.name === "AbortError" && (generation !== this.generation || this.state === "disposed")) {
+          return;
+        }
+        throw error;
+      }
+    }
   }
 
   #releaseUrls() {
