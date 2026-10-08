@@ -93,9 +93,10 @@ function selectOptions(items, emptyText) {
   });
 }
 
-async function restoreIdle(message = "Idle restored.") {
+async function restoreIdle(message = "Idle restored.", request = undefined, isError = false) {
   await animationPlayer?.playIdle();
-  setStatus(message);
+  if (request !== undefined && request !== playRequest) return;
+  setStatus(message, isError);
 }
 
 async function openNva(loadSource, label) {
@@ -160,8 +161,7 @@ get("playSpeech").addEventListener("click", async () => {
     setStatus(`Playing packaged speech: ${get("speechClip").selectedOptions[0].textContent}`);
   } catch (error) {
     if (request !== playRequest) return;
-    await restoreIdle(`Speech video failed: ${error.message}`);
-    get("status").style.color = "#ff8d8d";
+    await restoreIdle(`Speech video failed: ${error.message}`, request, true);
   }
 });
 get("playTalking").addEventListener("click", async () => {
@@ -172,8 +172,7 @@ get("playTalking").addEventListener("click", async () => {
     setStatus("Playing talking loop.");
   } catch (error) {
     if (request !== playRequest) return;
-    await restoreIdle("Talking failed: " + error.message);
-    get("status").style.color = "#ff8d8d";
+    await restoreIdle("Talking failed: " + error.message, request, true);
   }
 });
 get("playAction").addEventListener("click", async () => {
@@ -184,8 +183,7 @@ get("playAction").addEventListener("click", async () => {
     setStatus(`Playing action: ${get("action").selectedOptions[0].textContent}`);
   } catch (error) {
     if (request !== playRequest) return;
-    await restoreIdle(`Action failed: ${error.message}`);
-    get("status").style.color = "#ff8d8d";
+    await restoreIdle(`Action failed: ${error.message}`, request, true);
   }
 });
 get("stop").addEventListener("click", async () => {

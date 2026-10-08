@@ -133,9 +133,46 @@ with tempfile.TemporaryDirectory(prefix="nva-player-e2e-") as temporary_name:
         assert any(expected in status_text for expected in ["Playing packaged speech", "Playback complete; idle restored."]), f"unexpected status: {status_text}"
         assert "failed" not in status_text, f"unexpected status: {status_text}"
 
+        # Error recovery regression check: stale error recovery must not overwrite newer status
+        page.locator("#stop").click()
+        page.locator("#status").filter(has_text="Stopped; idle restored.").wait_for(timeout=5_000)
+        page.wait_for_timeout(500)
+
+        page.evaluate(
+            """() => {
+                const element = document.querySelector('#animation');
+                element.__playCalls = 0;
+                element.play = function() {
+                    element.__playCalls += 1;
+                    if (element.__playCalls === 1) {
+                        return Promise.reject(new DOMException("blocked", "NotAllowedError"));
+                    }
+                    if (element.__playCalls === 2) {
+                        return new Promise((resolve, reject) => {
+                            setTimeout(() => {
+                                HTMLMediaElement.prototype.play.call(this).then(resolve, reject);
+                            }, 2000);
+                        });
+                    }
+                    return HTMLMediaElement.prototype.play.call(this);
+                };
+            }"""
+        )
+
+        page.locator("#playSpeech").click()
+        page.wait_for_function("() => (document.querySelector('#animation')?.__playCalls || 0) >= 2", timeout=5_000)
+        page.locator("#stop").click()
+        page.wait_for_timeout(2500)
+
+        status_text = page.locator("#status").inner_text()
+        assert status_text == "Stopped; idle restored.", f"unexpected status: {status_text}"
+        assert "failed" not in status_text, f"unexpected status: {status_text}"
+
+        page.evaluate("() => { const element = document.querySelector('#animation'); delete element.play; }")
+
         assert external_requests == [], external_requests
         assert console_errors == [], console_errors
         assert page_errors == [], page_errors
         browser.close()
 
-print("PASS: completed speech, action, idle restoration, external requests=0, browser errors=0, blocked-after-good controls disabled, superseded requests silent")
+print("PASS: completed speech, action, idle restoration, external requests=0, browser errors=0, blocked-after-good controls disabled, superseded requests silent, stale recovery silent")
