@@ -23,8 +23,8 @@
     "P01": { "status": "done", "name": "planning", "deliverable": "docs/planning/PC.md, docs/planning/SP.md, docs/progress/02.user-scenarios/INDEX.md", "ref": "UC-001..UC-020" },
     "P02": { "status": "done", "name": "requirements", "deliverable": "docs/progress/01.requirements/INDEX.md", "ref": "REQ-001..REQ-028, NFR-001..NFR-014" },
     "P03": { "status": "done", "name": "design", "deliverable": "docs/planning/PL.md, docs/progress/04.features/INDEX.md", "ref": "SPEC-001..SPEC-024" },
-    "P04": { "status": "partial", "name": "verification", "deliverable": "docs/receipts/RECEIPT-IT-22-20261008-01.md, docs/receipts/RECEIPT-E2E-22-20261008-01.md, docs/receipts/RECEIPT-IT-22-20261008-02.md, docs/receipts/RECEIPT-E2E-22-20261008-02.md (IT·E2E 영수증 완비, 독립 리뷰어 질문 대기)", "ref": "TEST-F-001..TEST-F-025, TEST-S-001..TEST-S-024" },
-    "P05": { "status": "pending", "name": "qc_and_close", "deliverable": "docs/receipts/QC-*.md 대기", "ref": null }
+    "P04": { "status": "done", "name": "verification", "deliverable": "docs/receipts/RECEIPT-IT-22-20261008-01.md, docs/receipts/RECEIPT-E2E-22-20261008-01.md, docs/receipts/RECEIPT-IT-22-20261008-02.md, docs/receipts/RECEIPT-E2E-22-20261008-02.md (IT·E2E 영수증 완비, 02 영수증 독립 리뷰어 Q1~Q3 확인)", "ref": "TEST-F-001..TEST-F-025, TEST-S-001..TEST-S-024" },
+    "P05": { "status": "done", "name": "qc_and_close", "deliverable": "docs/receipts/QC-01.md (FAIL, 수정됨), docs/receipts/QC-02.md (PASS)", "ref": "nextain/naia-video-avatar#22" }
   },
 
   "resource_registry": {
