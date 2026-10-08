@@ -4,6 +4,8 @@
 // real-time processing are intentionally outside this repository. v0.2 is
 // accepted only for read compatibility with existing local files.
 
+import { SPEECH_UNITS } from "./speech-plan.js";
+
 export const NVA_VERSION = "0.3";
 export const READABLE_NVA_VERSIONS = Object.freeze(["0.2", NVA_VERSION]);
 
@@ -187,7 +189,7 @@ export function validateManifest(m, opts = {}) {
   if (completedMedia && m.profile !== "completed-media")
     E('NVA v0.3 profile은 "completed-media"여야 함');
   if (completedMedia) {
-    const rootFields = new Set(["nva_version", "profile", "meta", "canvas", "background", "poses", "animations", "speech_clips", "expressions", "scenario"]);
+    const rootFields = new Set(["nva_version", "profile", "meta", "canvas", "background", "poses", "animations", "speech_clips", "expressions", "scenario", "speech_motion"]);
     for (const field of Object.keys(m))
       if (!rootFields.has(field)) E(`NVA v0.3 공개 포맷에서 허용하지 않는 최상위 필드 '${field}'`);
   }
@@ -264,7 +266,7 @@ export function validateManifest(m, opts = {}) {
   // embedded audio; the public contract intentionally contains no real-time
   // generation, alignment, model, or runtime details.
   const speechClips = m.speech_clips;
-  if (completedMedia && (!speechClips || Object.keys(speechClips).length === 0))
+  if (completedMedia && !m.speech_motion && (!speechClips || Object.keys(speechClips).length === 0))
     E("NVA v0.3에는 완성된 speech_clips가 최소 1개 필요함");
   if (speechClips !== undefined) {
     if (!speechClips || typeof speechClips !== "object" || Array.isArray(speechClips)) {
@@ -293,6 +295,49 @@ export function validateManifest(m, opts = {}) {
           E(`speech_clips.${key}.text는 최대 10000자의 문자열이어야 함`);
         if (speech.duration_ms !== undefined && (!Number.isInteger(speech.duration_ms) || speech.duration_ms <= 0))
           E(`speech_clips.${key}.duration_ms는 양의 정수여야 함`);
+      }
+    }
+  }
+
+  // Optional GPU-free speech extension. Old v0.2 manifests remain valid.
+  // The player consumes only this language-independent inventory and bundle
+  // references; generation-provider details stay in the provenance receipt.
+  const speech = m.speech_motion;
+  if (speech !== undefined) {
+    if (!speech || typeof speech !== "object" || Array.isArray(speech)) {
+      E("speech_motion은 객체여야 함");
+    } else {
+      if (speech.version !== "1") E('speech_motion.version은 "1"이어야 함');
+      if (speech.representation !== "factorized-difference-layer" && speech.representation !== "whole-head-layer")
+        E('speech_motion.representation은 factorized-difference-layer 또는 whole-head-layer여야 함');
+      if (speech.representation === "whole-head-layer") {
+        const r = speech.region;
+        if (!Array.isArray(r) || r.length !== 4 || r.some((v) => !Number.isInteger(v))) {
+          E("speech_motion.region은 정수 [x,y,w,h]여야 함");
+        } else {
+          const [x, y, w, h] = r;
+          if (w <= 0 || h <= 0 || w % 2 !== 0 || h % 2 !== 0) {
+            E("speech_motion.region의 w, h는 양수 짝수여야 함");
+          }
+          if (x < 0 || y < 0 || x + w > m.canvas.width || y + h > m.canvas.height) {
+            E("speech_motion.region이 canvas 범위를 벗어남");
+          }
+        }
+      }
+      if (speech.inventory_version !== "1.0.0")
+        E("speech_motion.inventory_version은 1.0.0이어야 함");
+      if (!Array.isArray(speech.inventory)
+        || speech.inventory.length !== SPEECH_UNITS.length
+        || speech.inventory.some((unit, index) => unit !== SPEECH_UNITS[index]))
+        E("speech_motion.inventory는 순서를 포함해 고정 13단위와 같아야 함");
+
+      const paths = ["neutral_head", "atlas", "atlas_index", "validation_report", "quality_report", "provenance"];
+      for (const field of paths) {
+        const path = speech[field];
+        if (!isBundleRelativePath(path))
+          E(`speech_motion.${field}는 번들 내부 상대경로여야 함`);
+        else if (opts.clipFiles && !new Set(opts.clipFiles).has(path))
+          E(`speech_motion.${field} '${path}' 번들에 없음`);
       }
     }
   }

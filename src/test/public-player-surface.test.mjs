@@ -7,16 +7,8 @@ const removed = [
   "editor.html",
   "demo.html",
   "generation-client.js",
-  "generation-contract.js",
   "nva-cascade-adapter.js",
   "browser-tts.js",
-  "speech-player.js",
-  "speech-plan.js",
-  "speech-runtime.js",
-  "speech-browser-runtime.js",
-  "speech-atlas-index.js",
-  "speech-atlas-source.js",
-  "speech-bundle.js",
   "speech-provenance.js",
 ];
 
@@ -25,6 +17,9 @@ test("public runtime contains only completed-media format and Player surfaces", 
     "nva-schema.json", "nva-core.js", "viewer.html",
     "nva-animation-player.js", "nva-bundle-loader.js",
     "sample-catalog.js", "load-coordinator.js", "stage-background.js",
+    "speech-player.js", "speech-plan.js", "speech-runtime.js",
+    "speech-browser-runtime.js", "speech-atlas-index.js",
+    "speech-atlas-source.js", "speech-bundle.js", "generation-contract.js", "zip-budget.js",
   ]) await access(new URL(path, main));
   for (const path of removed)
     await assert.rejects(access(new URL(path, main)), /ENOENT/);
