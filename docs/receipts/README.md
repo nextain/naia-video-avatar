@@ -65,5 +65,7 @@ Explicit numerical table preventing false completion claims:
 - [RECEIPT-E2E-22-20261008-01.md](./RECEIPT-E2E-22-20261008-01.md) ([한국어](./RECEIPT-E2E-22-20261008-01.ko.md)) — E2E Receipt for #22 (Playwright browser test for public demo and naia examples)
 - [RECEIPT-IT-22-20261008-02.md](./RECEIPT-IT-22-20261008-02.md) ([한국어](./RECEIPT-IT-22-20261008-02.ko.md)) — IT Receipt for #22 (Full unit test suite, including B1/N1 AbortError and decode error tests)
 - [RECEIPT-E2E-22-20261008-02.md](./RECEIPT-E2E-22-20261008-02.md) ([한국어](./RECEIPT-E2E-22-20261008-02.ko.md)) — E2E Receipt for #22 (Playwright browser test for QC-01 B1/N1 regression fixes)
+- [RECEIPT-IT-25-20261008-01.md](./RECEIPT-IT-25-20261008-01.md) ([한국어](./RECEIPT-IT-25-20261008-01.ko.md)) — IT Receipt for #25 (Full unit test suite including prop sequence, duplicate labels, and 200/400 MiB limits)
+- [RECEIPT-E2E-25-20261008-01.md](./RECEIPT-E2E-25-20261008-01.md) ([한국어](./RECEIPT-E2E-25-20261008-01.ko.md)) — E2E Receipt for #25 (Playwright browser test for Studio v0.2 composite prop sequence playback)
 - [QC-01.md](./QC-01.md) — Independent QC for #22 on `4f6f74c` (FAIL: blocking B1, fixed in `85f5ca7` and `2ab1fd9`)
 - [QC-02.md](./QC-02.md) — Independent QC for #22 on `2ab1fd9` (PASS: no blocking findings)

@@ -13,7 +13,8 @@ from copy import deepcopy
 from pathlib import Path, PurePosixPath
 
 FIXED_TIME = (1980, 1, 1, 0, 0, 0)
-MAX_BYTES = 100 * 1024 * 1024
+MAX_BYTES = 200 * 1024 * 1024
+MAX_EXPANDED_BYTES = 400 * 1024 * 1024
 MAX_FILES = 512
 
 
@@ -46,11 +47,11 @@ def read_base(source: Path) -> dict[str, bytes]:
             names = [info.filename for info in infos]
             if (not infos or len(infos) > MAX_FILES or len(names) != len(set(names))
                     or any(not safe_path(name) for name in names)
-                    or sum(info.file_size for info in infos) > MAX_BYTES
+                    or sum(info.file_size for info in infos) > MAX_EXPANDED_BYTES
                     or any(info.flag_bits & 1 for info in infos)):
                 raise ValueError("base NVA ZIP file table is unsafe")
             entries = {info.filename: archive.read(info) for info in infos}
-    if not entries or len(entries) > MAX_FILES or sum(map(len, entries.values())) > MAX_BYTES:
+    if not entries or len(entries) > MAX_FILES or sum(map(len, entries.values())) > MAX_EXPANDED_BYTES:
         raise ValueError("base NVA exceeds file or size limits")
     return entries
 
@@ -188,7 +189,7 @@ def build(base_path: Path, output: Path, speech: list[tuple[str, str, str, Path]
     files = {path: entries[path] for path, value in requested.items() if value is None and path in entries}
     files.update({path: value for path, value in requested.items() if value is not None})
     files["manifest.json"] = (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-    if len(files) > MAX_FILES or sum(map(len, files.values())) > MAX_BYTES:
+    if len(files) > MAX_FILES or sum(map(len, files.values())) > MAX_EXPANDED_BYTES:
         raise ValueError("completed NVA exceeds file or size limits")
 
     output = output.resolve()
@@ -202,6 +203,9 @@ def build(base_path: Path, output: Path, speech: list[tuple[str, str, str, Path]
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = 0o100644 << 16
                 archive.writestr(info, files[name], compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+        if temporary.stat().st_size > MAX_BYTES:
+            temporary.unlink(missing_ok=True)
+            raise ValueError("completed NVA archive exceeds the 200 MiB limit")
         temporary.replace(output)
     finally:
         temporary.unlink(missing_ok=True)

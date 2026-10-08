@@ -95,6 +95,7 @@
 | **발화 영상** | `select#speechClip`<br>`button#playSpeech` | 클립 선택 후 버튼 클릭 | 음성을 켜고 1회 재생 (`muted=false`, `loop=false`, `state="speech"`). 재생 종료 시 자동으로 무음 대기 영상으로 복귀하며 `"Playback complete; idle restored."` 표시. |
 | **말하기 루프** | `button#playTalking` | 버튼 클릭 | Studio 0.2 번들에 말하기 루프(루프형이고 전환이 아니며 `can_talk` 속성을 가진 애니메이션. 시나리오 시작 애니메이션 우선, 없으면 매니페스트 순서상 첫 번째)가 있을 때 활성화. 무음 루프 재생 (`muted=true`, `loop=true`, `state="talking"`). `#status`에 `"Playing talking loop."` 표시. |
 | **액션 재생** | `select#action`<br>`button#playAction` | 액션 선택 후 버튼 클릭 | 무음 1회 재생 (`muted=true`, `loop=false`, `state="action"`). 클립 종료 시 자동으로 무음 대기 영상 복귀. |
+| **소품 동작 재생** | `select#action`<br>`button#playAction` | 소품 동작 선택 후 버튼 클릭 | 액션 드롭다운에 단일 항목으로 노출. 복합 순서(enter 1회[있을 때] → 본 동작 2회 → exit 1회[있을 때])로 연속 재생. 중간 단계에서는 완료 문구를 띄우지 않으며, 마지막 단계 종료 시 자동으로 무음 대기 영상 복귀. |
 | **정지** | `button#stop` | 버튼 클릭 | 진행 중인 발화·말하기 루프·액션을 즉시 중단하고 무음 대기 영상(`state="idle"`)으로 복귀. `#status`에 `"Stopped; idle restored."` 표시. |
 
 ---
@@ -121,6 +122,7 @@
 - `UC-017`: GPU/외부 API 없는 독립 브라우저 재생
 - `UC-019`: 대화형 배경 색상 및 이미지 합성
 - `UC-020`: Studio 0.2 하위 호환 (말하기 루프 및 액션 재생)
+- `UC-021`: Studio v0.2 소품 동작 순서를 단일 액션으로 복합 재생
 
 ---
 

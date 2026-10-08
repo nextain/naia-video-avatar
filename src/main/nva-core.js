@@ -38,20 +38,57 @@ export function scenarioStartAnim(m) {
   return nx && nodes[nx] ? nodes[nx].animation : null;
 }
 
+export function isPropAction(a) {
+  return typeof a?.prop_sequence === "object" && a?.prop_sequence !== null;
+}
+
+export function isPropAuxiliaryClip(m, key, a = m?.animations?.[key]) {
+  if (a?.role === "prop_enter" || a?.role === "prop_exit") return true;
+  for (const anim of Object.values(m?.animations || {})) {
+    if (typeof anim?.prop_sequence === "object" && anim.prop_sequence !== null) {
+      if (anim.prop_sequence.enter === key || anim.prop_sequence.exit === key) return true;
+    }
+  }
+  return false;
+}
+
+export function isPropExcluded(m, key, a = m?.animations?.[key]) {
+  return isPropAction(a) || isPropAuxiliaryClip(m, key, a);
+}
+
+export function propActions(manifest) {
+  const anims = manifest?.animations || {};
+  const results = [];
+  for (const [key, anim] of Object.entries(anims)) {
+    if (typeof anim?.prop_sequence === "object" && anim.prop_sequence !== null) {
+      const enterKey = anim.prop_sequence.enter;
+      const exitKey = anim.prop_sequence.exit;
+      results.push({
+        key,
+        label: anim.label || key,
+        enter: (typeof enterKey === "string" && anims[enterKey]) ? enterKey : null,
+        exit: (typeof exitKey === "string" && anims[exitKey]) ? exitKey : null,
+      });
+    }
+  }
+  return results;
+}
+
 // Fields retained only so existing v0.2 files remain readable.
 export function derive(m) {
-  const anims = m.animations || {};
+  const anims = m?.animations || {};
   const isBase = (a) => a.loop && !isTransition(a);
   const start = scenarioStartAnim(m);
+  const isExcluded = (k, a) => isPropExcluded(m, k, a);
   const pick = (pred) => {
-    if (start && anims[start] && pred(anims[start])) return start;
-    return Object.keys(anims).find((k) => pred(anims[k])) || null;
+    if (start && anims[start] && !isExcluded(start, anims[start]) && pred(anims[start])) return start;
+    return Object.keys(anims).find((k) => !isExcluded(k, anims[k]) && pred(anims[k])) || null;
   };
   const idleKey = pick((a) => isBase(a) && !a.can_talk);
   const talkKey = pick((a) => isBase(a) && a.can_talk);
   const events = Object.fromEntries(
     Object.entries(anims)
-      .filter(([, a]) => !a.loop || isTransition(a))
+      .filter(([k, a]) => (!a.loop || isTransition(a)) && !isExcluded(k, a))
       .map(([k, a]) => [k, a.clip]),
   );
   return {
@@ -185,17 +222,36 @@ export function validateManifest(m, opts = {}) {
     if (a.exit_pose) checkPose(`animation ${k}.exit_pose`, a.exit_pose);
   }
 
-  // label 유일성 — AI/LLM 이 label 로 애니를 지목하므로 중복 label 은 지목 모호 → 에러.
+  // label 유일성 — AI/LLM 이 label 로 애니를 지목하므로 중복 label 은 지목 모호 → v0.3 에러, v0.2 경고.
   const seenLabels = new Map();
   for (const [k, a] of Object.entries(anims)) {
     const lb = (a.label || "").trim();
     if (!lb) continue;
-    if (seenLabels.has(lb)) E(`animation ${k}: label '${lb}' 중복(${seenLabels.get(lb)}과 동일) — label 은 유일해야(AI 가 label 로 지목)`);
-    else seenLabels.set(lb, k);
+    if (seenLabels.has(lb)) {
+      const msg = `animation ${k}: label '${lb}' 중복(${seenLabels.get(lb)}과 동일) — label 은 유일해야(AI 가 label 로 지목)`;
+      if (completedMedia) E(msg);
+      else W(msg);
+    } else {
+      seenLabels.set(lb, k);
+    }
+  }
+
+  // v0.2 prop_sequence 참조 키 검사 (없는 키마다 경고)
+  if (!completedMedia) {
+    for (const [k, a] of Object.entries(anims)) {
+      if (typeof a?.prop_sequence === "object" && a.prop_sequence !== null) {
+        if (a.prop_sequence.enter && !anims[a.prop_sequence.enter]) {
+          W(`animation ${k}: prop_sequence.enter '${a.prop_sequence.enter}' animations에 없음`);
+        }
+        if (a.prop_sequence.exit && !anims[a.prop_sequence.exit]) {
+          W(`animation ${k}: prop_sequence.exit '${a.prop_sequence.exit}' animations에 없음`);
+        }
+      }
+    }
   }
 
   // A completed-media file always needs an idle loop.
-  const hasIdle = Object.values(anims).some((a) => a.loop && !isTransition(a) && !a.can_talk);
+  const hasIdle = Object.entries(anims).some(([k, a]) => !isPropExcluded(m, k, a) && a.loop && !isTransition(a) && !a.can_talk);
   const hasTalk = Object.values(anims).some((a) => a.loop && !isTransition(a) && a.can_talk);
   if (animKeys.length && !hasIdle) {
     if (completedMedia) E("대기 반복 영상(loop=true)이 필요함");

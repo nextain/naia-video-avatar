@@ -22,3 +22,4 @@
 | SPEC-022 | UC-017, UC-018 | v0.3 completed-media 검증과 v0.2 `locale` 읽기 호환을 포함한 안전한 NVA 번들 로드 | src/main/nva-schema.json + src/main/nva-core.js + src/main/nva-bundle-loader.js | Done (#16) | TEST-F-023 |
 | SPEC-023 | UC-017, UC-019 | 파일·공개 샘플 열기, 대기·발화·동작 재생, 배경 미리보기만 제공하는 단순 서비스 Player | src/main/viewer.html + src/main/nva-animation-player.js + src/main/stage-background.js | Done (#16) | TEST-F-024 |
 | SPEC-024 | UC-020 | `playTalking()`, 로드 결과 `talking`·`idles`, `#playTalking` 버튼, demo manifest idle 항목, 차단 로드 후 컨트롤 비활성화·무대 정리(B1), 밀려난 재생 요청 무시(N1) | src/main/nva-animation-player.js + src/main/viewer.html + examples/demo.nva | Approved (#22) | TEST-F-025 |
+| SPEC-025 | UC-021 | Studio v0.2 소품 동작 순서(enter → 본 동작 2회 → exit → 대기), 보조 클립 필터링, 중복 액션 라벨 구분, 200 MiB / 400 MiB 번들 크기 제한 | src/main/nva-core.js + src/main/nva-animation-player.js + src/main/nva-bundle-loader.js + scripts/build-final-nva.py + scripts/prepare-local-samples.py | Approved (#25) | TEST-F-026 |

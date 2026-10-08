@@ -38,8 +38,8 @@ The runtime architecture consists of seven modular components under `src/main/`:
 
 | Module | File | Core Responsibilities |
 |---|---|---|
-| **nva-core** | `src/main/nva-core.js`<br>`src/main/nva-schema.json` | Validates manifests in code with `validateManifest()` (manifest structure, bundle-relative clip references, scenario node and edge references; unknown pose names produce warnings). Provides `derive()` for backward-compatible Studio 0.2 `idleKey` and `talkKey` selection, plus scenario helpers (`listScenarios()`, `scenarioPlayOrder()`, `findTransitionPath()`). `nva-schema.json` is the published JSON Schema reference for authors; the player does not load it at runtime. |
-| **nva-bundle-loader** | `src/main/nva-bundle-loader.js` | Parses ZIP archives without third-party libraries (supports Store and Deflate). Enforces path safety (no `..` or absolute paths), archive limits (100 MiB total, 512 files), and creates Object URLs for media files. |
+| **nva-core** | `src/main/nva-core.js`<br>`src/main/nva-schema.json` | Validates manifests in code with `validateManifest()` (manifest structure, bundle-relative clip references, scenario node and edge references; unknown pose names produce warnings). Provides `derive()` for backward-compatible Studio 0.2 `idleKey` and `talkKey` selection, `propActions()` for composite prop sequences, plus scenario helpers (`listScenarios()`, `scenarioPlayOrder()`, `findTransitionPath()`). `nva-schema.json` is the published JSON Schema reference for authors; the player does not load it at runtime. |
+| **nva-bundle-loader** | `src/main/nva-bundle-loader.js` | Parses ZIP archives without third-party libraries (supports Store and Deflate). Enforces path safety (no `..` or absolute paths), archive limits (200 MiB archive, 400 MiB expanded assets, 512 files), and creates Object URLs for media files. |
 | **nva-animation-player** | `src/main/nva-animation-player.js` | Manages `HTMLVideoElement` playback states (`idle`, `speech`, `talking`, `action`). Handles unmuted speech decoding, muted action/idle looping, stop generations, and automatic fallback to idle on completion or error. |
 | **load-coordinator** | `src/main/load-coordinator.js` | Provides latest-request-wins semantics for asynchronous avatar loads. Generates monotonically increasing load tokens and `AbortSignal`s to cancel obsolete loads. |
 | **sample-catalog** | `src/main/sample-catalog.js` | Validates catalog JSON structure, restricts fetches to the same origin, resolves relative URLs safely, and enforces response size limits. |
@@ -55,10 +55,11 @@ The runtime architecture consists of seven modular components under `src/main/`:
 - **Speech Clips**: Every entry under `speech_clips` references a finished MP4 or WebM video with embedded audio (`audio: "embedded"`) and a BCP 47 `language` tag.
 - **Surface**: Excludes all generative, model-training, or real-time lip-sync parameters.
 
-### 3.2 NVA Version 0.2 (Read Compatibility — NFR-011)
-- **Read Compatibility**: Enables opening legacy Studio 0.2 archives.
+### 3.2 NVA Version 0.2 (Studio Distribution Support — REQ-029, NFR-011)
+- **Studio Distribution Support**: Officially supports reading and playback of Studio v0.2 distribution packages.
+- **Prop Sequence Playback**: Detects animations with `prop_sequence` metadata and plays composite sequences (`enter` → main loop 2x → `exit` → restore idle), hiding auxiliary clips from action selectors and disambiguating duplicate labels.
 - **Talking Loop**: Identifies animations with `loop: true` and `can_talk: true` to support the `#playTalking` loop when speech clips are absent.
-- **Tolerant Parsing**: Unknown Studio authoring extension keys are safely ignored and excluded from canonical output.
+- **Tolerant Parsing**: Authoring extension keys (such as `meta`, `expressions`, `thumbnail`, `speech_set`, `loop_crossfade_frames`) are safely read or ignored without breaking playback.
 - **Locale Mapping**: Legacy `locale` field is accepted as an alias for `language`.
 
 ---

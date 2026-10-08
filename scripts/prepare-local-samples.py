@@ -12,8 +12,8 @@ import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
 
-MAX_ARCHIVE_BYTES = 100 * 1024 * 1024
-MAX_EXPANDED_BYTES = 100 * 1024 * 1024
+MAX_ARCHIVE_BYTES = 200 * 1024 * 1024
+MAX_EXPANDED_BYTES = 400 * 1024 * 1024
 MAX_FILES = 512
 FIXED_TIME = (1980, 1, 1, 0, 0, 0)
 
@@ -88,6 +88,9 @@ def write_directory_bundle(source: Path, destination: Path) -> None:
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o100644 << 16
             archive.writestr(info, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+    if destination.stat().st_size > MAX_ARCHIVE_BYTES:
+        destination.unlink(missing_ok=True)
+        raise ValueError("prepared NVA archive exceeds the 200 MiB limit")
 
 
 def validate_bundle(source: Path) -> None:

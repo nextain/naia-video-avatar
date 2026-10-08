@@ -1,4 +1,4 @@
-import { animKind, derive, validateManifest } from "./nva-core.js";
+import { animKind, derive, isPropExcluded, propActions, validateManifest } from "./nva-core.js";
 
 function requiredAsset(assets, path) {
   const blob = assets?.get?.(path);
@@ -31,8 +31,16 @@ export class NvaAnimationPlayer {
     this.urls = new Map();
     this.state = "empty";
     this.generation = 0;
-    this.onEnded = () => { if (["action", "speech"].includes(this.state)) void this.playIdle(); };
-    this.onError = () => { if (["action", "speech", "talking"].includes(this.state)) void this.playIdle(); };
+    this.sequence = 0;
+    this.activePropSequence = null;
+    this.onEnded = () => {
+      if (this.state === "prop" && this.activePropSequence?.token === this.sequence) {
+        this.activePropSequence.advance();
+        return;
+      }
+      if (["action", "speech"].includes(this.state)) void this.playIdle();
+    };
+    this.onError = () => { if (["action", "speech", "talking", "prop"].includes(this.state)) void this.playIdle(); };
     video.addEventListener("ended", this.onEnded);
     video.addEventListener("error", this.onError);
   }
@@ -48,9 +56,28 @@ export class NvaAnimationPlayer {
     this.assets = assets;
     this.idleKey = derived.idleKey;
     this.talkKey = (manifest.nva_version === "0.2" && derived.talkKey) ? derived.talkKey : null;
-    this.actions = Object.entries(manifest.animations)
-      .filter(([, animation]) => animKind(animation) === "gesture")
+
+    const regularActions = Object.entries(manifest.animations)
+      .filter(([key, animation]) => animKind(animation) === "gesture" && !isPropExcluded(manifest, key, animation))
       .map(([key, animation]) => ({ key, label: animation.label || key }));
+
+    const props = propActions(manifest);
+    this.propMap = new Map(props.map((p) => [p.key, p]));
+
+    const combinedActions = [
+      ...regularActions,
+      ...props.map((p) => ({ key: p.key, label: p.label })),
+    ];
+
+    const labelCounts = new Map();
+    for (const a of combinedActions) {
+      labelCounts.set(a.label, (labelCounts.get(a.label) || 0) + 1);
+    }
+    this.actions = combinedActions.map((a) => ({
+      key: a.key,
+      label: labelCounts.get(a.label) > 1 ? `${a.label} (${a.key})` : a.label,
+    }));
+
     this.speechClips = Object.entries(manifest.speech_clips || {})
       .map(([key, speech]) => ({ key, label: speech.label || key }));
     this.state = "ready";
@@ -65,6 +92,7 @@ export class NvaAnimationPlayer {
   }
 
   async playIdle() {
+    this.sequence += 1;
     if (!this.manifest || this.state === "disposed") throw new Error("animation player is not ready");
     this.state = "idle";
     await this.#show(this.idleKey, true, true);
@@ -72,17 +100,55 @@ export class NvaAnimationPlayer {
 
   async playAction(key) {
     if (!this.actions?.some((action) => action.key === key)) throw new Error(`unknown NVA action: ${key}`);
+    const seqToken = ++this.sequence;
+    const prop = this.propMap?.get(key);
+    if (prop) {
+      const steps = [];
+      if (prop.enter) steps.push(prop.enter);
+      steps.push(key, key);
+      if (prop.exit) steps.push(prop.exit);
+
+      let stepIndex = 0;
+      const advance = async () => {
+        if (seqToken !== this.sequence || this.state === "disposed") return;
+        const isLast = stepIndex === steps.length - 1;
+        this.state = isLast ? "action" : "prop";
+        const currentKey = steps[stepIndex++];
+        await this.#show(currentKey, false, true);
+      };
+
+      this.activePropSequence = {
+        token: seqToken,
+        advance: () => {
+          if (seqToken !== this.sequence || this.state === "disposed") return;
+          advance().catch((_err) => {
+            if (seqToken === this.sequence && this.state !== "disposed") {
+              void this.playIdle().catch(() => {});
+            }
+          });
+        },
+      };
+
+      const isLast = steps.length === 1;
+      this.state = isLast ? "action" : "prop";
+      const firstKey = steps[stepIndex++];
+      await this.#show(firstKey, false, true);
+      return;
+    }
+
     this.state = "action";
     await this.#show(key, false, true);
   }
 
   async playTalking() {
+    this.sequence += 1;
     if (this.manifest?.nva_version !== "0.2" || !this.talkKey) throw new Error("NVA has no talking animation");
     this.state = "talking";
     await this.#show(this.talkKey, true, true);
   }
 
   async playSpeech(key) {
+    this.sequence += 1;
     const speech = this.manifest?.speech_clips?.[key];
     if (!speech) throw new Error(`unknown packaged speech video: ${key}`);
     this.state = "speech";
@@ -91,6 +157,7 @@ export class NvaAnimationPlayer {
 
   stop() {
     this.generation += 1;
+    this.sequence += 1;
     this.video.pause();
     if (this.manifest && this.state !== "disposed") this.state = "ready";
   }

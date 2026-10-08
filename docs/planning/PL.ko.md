@@ -38,8 +38,8 @@
 
 | 모듈명 | 파일 경로 | 핵심 역할 |
 |---|---|---|
-| **nva-core** | `src/main/nva-core.js`<br>`src/main/nva-schema.json` | 코드로 매니페스트를 검증한다(`validateManifest()`: 구조·참조·포즈 그래프). Studio 0.2 하위 호환 대기·말하기 키 선택(`derive()`의 `idleKey`, `talkKey`)과 시나리오 보조 함수(`listScenarios()`, `scenarioPlayOrder()`, `findTransitionPath()`)를 제공한다. `nva-schema.json`은 작성자용으로 공개한 JSON Schema 참고 문서이며 Player가 실행 중에 읽지 않는다. |
-| **nva-bundle-loader** | `src/main/nva-bundle-loader.js` | 서드파티 라이브러리 없는 순수 ZIP 파싱(Store 및 Deflate 지원), 경로 안전성 검증(`..` 및 절대경로 차단), 크기 한도(100 MiB, 512 파일) 검사, 미디어 Object URL 생성. |
+| **nva-core** | `src/main/nva-core.js`<br>`src/main/nva-schema.json` | 코드로 매니페스트를 검증한다(`validateManifest()`: 구조·참조·포즈 그래프). Studio 0.2 하위 호환 대기·말하기 키 선택(`derive()`의 `idleKey`, `talkKey`), 소품 복합 순서 지원(`propActions()`), 시나리오 보조 함수(`listScenarios()`, `scenarioPlayOrder()`, `findTransitionPath()`)를 제공한다. `nva-schema.json`은 작성자용으로 공개한 JSON Schema 참고 문서이며 Player가 실행 중에 읽지 않는다. |
+| **nva-bundle-loader** | `src/main/nva-bundle-loader.js` | 서드파티 라이브러리 없는 순수 ZIP 파싱(Store 및 Deflate 지원), 경로 안전성 검증(`..` 및 절대경로 차단), 크기 한도(아카이브 200 MiB, 해제 자산 400 MiB, 512 파일) 검사, 미디어 Object URL 생성. |
 | **nva-animation-player** | `src/main/nva-animation-player.js` | `HTMLVideoElement` 기반 재생 상태 기계(`idle`, `speech`, `talking`, `action`) 관리. 오디오 포함 발화 영상 재생, 무음 루프, 정지 세대(generation) 추적, 완료/오류 시 대기 복귀. |
 | **load-coordinator** | `src/main/load-coordinator.js` | 비동기 아바타 로드에 최신 요청 승자(latest-request-wins) 수명주기 적용. 단조 증가 토큰 및 `AbortSignal`로 이전 로드 중단 처리. |
 | **sample-catalog** | `src/main/sample-catalog.js` | 카탈로그 JSON 스키마 검증, 동일 출처(same-origin) 제약, 안전한 상대 경로 해소, 응답 크기 예산 검사. |
@@ -55,10 +55,11 @@
 - **발화 영상**: `speech_clips`의 모든 항목은 내장 오디오(`audio: "embedded"`)와 BCP 47 `language` 태그를 가진 완성형 MP4/WebM이어야 한다.
 - **표면 경계**: 생성·학습·실시간 추론 관련 필드를 완전히 배제한 최종 소비 규격.
 
-### 3.2 NVA Version 0.2 (읽기 호환 — NFR-011)
-- **읽기 호환**: 기존 제작된 Studio 0.2 아카이브의 열람 및 재생을 지원한다.
+### 3.2 NVA Version 0.2 (Studio 배포 지원 — REQ-029, NFR-011)
+- **Studio 배포 지원**: Studio v0.2 배포 패키지의 읽기 및 재생을 공식 지원한다.
+- **소품 동작 순서 재생**: `prop_sequence` 메타데이터를 가진 애니메이션을 인식하여 복합 순서(enter 1회 → 본 동작 2회 → exit 1회 → 대기 복귀)로 재생하며, 액션 선택기에서 보조 클립을 숨기고 중복 라벨을 구분 표기한다.
 - **말하기 루프**: `loop: true`, `can_talk: true` 애니메이션을 인식하여 speech_clips가 없어도 `#playTalking` 버튼을 통해 말하기 모션을 재생한다.
-- **관용적 파싱**: 매니페스트 내 미등록 Studio 확장 필드는 오류 없이 무시하며 v0.3 산출물로 전파하지 않는다.
+- **관용적 파싱**: 매니페스트 내 미등록 Studio 확장 필드(`meta`, `expressions`, `thumbnail`, `speech_set`, `loop_crossfade_frames` 등)는 오류 없이 안전하게 읽거나 무시한다.
 - **언어 필드 호환**: 구버전 `locale` 필드를 `language`의 읽기 전용 별칭으로 수용한다.
 
 ---

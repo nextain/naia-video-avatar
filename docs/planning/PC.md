@@ -67,10 +67,10 @@ Clear separation between the authoring tier (Studio) and consumption tier (Playe
 
 1. **Version 0.3 completed-media is Canonical**:
    All speech clips in v0.3 packages must contain pre-rendered video and embedded audio. The Player decodes packaged media; it does not synthesize voice or drive live animation parameters.
-2. **Version 0.2 Read Compatibility Only (NFR-011)**:
-   The Player maintains read compatibility for existing Studio 0.2 bundles (including `talking` animation loops, action lists, and legacy `locale` tags), but authoring-specific fields are ignored and excluded from canonical v0.3 outputs.
+2. **Studio v0.2 Distribution File Reading & Playback Support (NFR-011)**:
+   Studio v0.2 distribution files are supported for reading and playback; new public schemas and examples use v0.3.
 3. **Zero External Executable Code**:
-   An NVA bundle is declarative media and metadata only. The loader rejects bundles whose ZIP file table contains absolute paths, URL schemes, backslashes, or `.`/`..` segments, and enforces size limits (100 MiB archive and expanded assets, 1 MiB manifest, 512 files). The player never executes bundle content; files the manifest does not reference are never played.
+   An NVA bundle is declarative media and metadata only. The loader rejects bundles whose ZIP file table contains absolute paths, URL schemes, backslashes, or `.`/`..` segments, and enforces size limits (200 MiB archive, 400 MiB expanded assets, 1 MiB manifest, 512 files). The player never executes bundle content; files the manifest does not reference are never played.
 4. **Zero Runtime Network Dependencies**:
    Once assets are loaded, the Player executes without network requests, CDN scripts, telemetry, or external fonts.
 5. **Security and Verification Integrity**:

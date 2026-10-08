@@ -3,16 +3,22 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import subprocess
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts/build-final-nva.py"
+
+spec = importlib.util.spec_from_file_location("build_final_nva", SCRIPT)
+build_final_nva = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(build_final_nva)
 
 
 class FinalNvaTest(unittest.TestCase):
@@ -95,11 +101,25 @@ class FinalNvaTest(unittest.TestCase):
             root = Path(temporary)
             oversized = root / "oversized.nva"
             with oversized.open("wb") as handle:
-                handle.seek(100 * 1024 * 1024)
+                handle.seek(200 * 1024 * 1024)
                 handle.write(b"x")
             result = self.run_tool(oversized, self.make_speech(root), root / "bad.nva", check=False)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("too large", result.stderr)
+
+    def test_oversized_completed_archive_is_rejected_and_cleaned_up(self):
+        with tempfile.TemporaryDirectory(prefix="nva-final-test-") as temporary:
+            root = Path(temporary)
+            base = self.make_base(root)
+            speech = self.make_speech(root)
+            output = root / "out.nva"
+            parsed_speech = build_final_nva.parse_speech(f"hello|ko-KR|인사|{speech}")
+            with patch.object(build_final_nva, "MAX_BYTES", 50):
+                with self.assertRaises(ValueError) as ctx:
+                    build_final_nva.build(base, output, [parsed_speech])
+                self.assertIn("completed NVA archive exceeds the 200 MiB limit", str(ctx.exception))
+            self.assertFalse(output.exists())
+            self.assertEqual(list(root.glob("*.tmp")), [])
 
 
 if __name__ == "__main__":
