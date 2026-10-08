@@ -65,3 +65,5 @@
 - [RECEIPT-E2E-22-20261008-01.ko.md](./RECEIPT-E2E-22-20261008-01.ko.md) ([English](./RECEIPT-E2E-22-20261008-01.md)) — #22 E2E 영수증 (공개 demo 및 naia 예제 Playwright 브라우저 검증)
 - [RECEIPT-IT-22-20261008-02.ko.md](./RECEIPT-IT-22-20261008-02.ko.md) ([English](./RECEIPT-IT-22-20261008-02.md)) — #22 통합 시험(IT) 영수증 (전체 단위 시험 스위트, B1/N1 AbortError 및 디코드 오류 검증 포함)
 - [RECEIPT-E2E-22-20261008-02.ko.md](./RECEIPT-E2E-22-20261008-02.ko.md) ([English](./RECEIPT-E2E-22-20261008-02.md)) — #22 E2E 영수증 (QC-01 B1/N1 결함 수정 Playwright 브라우저 검증)
+- [QC-01.md](./QC-01.md) — #22 독립 QC, `4f6f74c` 대상 (FAIL: 차단 B1, `85f5ca7`·`2ab1fd9` 에서 수정)
+- [QC-02.md](./QC-02.md) — #22 독립 QC, `2ab1fd9` 대상 (PASS: 차단 결함 없음)
