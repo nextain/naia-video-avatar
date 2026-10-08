@@ -103,4 +103,4 @@ Newly authored public packages should use v0.3 completed-media.
   - If a producer provides `prop_sequence` without `enter` or `exit` clips, playback executes `X` 2x (`loop: false`) and returns to idle.
   - Auxiliary clips and the raw prop action are excluded from standard action lists; the prop action appears as a single item in the action selector.
   - Any reference in `prop_sequence` to a missing animation key emits a warning during validation rather than a fatal error.
-  - Generation details such as lip-sync synthesis and neural rendering are producer data outside this repository and not read by the Player.
+  - Producer metadata outside the fields above is producer data; the Player does not read it.

@@ -73,10 +73,25 @@ export class NvaAnimationPlayer {
     for (const a of combinedActions) {
       labelCounts.set(a.label, (labelCounts.get(a.label) || 0) + 1);
     }
-    this.actions = combinedActions.map((a) => ({
-      key: a.key,
-      label: labelCounts.get(a.label) > 1 ? `${a.label} (${a.key})` : a.label,
-    }));
+    const used = new Set();
+    for (const a of combinedActions) {
+      if (labelCounts.get(a.label) === 1) {
+        used.add(a.label);
+      }
+    }
+    this.actions = combinedActions.map((a) => {
+      if (labelCounts.get(a.label) === 1) {
+        return { key: a.key, label: a.label };
+      }
+      const base = `${a.label} (${a.key})`;
+      let candidate = base;
+      let counter = 2;
+      while (used.has(candidate)) {
+        candidate = `${base} ${counter++}`;
+      }
+      used.add(candidate);
+      return { key: a.key, label: candidate };
+    });
 
     this.speechClips = Object.entries(manifest.speech_clips || {})
       .map(([key, speech]) => ({ key, label: speech.label || key }));
@@ -132,7 +147,14 @@ export class NvaAnimationPlayer {
       const isLast = steps.length === 1;
       this.state = isLast ? "action" : "prop";
       const firstKey = steps[stepIndex++];
-      await this.#show(firstKey, false, true);
+      try {
+        await this.#show(firstKey, false, true);
+      } catch (error) {
+        if (seqToken === this.sequence && this.state !== "disposed") {
+          await this.playIdle().catch(() => {});
+        }
+        throw error;
+      }
       return;
     }
 
@@ -141,16 +163,16 @@ export class NvaAnimationPlayer {
   }
 
   async playTalking() {
-    this.sequence += 1;
     if (this.manifest?.nva_version !== "0.2" || !this.talkKey) throw new Error("NVA has no talking animation");
+    this.sequence += 1;
     this.state = "talking";
     await this.#show(this.talkKey, true, true);
   }
 
   async playSpeech(key) {
-    this.sequence += 1;
     const speech = this.manifest?.speech_clips?.[key];
     if (!speech) throw new Error(`unknown packaged speech video: ${key}`);
+    this.sequence += 1;
     this.state = "speech";
     await this.#showPath(speech.clip, false, true, false);
   }

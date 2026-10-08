@@ -21,9 +21,9 @@
 
 - Studio 저작용 에디터, 캔버스 타임라인 및 클립 생성 파이프라인.
 - `loop_crossfade_frames`에 따른 클라이언트 측 실시간 크로스페이드(클립 생성 시 사전 반영 처리).
-- 음성 합성(TTS) 및 인공신경망 립싱크 모션 생성.
+- 생산자 쪽 생성 과정과 그 메타데이터.
 - 소품 순서 저작 파라미터의 공개 표준 v0.3 스키마 편입.
 
 ## 검증
 
-REQ-029, NFR-011, NFR-015, UC-021, SPEC-025, TEST-S-025, TEST-F-026에 걸친 V모델 추적성을 확보한다. Node 단위 시험 스위트(`src/test/*.test.mjs`), Python 도구 시험(`final-nva.test.py`, `local-sample-prep.test.py`), 실제 Chromium 브라우저에서 소품 복합 재생을 구동하는 Playwright E2E 시험을 통해 검증한다.
+REQ-029, NFR-011, NFR-015, UC-021, SPEC-025, TEST-S-025, TEST-F-026에 걸친 V모델 추적성을 확보한다. Node 단위 시험, Python 패키징 도구 시험, Chromium 에서 소품 순서를 재생하는 브라우저 E2E 시험으로 검증한다.

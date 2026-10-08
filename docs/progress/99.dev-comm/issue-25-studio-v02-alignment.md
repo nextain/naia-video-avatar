@@ -21,9 +21,9 @@ Align the open-source Player, validation core, bundle loader, and packaging tool
 
 - Studio authoring editor, canvas timelines, and clip generation pipelines.
 - Live client-side crossfade processing for `loop_crossfade_frames` (pre-baked in clips).
-- Text-to-speech synthesis and neural lip-sync generation.
+- Producer-side generation and its metadata.
 - Promotion of prop sequence authoring parameters into public canonical v0.3 schema.
 
 ## Verification
 
-Traceability mapped across REQ-029, NFR-011, NFR-015, UC-021, SPEC-025, TEST-S-025, and TEST-F-026. Verified via comprehensive Node unit suite (`src/test/*.test.mjs`), Python tooling tests (`final-nva.test.py`, `local-sample-prep.test.py`), and Playwright browser E2E test driving composite prop sequence playback in real Chromium.
+Traceability mapped across REQ-029, NFR-011, NFR-015, UC-021, SPEC-025, TEST-S-025, and TEST-F-026. Verified by the Node unit suite, the Python packaging tool tests, and a browser E2E test that plays a prop sequence in Chromium.
