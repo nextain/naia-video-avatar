@@ -38,7 +38,7 @@ The runtime architecture consists of seven modular components under `src/main/`:
 
 | Module | File | Core Responsibilities |
 |---|---|---|
-| **nva-core** | `src/main/nva-core.js`<br>`src/main/nva-schema.json` | Validates manifest schema against `nva-schema.json`. Provides `validateCompletedMedia()`, `validateManifest()`, and backward-compatible derivation for Studio 0.2 `idleKey` and `talkKey`. |
+| **nva-core** | `src/main/nva-core.js`<br>`src/main/nva-schema.json` | Validates manifests in code with `validateManifest()` (manifest structure, bundle-relative clip references, scenario node and edge references; unknown pose names produce warnings). Provides `derive()` for backward-compatible Studio 0.2 `idleKey` and `talkKey` selection, plus scenario helpers (`listScenarios()`, `scenarioPlayOrder()`, `findTransitionPath()`). `nva-schema.json` is the published JSON Schema reference for authors; the player does not load it at runtime. |
 | **nva-bundle-loader** | `src/main/nva-bundle-loader.js` | Parses ZIP archives without third-party libraries (supports Store and Deflate). Enforces path safety (no `..` or absolute paths), archive limits (100 MiB total, 512 files), and creates Object URLs for media files. |
 | **nva-animation-player** | `src/main/nva-animation-player.js` | Manages `HTMLVideoElement` playback states (`idle`, `speech`, `talking`, `action`). Handles unmuted speech decoding, muted action/idle looping, stop generations, and automatic fallback to idle on completion or error. |
 | **load-coordinator** | `src/main/load-coordinator.js` | Provides latest-request-wins semantics for asynchronous avatar loads. Generates monotonically increasing load tokens and `AbortSignal`s to cancel obsolete loads. |
@@ -74,7 +74,7 @@ Verification spans three independent testing tiers:
 │    - Load coordinator, catalog, security contracts          │
 ├─────────────────────────────────────────────────────────────┤
 │ 2. Python Tooling & Packaging Tests (src/test/*.test.py)    │
-│    - Deterministic v0.3 packager (scripts/build-final-nva)   │
+│    - Deterministic v0.3 packager (scripts/build-final-nva.py)│
 │    - Local sample preparation (scripts/prepare-local-samples)│
 ├─────────────────────────────────────────────────────────────┤
 │ 3. Playwright Browser E2E Tests (src/test/*.e2e.py)         │

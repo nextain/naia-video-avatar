@@ -38,7 +38,7 @@
 
 | 모듈명 | 파일 경로 | 핵심 역할 |
 |---|---|---|
-| **nva-core** | `src/main/nva-core.js`<br>`src/main/nva-schema.json` | 매니페스트 스키마 검증(`validateCompletedMedia`, `validateManifest`) 및 Studio 0.2 하위 호환 대기/말하기 키 유도(`idleKey`, `talkKey`). |
+| **nva-core** | `src/main/nva-core.js`<br>`src/main/nva-schema.json` | 코드로 매니페스트를 검증한다(`validateManifest()`: 구조·참조·포즈 그래프). Studio 0.2 하위 호환 대기·말하기 키 선택(`derive()`의 `idleKey`, `talkKey`)과 시나리오 보조 함수(`listScenarios()`, `scenarioPlayOrder()`, `findTransitionPath()`)를 제공한다. `nva-schema.json`은 작성자용으로 공개한 JSON Schema 참고 문서이며 Player가 실행 중에 읽지 않는다. |
 | **nva-bundle-loader** | `src/main/nva-bundle-loader.js` | 서드파티 라이브러리 없는 순수 ZIP 파싱(Store 및 Deflate 지원), 경로 안전성 검증(`..` 및 절대경로 차단), 크기 한도(100 MiB, 512 파일) 검사, 미디어 Object URL 생성. |
 | **nva-animation-player** | `src/main/nva-animation-player.js` | `HTMLVideoElement` 기반 재생 상태 기계(`idle`, `speech`, `talking`, `action`) 관리. 오디오 포함 발화 영상 재생, 무음 루프, 정지 세대(generation) 추적, 완료/오류 시 대기 복귀. |
 | **load-coordinator** | `src/main/load-coordinator.js` | 비동기 아바타 로드에 최신 요청 승자(latest-request-wins) 수명주기 적용. 단조 증가 토큰 및 `AbortSignal`로 이전 로드 중단 처리. |

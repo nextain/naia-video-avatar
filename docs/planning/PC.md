@@ -70,7 +70,7 @@ Clear separation between the authoring tier (Studio) and consumption tier (Playe
 2. **Version 0.2 Read Compatibility Only (NFR-011)**:
    The Player maintains read compatibility for existing Studio 0.2 bundles (including `talking` animation loops, action lists, and legacy `locale` tags), but authoring-specific fields are ignored and excluded from canonical v0.3 outputs.
 3. **Zero External Executable Code**:
-   An NVA bundle is purely declarative media and metadata. Bundles containing executable scripts (`.js`, `.sh`, `.exe`) or path traversal sequences (`..`, absolute paths) are rejected deterministically before extraction.
+   An NVA bundle is declarative media and metadata only. The loader rejects bundles whose ZIP file table contains absolute paths, URL schemes, backslashes, or `.`/`..` segments, and enforces size limits (100 MiB archive and expanded assets, 1 MiB manifest, 512 files). The player never executes bundle content; files the manifest does not reference are never played.
 4. **Zero Runtime Network Dependencies**:
    Once assets are loaded, the Player executes without network requests, CDN scripts, telemetry, or external fonts.
 5. **Security and Verification Integrity**:
