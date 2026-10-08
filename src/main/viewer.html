@@ -93,6 +93,7 @@ let animationPlayer = null;
 let player = null;
 let preComposedSnapshot = null;
 let composedPlayActive = false;
+let composedSession = 0;
 let playRequest = 0;
 const stageBackground = new StageBackground(get("stage"));
 
@@ -393,11 +394,18 @@ get("playComposed").addEventListener("click", async () => {
   get("animation").style.display = "none";
   get("stageCanvas").style.display = "";
   composedPlayActive = true;
+  const session = ++composedSession;
   try {
     await player.play();
+    if (session !== composedSession || !composedPlayActive) {
+      // Stopped or interrupted while play() was pending: that path already restored.
+      if (!composedPlayActive) player?.stop("cancel");
+      return;
+    }
     startSpeechMonitor();
     setStatus("Playing from the audio clock.");
   } catch (error) {
+    if (session !== composedSession || !composedPlayActive) return;
     clearSpeechMonitor();
     player?.stop("cancel");
     restoreFromSnapshot(preComposedSnapshot);
