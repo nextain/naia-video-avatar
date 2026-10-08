@@ -459,6 +459,23 @@ def run_e2e() -> None:
             last_restore6b = page.evaluate("() => window.__lastRestore")
             assert_restored_state(snap6b, last_restore6b, "Case 6b: Stop while play pending")
 
+            # --- Case 6c: Stop then start a new session while the first play() is pending ---
+            print("Testing Case 6c: Restart while earlier play() is pending...")
+            page.evaluate("() => { const p = document.querySelector('#playComposed'), s = document.querySelector('#stopComposed'); p.click(); s.click(); p.click(); }")
+            page.locator("#status").filter(has_text="Playing from the audio clock.").wait_for(timeout=10_000)
+            page.wait_for_timeout(500)
+            status_text6c = page.locator("#status").inner_text()
+            assert "Playback failed" not in status_text6c, f"Case 6c: stale play() leaked: {status_text6c}"
+            assert not page.evaluate("() => document.querySelector('#speechAudio').paused"), "Case 6c: new session audio stopped by stale call"
+            t0 = page.evaluate("() => document.querySelector('#speechAudio').currentTime")
+            page.wait_for_timeout(300)
+            t1 = page.evaluate("() => document.querySelector('#speechAudio').currentTime")
+            assert 0.15 <= t1 - t0 <= 0.6, f"Case 6c: audio clock not advancing once ({t0} -> {t1})"
+            page.locator("#stopComposed").click()
+            page.locator("#status").filter(has_text="Stopped; original ready state restored.").wait_for(timeout=5_000)
+            page.wait_for_timeout(500)
+            assert page.evaluate("() => document.querySelector('#speechAudio').paused"), "Case 6c: audio kept playing after final stop"
+
             # --- Case 7: Mid-playback chunk decode error ---
             print("Testing Case 7: Mid-playback chunk decode error...")
             page.locator("#action").select_option(value="motion")

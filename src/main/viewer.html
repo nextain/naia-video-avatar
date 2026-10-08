@@ -94,6 +94,7 @@ let player = null;
 let preComposedSnapshot = null;
 let composedPlayActive = false;
 let composedSession = 0;
+let pendingComposedPlay = null;
 let playRequest = 0;
 const stageBackground = new StageBackground(get("stage"));
 
@@ -395,16 +396,27 @@ get("playComposed").addEventListener("click", async () => {
   get("stageCanvas").style.display = "";
   composedPlayActive = true;
   const session = ++composedSession;
+  // Never run two SpeechPlayer.play() calls at once: wait for an earlier pending call
+  // (already superseded) to settle and be stopped before starting this session.
+  while (pendingComposedPlay) {
+    try { await pendingComposedPlay; } catch { /* earlier session's failure is not ours */ }
+    if (session !== composedSession || !composedPlayActive) return;
+  }
+  const playPromise = player.play();
+  pendingComposedPlay = playPromise;
   try {
-    await player.play();
+    await playPromise;
+    if (pendingComposedPlay === playPromise) pendingComposedPlay = null;
     if (session !== composedSession || !composedPlayActive) {
       // Stopped or interrupted while play() was pending: that path already restored.
-      if (!composedPlayActive) player?.stop("cancel");
+      // Stop the late-started playback before any newer session calls play().
+      player?.stop("cancel");
       return;
     }
     startSpeechMonitor();
     setStatus("Playing from the audio clock.");
   } catch (error) {
+    if (pendingComposedPlay === playPromise) pendingComposedPlay = null;
     if (session !== composedSession || !composedPlayActive) return;
     clearSpeechMonitor();
     player?.stop("cancel");
