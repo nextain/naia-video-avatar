@@ -19,7 +19,7 @@
 | `about-docs/` | **이 표준 repo 자체**에 대한 메타 문서 (설명·검증 ledger·실험). payload 아님 — project-create/migration 이 복제 제외 |
 | `benchmark/` | 성능·정확도·자율성 벤치마크 |
 | `bin/` | CLI 진입점 |
-| `docs/` | 정규 설계 문서 (이 표에 등록된 것만, 하위: `progress/` 이슈별 진행 산출물) |
+| `docs/` | 정규 설계 문서 (하위: `planning/` 기획 및 표준 대응, `receipts/` 시험 영수증 및 QC, `progress/` 이슈별 진행 산출물) |
 | `examples/` | 실행 가능한 예제 |
 | `node_modules/` | 의존성 (gitignored, 자동 생성) |
 | `packages/` | 소스 패키지 (pnpm-workspace.yaml 등록된 것만) |
@@ -85,6 +85,11 @@
 | 파일 | 역할 |
 |------|------|
 | `project-structure.md` | 이 파일 — 구조 명세 |
+| `planning/README.md` | 기획 산출물 및 표준 대응표 |
+| `planning/PC.md` | 상위기획 (PC) |
+| `planning/SP.md` | 화면기획 (SP) |
+| `planning/PL.md` | 기술 계획 및 아키텍처 (PL) |
+| `receipts/README.md` | 시험 영수증 양식 및 QC 규약 |
 | `lessons.md` | 교훈 — 규칙이 존재하는 이유 |
 | `requirements.md` | 기능/비기능 요구사항 |
 | `user-scenarios.md` | 사용자 시나리오 + 테스트 커버리지 맵 |

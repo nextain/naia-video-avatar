@@ -59,17 +59,25 @@ naia video clip avatar — 비디오 클립 기반 토킹헤드 아바타 포맷
 
 ---
 
+## ADK 관계
+
+- **naia-adk**: 공개 개인 ADK 바탕으로 작업공간 구조와 도구 중립 에이전트 계약을 정한다.
+- **naia-pj-adk**: 다중 도구·작업공간 팀을 위한 공개 팀 프로젝트 ADK로 프로젝트 어댑터, 검증 가능한 작업 절차, 표준 산출물 정본(PC→SP→UC→RQ→PL→FE, UT→IT→E2E→QC)을 가진다.
+- **naia-video-avatar**: 제품 저장소로 naia-pj-adk의 표준 절차와 산출물 규칙을 채택한다(산출물 위치는 `docs/planning/README.md` 대응표 준수, `projects/naia-video-avatar/` 어댑터 연결).
+
+---
+
 ## SDLC 프로세스 게이트 (P01~P05 — permanent)
 
 모든 신규 기능/수정 작업은 이 순서를 반드시 따른다:
 
 | 게이트 | 이름 | 산출물(deliverable) | 게이트 조건 |
 |--------|------|---------------------|------------|
-| P01 | 사용자 시나리오 | `docs/progress/02.user-scenarios/INDEX.md` UC 항목 | UC 없으면 다음 단계 금지 |
-| P02 | 테스트 시나리오 | `docs/progress/03.uc-tests/INDEX.md` TEST-S 매핑 | 테스트 매핑 없으면 다음 단계 금지 |
-| P03 | 요구사항 | `docs/progress/01.requirements/INDEX.md` FR/NFR 항목 | 요구사항 없으면 코드 작성 금지 |
-| P04 | 통합 테스트 | 테스트 파일(`src/test`) 또는 검증 결과 | 테스트 없으면 PR 머지 금지 |
-| P05 | 완료 | `docs/progress/01.requirements/INDEX.md` 상태 → Done | 커밋 전 업데이트 필수 |
+| P01 | 기획 (planning) | PC·SP 확인과 `docs/progress/02.user-scenarios/INDEX.md` UC 등록 | pre-issue scope lock(사람 승인) 및 UC 없으면 다음 단계 금지 |
+| P02 | 요구사항 (requirements) | `docs/progress/01.requirements/INDEX.md` RQ(FR/NFR) 항목 | 요구사항 없으면 코드 작성 금지 |
+| P03 | 설계 (design) | `docs/progress/04.features/INDEX.md` FE(SPEC) 등록, 고영향 변경 시 `docs/planning/PL.md` 갱신 | 기능 설계 등록 없으면 구현 진행 금지 |
+| P04 | 검증 (verification) | UT(`src/test`) → IT 영수증 → 화면 연결 → E2E 영수증(`03.uc-tests` TEST-S 연결) | IT 통과 전 화면 확장 금지, IT·E2E 영수증 없으면 PR 머지 금지 (화면 없는 단위만 SP 절 근거로 E2E 예외) |
+| P05 | 완료 (qc_and_close) | PC·SP만 읽는 독립 세션의 QC 수행, 레지스트리 상태 → Done | 독립 QC 및 상태 갱신 전 완료 금지 |
 
 **세션 규칙**:
 - 시작: `process-status.json` 읽기 → `last_updated` 갱신
@@ -94,6 +102,11 @@ naia video clip avatar — 비디오 클립 기반 토킹헤드 아바타 포맷
 | 파일 | 역할 |
 |------|------|
 | `docs/project-structure.md` | 구조 명세 + 리소스 레지스트리 (헌장①) |
+| `docs/planning/README.md` | 기획 산출물 및 표준 대응표 (표준 정본 ↔ 레지스트리 대응) |
+| `docs/planning/PC.md` | 상위기획 (Product Concept) |
+| `docs/planning/SP.md` | 화면기획 (Screen Plan) |
+| `docs/planning/PL.md` | 기술 계획 및 아키텍처 (Plan / Architecture) |
+| `docs/receipts/README.md` | 시험 영수증 양식 및 독립 품질 검증 (QC) 규약 |
 | `docs/progress/01.requirements/INDEX.md` | 기능/비기능 요구사항 (REQ registry) |
 | `docs/progress/02.user-scenarios/INDEX.md` | 사용자 시나리오 (UC registry) |
 | `docs/progress/03.uc-tests/INDEX.md` | 시나리오 테스트 (TEST-S registry) |
@@ -102,7 +115,7 @@ naia video clip avatar — 비디오 클립 기반 토킹헤드 아바타 포맷
 | `docs/glossary.md` | 도메인 용어사전 *(예정)* |
 | `docs/ARCHITECTURE.md` | 시스템 아키텍처 *(예정)* |
 
-> V모델 추적: REQ→UC→TEST-S, UC→SPEC→TEST-F. orphan/dead-link 검사 = `scripts/check-traceability.mjs` (기본 advisory).
+> V모델 추적: 기획은 PC→SP→UC→RQ→PL→FE, 구현은 UT→IT→화면연결→E2E→QC. 기존 레지스트리(UC/RQ/FE/UT/E2E)와 표준 체계의 상세 대응은 `docs/planning/README.md` 참조. orphan/dead-link 검사 = `scripts/check-traceability.mjs` (기본 advisory).
 > 추가 시: 위 표에 먼저 등록 → `docs/project-structure.md` Doc Registry 업데이트.
 
 ---

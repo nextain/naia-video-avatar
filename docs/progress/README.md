@@ -6,6 +6,8 @@ This directory serves two roles:
 
 ## 1. V-Model Traceability Registry (`01`~`05`)
 
+For mapping between the standard artifact pipeline (PC/SP/PL/IT/E2E/QC) and this directory's registries (UC/RQ/FE/UT), see the [planning artifact mapping table](../planning/README.md).
+
 Each stage uses a **single-file INDEX.md registry** (no separate document per item ❌ — prevents documentation sprawl).
 
 | Stage | Directory | Deliverable | ID |

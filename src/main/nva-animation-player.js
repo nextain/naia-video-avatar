@@ -32,7 +32,7 @@ export class NvaAnimationPlayer {
     this.state = "empty";
     this.generation = 0;
     this.onEnded = () => { if (["action", "speech"].includes(this.state)) void this.playIdle(); };
-    this.onError = () => { if (["action", "speech"].includes(this.state)) void this.playIdle(); };
+    this.onError = () => { if (["action", "speech", "talking"].includes(this.state)) void this.playIdle(); };
     video.addEventListener("ended", this.onEnded);
     video.addEventListener("error", this.onError);
   }
@@ -47,6 +47,7 @@ export class NvaAnimationPlayer {
     this.manifest = manifest;
     this.assets = assets;
     this.idleKey = derived.idleKey;
+    this.talkKey = (manifest.nva_version === "0.2" && derived.talkKey) ? derived.talkKey : null;
     this.actions = Object.entries(manifest.animations)
       .filter(([, animation]) => animKind(animation) === "gesture")
       .map(([key, animation]) => ({ key, label: animation.label || key }));
@@ -54,7 +55,13 @@ export class NvaAnimationPlayer {
       .map(([key, speech]) => ({ key, label: speech.label || key }));
     this.state = "ready";
     await this.#show(this.idleKey, true, false);
-    return { idle: this.idleKey, actions: [...this.actions], speechClips: [...this.speechClips] };
+    return {
+      idle: this.idleKey,
+      idles: [this.idleKey],
+      actions: [...this.actions],
+      speechClips: [...this.speechClips],
+      talking: this.talkKey,
+    };
   }
 
   async playIdle() {
@@ -67,6 +74,12 @@ export class NvaAnimationPlayer {
     if (!this.actions?.some((action) => action.key === key)) throw new Error(`unknown NVA action: ${key}`);
     this.state = "action";
     await this.#show(key, false, true);
+  }
+
+  async playTalking() {
+    if (this.manifest?.nva_version !== "0.2" || !this.talkKey) throw new Error("NVA has no talking animation");
+    this.state = "talking";
+    await this.#show(this.talkKey, true, true);
   }
 
   async playSpeech(key) {
@@ -120,7 +133,16 @@ export class NvaAnimationPlayer {
     // A stop(), load(), dispose() or newer play request during the await
     // supersedes this one; never resume stale video or audio.
     if (generation !== this.generation || this.state === "disposed") return;
-    if (autoplay) await this.video.play();
+    if (autoplay) {
+      try {
+        await this.video.play();
+      } catch (error) {
+        if (error?.name === "AbortError" && (generation !== this.generation || this.state === "disposed")) {
+          return;
+        }
+        throw error;
+      }
+    }
   }
 
   #releaseUrls() {

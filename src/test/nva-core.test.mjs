@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import {
   NVA_VERSION, animKind, derive, findTransitionPath, isTransition,
@@ -109,3 +110,32 @@ test("v0.2 manifest with a single non-looping action stays valid (backward compa
   });
   assert.equal(result.ok, true, result.errors.join("; "));
 });
+
+test("v0.2 manifest ignores unknown extension keys in root, meta, and animations", () => {
+  const legacy = {
+    nva_version: "0.2",
+    meta: { name: "legacy", x_ext_b: 42 },
+    canvas: { width: 720, height: 1280, fps: 25 },
+    background: { type: "transparent" },
+    animations: {
+      idle: { clip: "clips/idle.webm", loop: true, can_talk: false, x_ext_c: "val" },
+      talk: { clip: "clips/talk.webm", loop: true, can_talk: true },
+      wave: { clip: "clips/wave.webm", loop: false, can_talk: false },
+    },
+    x_ext_a: "custom",
+  };
+  const result = validateManifest(legacy);
+  assert.equal(result.ok, true, result.errors.join("; "));
+  assert.equal(result.warnings.length, 0, result.warnings.join("; "));
+});
+
+test("examples/demo.nva manifest passes validation and derives idle and talking keys", async () => {
+  const demoUrl = new URL("../../examples/demo.nva/manifest.json", import.meta.url);
+  const demoManifest = JSON.parse(await readFile(demoUrl, "utf8"));
+  const result = validateManifest(demoManifest);
+  assert.equal(result.ok, true, result.errors.join("; "));
+  const derived = derive(demoManifest);
+  assert.equal(derived.idleKey, "stand_idle");
+  assert.equal(derived.talkKey, "stand_talk");
+});
+

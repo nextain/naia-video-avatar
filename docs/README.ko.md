@@ -13,6 +13,19 @@
 - [LLM 역할 분담](./llm-roles.ko.md) — 작은(라이트) 모델 ↔ 큰 모델 분담, 단일 CLI 어댑터, 검출 계층
 - [합격 기준](./acceptance-criteria.ko.md) — 계약 구체화 + 검증이 게이트를 대체(게이트키퍼 제거). 완료증거 등급(강/약/없음)
 
+## 기획·아키텍처 (planning/)
+
+- [기획 산출물 및 표준 대응표](./planning/README.ko.md) — 표준 파이프라인 대응표, 기획·구현 순서, 표준 정본 링크
+- [상위기획 (PC)](./planning/PC.ko.md) — 제품 정의, 대상 사용자, 소유권 경계
+- [화면기획 (SP)](./planning/SP.ko.md) — 플레이어 화면 구조, 글자 도면, 조작 및 상태 변화
+- [기술 계획 및 아키텍처 (PL)](./planning/PL.ko.md) — 런타임 모듈 분해, 포맷 버전 정책, 다계층 시험 체계
+
+## 검증 영수증·QC (receipts/)
+
+- [검증 영수증 및 품질 검증](./receipts/README.ko.md) — 영수증 양식 규격, 파일 명명 규칙, 독립 QC 규칙
+- [#22 통합 시험(IT) 영수증](./receipts/RECEIPT-IT-22-20261008-01.ko.md) — 로더·코어·플레이어·코디네이터·카탈로그 모듈 통합 시험 영수증
+- [#22 사용자 여정 관통 시험(E2E) 영수증](./receipts/RECEIPT-E2E-22-20261008-01.ko.md) — demo 및 naia 공개 예제 다중 뷰포트 브라우저 검증 영수증
+
 ## 작업 기록 (progress/)
 
 `docs/progress/` 는 **append-only 작업 기록(ledger)** — 날짜별 진행·검토 메모.

@@ -13,6 +13,19 @@ This file serves as the entry point (hub) for this directory. All curated docume
 - [LLM Role Division](./llm-roles.md) — Division of responsibilities between small (light) models and large models, single CLI adapter patterns, and detection tiers
 - [Acceptance Criteria](./acceptance-criteria.md) — How contract specifications and verification replace traditional gates (eliminating gatekeepers), with completion evidence grades (strong/weak/none)
 
+## Planning & Architecture (planning/)
+
+- [Planning & Artifact Mapping](./planning/README.md) — Standard pipeline artifact mapping, planning/implementation order, and canonical references
+- [Product Concept (PC)](./planning/PC.md) — Product definition, target audience, and ownership boundaries
+- [Screen Plan (SP)](./planning/SP.md) — Player screen wireframe, DOM structure, and interaction state transitions
+- [Technical Plan & Architecture (PL)](./planning/PL.md) — Runtime module decomposition, format versions, and multi-tier testing system
+
+## Verification Receipts & QC (receipts/)
+
+- [Test Receipts and Quality Control](./receipts/README.md) — Receipt format specifications, naming rules, and QC policies
+- [Integration Test Receipt #22](./receipts/RECEIPT-IT-22-20261008-01.md) — Module integration test receipt for loader, core, player, coordinator, catalog
+- [End-to-End Test Receipt #22](./receipts/RECEIPT-E2E-22-20261008-01.md) — Multi-viewport browser validation receipt for demo and naia bundles
+
 ## Work Progress (progress/)
 
 `docs/progress/` is an **append-only work ledger** recording date-based progress and review notes.
