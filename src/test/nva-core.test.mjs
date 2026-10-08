@@ -326,3 +326,72 @@ test("(다) 영수증 자산 해시가 다른 번들 거부", async () => {
   );
 });
 
+test("스키마와 코어 일치: (가) speech_motion 있고 speech_clips 없는 번들 둘 다 승인, (나) 둘 다 없는 v0.3 번들 둘 다 거부", async () => {
+  const schemaPath = new URL("../main/nva-schema.json", import.meta.url);
+  const schema = JSON.parse(await readFile(schemaPath, "utf8"));
+
+  function evaluateSchema(manifest) {
+    const errors = [];
+    if (Array.isArray(schema.required)) {
+      for (const req of schema.required) {
+        if (manifest[req] === undefined) errors.push(`missing required root field '${req}'`);
+      }
+    }
+    if (Array.isArray(schema.anyOf)) {
+      const satisfied = schema.anyOf.some((sub) => {
+        if (Array.isArray(sub.required)) {
+          return sub.required.every((r) => manifest[r] !== undefined);
+        }
+        return false;
+      });
+      if (!satisfied) errors.push("none of anyOf requirements satisfied");
+    }
+    if (schema.additionalProperties === false && schema.properties) {
+      const allowed = new Set(Object.keys(schema.properties));
+      for (const k of Object.keys(manifest)) {
+        if (!allowed.has(k)) errors.push(`unknown root field '${k}'`);
+      }
+    }
+    return { ok: errors.length === 0, errors };
+  }
+
+  // (가) speech_motion 있고 speech_clips 없는 번들
+  const bundleWithMotionOnly = completedManifest();
+  delete bundleWithMotionOnly.speech_clips;
+  bundleWithMotionOnly.speech_motion = {
+    version: "1",
+    representation: "whole-head-layer",
+    region: [100, 100, 200, 200],
+    inventory_version: "1.0.0",
+    inventory: [
+      "sil", "closed", "labiodental", "dental", "alveolar", "postalveolar",
+      "palatal", "velar", "glottal", "vowel-open", "vowel-mid", "vowel-spread", "vowel-round",
+    ],
+    neutral_head: "speech/neutral-head.png",
+    atlas: "speech/atlas.bin",
+    atlas_index: "speech/atlas-index.json",
+    validation_report: "speech/validation-report.json",
+    quality_report: "speech/quality-report.json",
+    provenance: "speech/generation-result.json",
+  };
+  const clipFiles = [
+    "clips/idle.webm", "clips/wave.webm", "clips/raise.webm",
+    "speech/neutral-head.png", "speech/atlas.bin", "speech/atlas-index.json",
+    "speech/validation-report.json", "speech/quality-report.json", "speech/generation-result.json",
+  ];
+  const schemaResultA = evaluateSchema(bundleWithMotionOnly);
+  assert.equal(schemaResultA.ok, true, `Schema should accept motion-only: ${schemaResultA.errors.join("; ")}`);
+  const coreResultA = validateManifest(bundleWithMotionOnly, { clipFiles });
+  assert.equal(coreResultA.ok, true, `Core should accept motion-only: ${coreResultA.errors.join("; ")}`);
+
+  // (나) 둘 다 없는 v0.3 번들
+  const bundleWithoutBoth = completedManifest();
+  delete bundleWithoutBoth.speech_clips;
+  assert.equal(bundleWithoutBoth.speech_motion, undefined);
+  const schemaResultB = evaluateSchema(bundleWithoutBoth);
+  assert.equal(schemaResultB.ok, false, "Schema should reject when both speech_clips and speech_motion are absent");
+  const coreResultB = validateManifest(bundleWithoutBoth, { clipFiles });
+  assert.equal(coreResultB.ok, false, "Core should reject when both speech_clips and speech_motion are absent");
+  assert.match(coreResultB.errors.join("; "), /speech_clips가 최소 1개 필요함/);
+});
+

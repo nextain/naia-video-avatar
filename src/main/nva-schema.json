@@ -4,7 +4,11 @@
   "title": "NVA completed-media manifest (v0.3)",
   "description": "A GPU-free playback package containing finished idle, action, and speech videos.",
   "type": "object",
-  "required": ["nva_version", "profile", "canvas", "animations", "speech_clips"],
+  "required": ["nva_version", "profile", "canvas", "animations"],
+  "anyOf": [
+    { "required": ["speech_clips"] },
+    { "required": ["speech_motion"] }
+  ],
   "additionalProperties": false,
   "properties": {
     "nva_version": { "const": "0.3" },

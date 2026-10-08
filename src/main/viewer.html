@@ -162,6 +162,17 @@ function restoreFromSnapshot(snapshot) {
 
   if (snapshot.stageBgColor !== undefined) get("stage").style.backgroundColor = snapshot.stageBgColor;
   if (snapshot.stageBgImage !== undefined) get("stage").style.backgroundImage = snapshot.stageBgImage;
+
+  window.__lastRestore = {
+    state: animationPlayer?.state,
+    src: video.src,
+    currentTime: video.currentTime,
+    paused: video.paused,
+    loop: video.loop,
+    muted: video.muted,
+    stageBgColor: get("stage").style.backgroundColor,
+    stageBgImage: get("stage").style.backgroundImage,
+  };
 }
 
 async function openNva(loadSource, label) {
@@ -233,6 +244,7 @@ async function openNva(loadSource, label) {
 async function prepareSpeechPlayer() {
   if (!get("audioFile").files[0] || !get("planFile").files[0] || !bundle?.manifest?.speech_motion) return;
   if (composedPlayActive) {
+    clearSpeechMonitor();
     player?.stop("cancel");
     restoreFromSnapshot(preComposedSnapshot);
     preComposedSnapshot = null;
@@ -285,6 +297,7 @@ get("planFile").addEventListener("change", prepareSpeechPlayer);
 
 get("playSpeech").addEventListener("click", async () => {
   if (composedPlayActive) {
+    clearSpeechMonitor();
     player?.stop("cancel");
     restoreFromSnapshot(preComposedSnapshot);
     preComposedSnapshot = null;
@@ -302,6 +315,7 @@ get("playSpeech").addEventListener("click", async () => {
 });
 get("playTalking").addEventListener("click", async () => {
   if (composedPlayActive) {
+    clearSpeechMonitor();
     player?.stop("cancel");
     restoreFromSnapshot(preComposedSnapshot);
     preComposedSnapshot = null;
@@ -319,6 +333,7 @@ get("playTalking").addEventListener("click", async () => {
 });
 get("playAction").addEventListener("click", async () => {
   if (composedPlayActive) {
+    clearSpeechMonitor();
     player?.stop("cancel");
     restoreFromSnapshot(preComposedSnapshot);
     preComposedSnapshot = null;
@@ -335,9 +350,37 @@ get("playAction").addEventListener("click", async () => {
   }
 });
 
+let speechMonitorTimer = null;
+
+function clearSpeechMonitor() {
+  if (speechMonitorTimer !== null) {
+    clearInterval(speechMonitorTimer);
+    speechMonitorTimer = null;
+  }
+}
+
+function startSpeechMonitor() {
+  clearSpeechMonitor();
+  speechMonitorTimer = setInterval(() => {
+    if (!composedPlayActive) {
+      clearSpeechMonitor();
+      return;
+    }
+    if (player && player.state !== "speaking") {
+      clearSpeechMonitor();
+      player?.stop("error");
+      restoreFromSnapshot(preComposedSnapshot);
+      preComposedSnapshot = null;
+      composedPlayActive = false;
+      setStatus("Playback failed: speech asset error", true);
+    }
+  }, 20);
+}
+
 get("playComposed").addEventListener("click", async () => {
   if (!player) return;
   if (composedPlayActive) {
+    clearSpeechMonitor();
     player?.stop("cancel");
     restoreFromSnapshot(preComposedSnapshot);
     preComposedSnapshot = null;
@@ -352,8 +395,10 @@ get("playComposed").addEventListener("click", async () => {
   composedPlayActive = true;
   try {
     await player.play();
+    startSpeechMonitor();
     setStatus("Playing from the audio clock.");
   } catch (error) {
+    clearSpeechMonitor();
     player?.stop("cancel");
     restoreFromSnapshot(preComposedSnapshot);
     preComposedSnapshot = null;
@@ -363,6 +408,7 @@ get("playComposed").addEventListener("click", async () => {
 });
 
 get("stopComposed").addEventListener("click", () => {
+  clearSpeechMonitor();
   player?.stop("cancel");
   if (preComposedSnapshot) {
     restoreFromSnapshot(preComposedSnapshot);
@@ -373,6 +419,7 @@ get("stopComposed").addEventListener("click", () => {
 });
 
 get("speechAudio").addEventListener("ended", () => {
+  clearSpeechMonitor();
   if (composedPlayActive) {
     player?.stop("complete");
     restoreFromSnapshot(preComposedSnapshot);
@@ -382,6 +429,7 @@ get("speechAudio").addEventListener("ended", () => {
   }
 });
 get("speechAudio").addEventListener("error", () => {
+  clearSpeechMonitor();
   if (composedPlayActive) {
     player?.stop("error");
     restoreFromSnapshot(preComposedSnapshot);
@@ -392,6 +440,7 @@ get("speechAudio").addEventListener("error", () => {
 });
 
 get("stop").addEventListener("click", async () => {
+  clearSpeechMonitor();
   if (composedPlayActive) {
     player?.stop("cancel");
     restoreFromSnapshot(preComposedSnapshot);
@@ -437,6 +486,7 @@ async function prepareSampleCatalog() {
 
 void prepareSampleCatalog();
 window.addEventListener("beforeunload", () => {
+  clearSpeechMonitor();
   avatarLoads.cancel();
   animationPlayer?.dispose();
   player?.stop("cancel");
