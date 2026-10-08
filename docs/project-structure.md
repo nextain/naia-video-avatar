@@ -19,7 +19,7 @@ English | [한국어](./project-structure.ko.md)
 | `about-docs/` | **Meta documentation about this canonical repo itself** (descriptions, verification ledgers, experiments). Not payload — excluded from replication in project-create/migration |
 | `benchmark/` | Performance, accuracy, and autonomy benchmarks |
 | `bin/` | CLI entry points |
-| `docs/` | Canonical design documentation (only documents registered in this table; `progress/` contains issue-specific deliverables) |
+| `docs/` | Canonical design documentation (subdirectories: `planning/` for concept and plans, `receipts/` for test receipts and QC, `progress/` for issue-specific deliverables) |
 | `examples/` | Executable examples |
 | `node_modules/` | Dependencies (gitignored, automatically generated) |
 | `packages/` | Source packages (only those registered in `pnpm-workspace.yaml`) |
@@ -85,6 +85,11 @@ Procedure for adding a new document:
 | File | Role |
 |------|------|
 | `project-structure.md` | This file — Structure specification |
+| `planning/README.md` | Planning and standard artifact mapping |
+| `planning/PC.md` | Product concept (PC) |
+| `planning/SP.md` | Screen plan (SP) |
+| `planning/PL.md` | Technical plan and architecture (PL) |
+| `receipts/README.md` | Test receipt formats and QC rules |
 | `lessons.md` | Lessons — Why rules exist |
 | `requirements.md` | Functional / non-functional requirements |
 | `user-scenarios.md` | User scenarios + test coverage map |

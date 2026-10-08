@@ -95,6 +95,22 @@ node scripts/check-traceability.mjs
 Browser integration tests are in `src/test/standalone-player.e2e.py` and
 `src/test/local-samples.e2e.py`.
 
+## How this repository relates to naia-adk and naia-pj-adk
+
+- **naia-adk** (https://github.com/nextain/naia-adk): The open personal ADK base that defines workspace structure and tool-neutral agent contracts.
+- **naia-pj-adk** (https://github.com/nextain/naia-pj-adk): An open team project ADK that enables teams using multiple tools and workspaces to collaborate under unified project rules. It provides project adapters, verifiable workflows, and canonical standard artifacts (PC → SP → UC → RQ → PL → FE, UT → IT → E2E → QC).
+- **naia-video-avatar**: A product repository. Rather than being a fork or template clone, it adopts the standard workflow and artifact rules of naia-pj-adk. Artifact locations follow the mapping table in [docs/planning/README.md](docs/planning/README.md), and naia-pj-adk's project adapter `projects/naia-video-avatar/` references this repository.
+
+```text
+naia-adk (Personal ADK base · tool-neutral contracts)
+  └── naia-pj-adk (Team project ADK · standard workflow & canonical artifacts)
+        └── naia-video-avatar (Product repo · adopts standard artifacts & receipts)
+```
+
+### Development process
+
+This repository implements the document-first feature pipeline defined by naia-pj-adk. Planning proceeds top-down (PC → SP → UC → RQ → PL → FE), while implementation and verification proceed bottom-up (UT → IT gate → UI connection → E2E → independent QC). For artifact definitions and pipeline details, see [the planning guide and artifact mapping](docs/planning/README.md).
+
 ## Compatibility
 
 The JavaScript loader keeps read compatibility with existing NVA v0.2 files.

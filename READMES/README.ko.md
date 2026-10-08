@@ -93,6 +93,22 @@ node scripts/check-traceability.mjs
 브라우저 통합 테스트는 `src/test/standalone-player.e2e.py`와
 `src/test/local-samples.e2e.py`에 있습니다.
 
+## naia-adk·naia-pj-adk 와의 관계
+
+- **naia-adk** (https://github.com/nextain/naia-adk): 공개 개인 ADK 바탕. 작업공간 구조와 도구 중립 에이전트 계약을 정합니다.
+- **naia-pj-adk** (https://github.com/nextain/naia-pj-adk): 여러 도구와 작업공간을 쓰는 팀이 하나의 프로젝트 규칙으로 일하도록 돕는 공개 팀 프로젝트 ADK입니다. 프로젝트 어댑터, 검증 가능한 작업 절차, 표준 산출물 정본(PC→SP→UC→RQ→PL→FE, UT→IT→E2E→QC)을 가집니다.
+- **naia-video-avatar**: 제품 저장소입니다. 포크나 템플릿 복제가 아니라 naia-pj-adk의 표준 절차와 산출물 규칙을 채택합니다. 산출물 위치는 [docs/planning/README.ko.md](../docs/planning/README.ko.md)의 대응표를 따르며, naia-pj-adk의 프로젝트 어댑터 `projects/naia-video-avatar/`가 이 저장소를 가리킵니다.
+
+```text
+naia-adk (개인 ADK 바탕 · 도구 중립 계약)
+  └── naia-pj-adk (팀 프로젝트 ADK · 표준 절차/산출물 정본)
+        └── naia-video-avatar (제품 저장소 · 표준 산출물/영수증 채택)
+```
+
+### 개발 절차 (Development process)
+
+이 저장소는 naia-pj-adk의 표준 문서 우선 파이프라인을 따릅니다. 기획은 위에서 아래로(PC → SP → UC → RQ → PL → FE), 구현은 아래에서 위로(UT → 통합 시험(IT) 관문 → 화면 구현 및 연결 → E2E → 독립 QC) 진행합니다. 상세 내용은 [기획 산출물 및 표준 대응표](../docs/planning/README.ko.md)를 참고하세요.
+
 ## 호환성
 
 JavaScript 로더는 기존 NVA v0.2 파일의 읽기 호환을 유지합니다. 새로 배포하는 파일은

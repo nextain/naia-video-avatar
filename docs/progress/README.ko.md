@@ -6,6 +6,8 @@
 
 ## 1. V모델 추적 registry (`01`~`05`)
 
+표준 산출물 체계(PC/SP/PL/IT/E2E/QC)와 이 디렉터리 레지스트리(UC/RQ/FE/UT)의 대응 관계는 [기획 산출물 및 표준 대응표](../planning/README.ko.md)를 참조한다.
+
 각 단계는 **INDEX.md 한 파일 registry**(항목당 별도 문서 ❌ — 문서 폭발 방지).
 
 | 단계 | 디렉터리 | 산출물 | ID |
