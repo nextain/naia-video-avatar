@@ -23,8 +23,8 @@
     "P01": { "status": "done", "name": "planning", "deliverable": "docs/planning/PC.md, docs/planning/SP.md, docs/progress/02.user-scenarios/INDEX.md", "ref": "UC-001..UC-021" },
     "P02": { "status": "done", "name": "requirements", "deliverable": "docs/progress/01.requirements/INDEX.md", "ref": "REQ-001..REQ-029, NFR-001..NFR-015" },
     "P03": { "status": "done", "name": "design", "deliverable": "docs/planning/PL.md, docs/progress/04.features/INDEX.md", "ref": "SPEC-001..SPEC-025" },
-    "P04": { "status": "partial", "name": "verification", "deliverable": "docs/receipts/RECEIPT-IT-25-20261008-01.md, docs/receipts/RECEIPT-E2E-25-20261008-01.md (영수증 독립 리뷰어 Q1~Q3 확인 대기)", "ref": "TEST-F-001..TEST-F-026, TEST-S-001..TEST-S-025" },
-    "P05": { "status": "pending", "name": "qc_and_close", "deliverable": "docs/receipts/QC-03.md (독립 QC 대기)", "ref": "nextain/naia-video-avatar#25" }
+    "P04": { "status": "done", "name": "verification", "deliverable": "docs/receipts/RECEIPT-IT-25-20261008-01.md, docs/receipts/RECEIPT-E2E-25-20261008-01.md (독립 리뷰어 Q1~Q3 확인)", "ref": "TEST-F-001..TEST-F-026, TEST-S-001..TEST-S-025" },
+    "P05": { "status": "done", "name": "qc_and_close", "deliverable": "docs/receipts/QC-03.md (PASS, 49/49)", "ref": "nextain/naia-video-avatar#25" }
   },
 
   "resource_registry": {

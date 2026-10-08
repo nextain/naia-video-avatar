@@ -37,8 +37,8 @@
 | P01 기획 | done | PC·SP, docs/progress/02.user-scenarios/INDEX.md (UC-001~021) |
 | P02 요구사항 | done | docs/progress/01.requirements/INDEX.md (REQ-001~029, NFR-001~015) |
 | P03 설계 | done | PL, docs/progress/04.features/INDEX.md (SPEC-001~025) |
-| P04 검증 | partial | RECEIPT-IT-25-20261008-01, RECEIPT-E2E-25-20261008-01 (영수증 독립 리뷰어 확인 대기) |
-| P05 QC·종료 | pending | docs/receipts/QC-03.md (독립 QC 대기) |
+| P04 검증 | done | RECEIPT-IT-25-20261008-01, RECEIPT-E2E-25-20261008-01 (독립 리뷰어 Q1~Q3 확인) |
+| P05 QC·종료 | done | docs/receipts/QC-03.md (PASS, 49/49) |
 
 마지막 업데이트: 2026-10-08
 

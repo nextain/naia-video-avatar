@@ -69,3 +69,4 @@
 - [RECEIPT-E2E-25-20261008-01.ko.md](./RECEIPT-E2E-25-20261008-01.ko.md) ([English](./RECEIPT-E2E-25-20261008-01.md)) — #25 E2E 영수증 (Studio v0.2 복합 소품 동작 순서 재생 Playwright 브라우저 검증)
 - [QC-01.md](./QC-01.md) — #22 독립 QC, `4f6f74c` 대상 (FAIL: 차단 B1, `85f5ca7`·`2ab1fd9` 에서 수정)
 - [QC-02.md](./QC-02.md) — #22 독립 QC, `2ab1fd9` 대상 (PASS: 차단 결함 없음)
+- [QC-03.md](./QC-03.md) — #25 독립 QC, `fb9733d` 대상 (PASS: 49/49, 차단 결함 없음)

@@ -69,3 +69,4 @@ Explicit numerical table preventing false completion claims:
 - [RECEIPT-E2E-25-20261008-01.md](./RECEIPT-E2E-25-20261008-01.md) ([한국어](./RECEIPT-E2E-25-20261008-01.ko.md)) — E2E Receipt for #25 (Playwright browser test for Studio v0.2 composite prop sequence playback)
 - [QC-01.md](./QC-01.md) — Independent QC for #22 on `4f6f74c` (FAIL: blocking B1, fixed in `85f5ca7` and `2ab1fd9`)
 - [QC-02.md](./QC-02.md) — Independent QC for #22 on `2ab1fd9` (PASS: no blocking findings)
+- [QC-03.md](./QC-03.md) — Independent QC for #25 on `fb9733d` (PASS: 49/49, no blocking findings)
