@@ -105,6 +105,53 @@ test("player bundle verification binds manifest paths and every generated asset 
   await assert.rejects(() => verifySpeechMotionBundle(speech, assets), /not receipt-bound/);
 });
 
+test("whole-head-layer receipt binds provenance.region to speech_motion.region", async () => {
+  const value = result();
+  value.provenance.representation = "whole-head-layer";
+  value.provenance.region = [280, 70, 158, 242];
+  value.quality.sync.status = "screened";
+  value.quality.continuity.status = "screened";
+  value.quality.naturalness.status = "not_evaluated";
+  value.quality.performance.status = "screened";
+  value.quality.bundle.status = "not_evaluated";
+  value.source_deleted_at = null;
+  value.source_retention = "local-operator-file";
+
+  const motion = speechMotionFromGenerationResult(value);
+  assert.equal(motion.representation, "whole-head-layer");
+  assert.deepEqual(motion.region, [280, 70, 158, 242]);
+
+  const assets = new Map();
+  for (const asset of value.assets) {
+    const blob = new Blob([asset.path]);
+    asset.bytes = blob.size; asset.sha256 = await hashBlob(blob); assets.set(asset.path, blob);
+  }
+  const validation = value.assets.find((asset) => asset.role === "validation_report");
+  const quality = value.assets.find((asset) => asset.role === "quality_report");
+  value.provenance.validation.report_sha256 = validation.sha256;
+  value.quality.report_sha256 = quality.sha256;
+
+  const atlas = new Blob(["atlas"]);
+  const atlasHash = await hashBlob(atlas);
+  const index = new Blob([JSON.stringify({ version: "1", entries: {
+    "sil>closed": { offset: 0, length: atlas.size, sha256: atlasHash, frames: 5, fps: 25, codec: "vp09.00.10.08", lossless: true },
+  } })]);
+  for (const [role, blob] of [["speech_atlas", atlas], ["speech_atlas_index", index]]) {
+    const asset = value.assets.find((item) => item.role === role);
+    asset.bytes = blob.size; asset.sha256 = await hashBlob(blob); assets.set(asset.path, blob);
+  }
+  assets.set(GENERATION_RECEIPT_PATH, new Blob([JSON.stringify(value)]));
+
+  // Matched region succeeds
+  const verified = await verifySpeechMotionBundle(motion, assets);
+  assert.equal(verified.atlasBlob.size, atlas.size);
+
+  // Mismatched region is rejected
+  const mismatched = structuredClone(motion);
+  mismatched.region = [0, 0, 100, 100];
+  await assert.rejects(() => verifySpeechMotionBundle(mismatched, assets), /region is not receipt-bound/);
+});
+
 async function hashBlob(blob) {
   const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
   return Buffer.from(digest).toString("hex");

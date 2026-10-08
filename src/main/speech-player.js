@@ -1,7 +1,7 @@
 import { derive, validateManifest } from "./nva-core.js";
 import { SpeechAtlasSource } from "./speech-atlas-source.js";
 import { validateSpeechAtlasIndex } from "./speech-atlas-index.js";
-import { AlternatingSpeechDecoder, drawBlendedFactorizedSpeechFrame } from "./speech-browser-runtime.js";
+import { AlternatingSpeechDecoder, drawBlendedFactorizedSpeechFrame, drawBlendedWholeHeadSpeechFrame } from "./speech-browser-runtime.js";
 import { verifySpeechMotionBundle } from "./speech-bundle.js";
 import { validateSpeechPlan } from "./speech-plan.js";
 import { buildSpeechSchedule, prefetchSpeechRanges, resolveSpeechLayers, SpeechPlaybackState } from "./speech-runtime.js";
@@ -91,8 +91,17 @@ export class SpeechPlayer {
     if (!speech) throw new Error("NVA has no speech_motion extension");
     const derived = derive(manifest);
     const talking = derived.talking;
-    if (!talking || !Array.isArray(talking.ditto_region) || talking.ditto_region.length !== 4)
-      throw new Error("talking animation requires ditto_region");
+    if (!talking) throw new Error("talking animation is required");
+
+    const representation = speech.representation || "factorized-difference-layer";
+    let region;
+    if (representation === "whole-head-layer") {
+      region = speech.region;
+    } else {
+      if (!Array.isArray(talking.ditto_region) || talking.ditto_region.length !== 4)
+        throw new Error("talking animation requires ditto_region");
+      region = talking.ditto_region;
+    }
 
     const { atlasBlob, atlasIndex } = await verifySpeechMotionBundle(speech, assets);
     const indexValidation = validateSpeechAtlasIndex(atlasIndex, atlasBlob.size);
@@ -104,7 +113,8 @@ export class SpeechPlayer {
     this.atlasIndex = atlasIndex;
     this.atlasSource = new SpeechAtlasSource(atlasBlob);
     this.schedule = buildSpeechSchedule(plan, { availableKeys: Object.keys(atlasIndex.entries) });
-    this.region = talking.ditto_region;
+    this.representation = representation;
+    this.region = region;
     this.canvas.width = manifest.canvas.width;
     this.canvas.height = manifest.canvas.height;
     this.neutralHead = await this.imageLoader.call(globalThis, requiredAsset(assets, speech.neutral_head));
@@ -226,7 +236,11 @@ export class SpeechPlayer {
       if (Math.abs((video.currentTime || 0) - targetTime) > 0.005) video.currentTime = targetTime;
       readyLayers.push({ image: video, opacity: layer.opacity });
     }
-    drawBlendedFactorizedSpeechFrame(this.context, this.neutralHead, readyLayers, this.region);
+    if (this.representation === "whole-head-layer") {
+      drawBlendedWholeHeadSpeechFrame(this.context, this.neutralHead, readyLayers, this.region);
+    } else {
+      drawBlendedFactorizedSpeechFrame(this.context, this.neutralHead, readyLayers, this.region);
+    }
 
     const current = resolved[0]?.index;
     if (resolved.length === 1 && Number.isInteger(current))

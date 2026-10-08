@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Record Composed SpeechPlayer</title>
+<script src="/.agy-work/jszip.min.js"></script>
+<style>
+  body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
+  canvas { display: block; width: 720px; height: 1280px; }
+  video { display: none; }
+  audio { display: none; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="720" height="1280"></canvas>
+<audio id="audio"></audio>
+<video id="body" muted playsinline></video>
+<video id="speechA" muted playsinline></video>
+<video id="speechB" muted playsinline></video>
+
+<script type="module">
+import { SpeechPlayer } from "/src/main/speech-player.js";
+import { assertZipBudget } from "/src/main/zip-budget.js";
+
+window.__consoleErrors = [];
+window.__pageErrors = [];
+window.__missingKeyError = false;
+
+const origConsoleError = console.error;
+console.error = function(...args) {
+  const msg = args.map(a => String(a)).join(" ");
+  window.__consoleErrors.push(msg);
+  if (msg.includes("missing") && msg.includes("key")) {
+    window.__missingKeyError = true;
+  }
+  origConsoleError.apply(console, args);
+};
+
+window.addEventListener("error", (e) => {
+  window.__pageErrors.push(e.message || String(e));
+  if (String(e.message).includes("missing") && String(e.message).includes("key")) {
+    window.__missingKeyError = true;
+  }
+});
+
+async function loadBundle(nvaBlob) {
+  if (nvaBlob.size <= 0 || nvaBlob.size > 100 * 1024 * 1024) {
+    throw new Error("NVA bundle exceeds 100 MiB limit");
+  }
+  const zip = await JSZip.loadAsync(nvaBlob);
+  assertZipBudget(zip);
+  const manifestFile = zip.file("manifest.json");
+  if (!manifestFile) throw new Error("manifest.json is missing in NVA");
+  const manifest = JSON.parse(await manifestFile.async("string"));
+  const assets = new Map();
+  let expandedBytes = 0;
+  for (const [path, entry] of Object.entries(zip.files)) {
+    if (path !== "manifest.json" && !entry.dir) {
+      const blob = await entry.async("blob");
+      expandedBytes += blob.size;
+      if (expandedBytes > 100 * 1024 * 1024) {
+        throw new Error("expanded NVA assets exceed 100 MiB limit");
+      }
+      assets.set(path, blob);
+    }
+  }
+  return { manifest, assets };
+}
+
+window.runComposedRecording = async function(nvaUrl, audioUrl, planUrl) {
+  try {
+    const audioEl = document.getElementById("audio");
+    const canvasEl = document.getElementById("stage");
+    const bodyVideo = document.getElementById("body");
+    const speechA = document.getElementById("speechA");
+    const speechB = document.getElementById("speechB");
+
+    // 자산 로드
+    const [nvaRes, audioRes, planRes] = await Promise.all([
+      fetch(nvaUrl),
+      fetch(audioUrl),
+      fetch(planUrl)
+    ]);
+    if (!nvaRes.ok) throw new Error(`Failed to fetch NVA: ${nvaRes.status}`);
+    if (!audioRes.ok) throw new Error(`Failed to fetch audio: ${audioRes.status}`);
+    if (!planRes.ok) throw new Error(`Failed to fetch plan: ${planRes.status}`);
+
+    const [nvaBlob, audioBlob, plan] = await Promise.all([
+      nvaRes.blob(),
+      audioRes.blob(),
+      planRes.json()
+    ]);
+
+    const { manifest, assets } = await loadBundle(nvaBlob);
+
+    const player = new SpeechPlayer({
+      audio: audioEl,
+      canvas: canvasEl,
+      bodyVideo: bodyVideo,
+      speechVideos: [speechA, speechB],
+    });
+
+    const loadResult = await player.load({
+      manifest,
+      assets,
+      plan,
+      audioBlob
+    });
+
+    // Web Audio 컨텍스트로 안정적인 오디오 스트림 캡처
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const actx = new AudioCtx();
+    const sourceNode = actx.createMediaElementSource(audioEl);
+    const destNode = actx.createMediaStreamDestination();
+    sourceNode.connect(destNode);
+    sourceNode.connect(actx.destination); // 모니터링/재생
+
+    const videoStream = canvasEl.captureStream(25);
+    const combinedStream = new MediaStream([
+      ...videoStream.getVideoTracks(),
+      ...destNode.stream.getAudioTracks()
+    ]);
+
+    let mimeType = 'video/webm; codecs="vp9,opus"';
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = "video/webm";
+    }
+
+    const recorder = new MediaRecorder(combinedStream, { mimeType });
+    const chunks = [];
+
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunks.push(e.data);
+    };
+
+    const stopPromise = new Promise((resolve) => {
+      recorder.onstop = resolve;
+    });
+
+    let startTime = 0;
+    let endTime = 0;
+
+    const playPromise = new Promise((resolve, reject) => {
+      audioEl.addEventListener("ended", () => {
+        endTime = performance.now();
+        recorder.stop();
+        resolve();
+      }, { once: true });
+      audioEl.addEventListener("error", (err) => {
+        recorder.stop();
+        reject(err);
+      }, { once: true });
+    });
+
+    recorder.start(100);
+    startTime = performance.now();
+    await player.play();
+
+    await playPromise;
+    await stopPromise;
+
+    const finalBlob = new Blob(chunks, { type: mimeType });
+    const recordDurationSec = (endTime - startTime) / 1000;
+    const audioDurationSec = audioEl.duration || (plan.audio.duration_us / 1000000);
+
+    const arrayBuf = await finalBlob.arrayBuffer();
+    let binary = "";
+    const bytes = new Uint8Array(arrayBuf);
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.byteLength; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + chunkSize, bytes.byteLength)));
+    }
+    const base64Data = btoa(binary);
+
+    window.__recordingResult = {
+      ok: true,
+      transitions: loadResult.transitions,
+      quality_mode: loadResult.quality_mode,
+      audioDuration: audioDurationSec,
+      recordDuration: recordDurationSec,
+      durationDiff: Math.abs(recordDurationSec - audioDurationSec),
+      missingKeyError: window.__missingKeyError,
+      consoleErrors: window.__consoleErrors,
+      pageErrors: window.__pageErrors,
+      blobSize: finalBlob.size,
+      base64: base64Data,
+    };
+  } catch (err) {
+    console.error("runComposedRecording error:", err);
+    window.__recordingResult = {
+      ok: false,
+      error: err.message || String(err),
+      missingKeyError: window.__missingKeyError,
+      consoleErrors: window.__consoleErrors,
+      pageErrors: window.__pageErrors,
+    };
+  }
+};
+</script>
+</body>
+</html>

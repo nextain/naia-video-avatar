@@ -102,7 +102,13 @@
       "additionalProperties": false,
       "properties": {
         "version": { "type": "string", "const": "1" },
-        "representation": { "type": "string", "const": "factorized-difference-layer" },
+        "representation": { "type": "string", "enum": ["factorized-difference-layer", "whole-head-layer"] },
+        "region": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "minItems": 4,
+          "maxItems": 4
+        },
         "inventory_version": { "type": "string", "const": "1.0.0" },
         "inventory": {
           "type": "array",
@@ -123,6 +129,12 @@
         "validation_report": { "$ref": "#/$defs/bundlePath" },
         "quality_report": { "$ref": "#/$defs/bundlePath" },
         "provenance": { "$ref": "#/$defs/bundlePath" }
+      },
+      "if": {
+        "properties": { "representation": { "const": "whole-head-layer" } }
+      },
+      "then": {
+        "required": ["region"]
       }
     },
     "expressions": {

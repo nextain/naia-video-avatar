@@ -7,9 +7,10 @@ export function speechMotionFromGenerationResult(result) {
   const validation = validateGenerationResult(result);
   if (!validation.ok) throw new TypeError(`invalid GenerationResult: ${validation.errors.join("; ")}`);
   const byRole = Object.fromEntries(result.assets.map((asset) => [asset.role, asset.path]));
-  return {
+  const representation = result.provenance?.representation || "factorized-difference-layer";
+  const motion = {
     version: "1",
-    representation: "factorized-difference-layer",
+    representation,
     inventory_version: result.provenance.inventory_version,
     inventory: [...result.provenance.inventory],
     neutral_head: byRole.neutral_head,
@@ -19,6 +20,10 @@ export function speechMotionFromGenerationResult(result) {
     quality_report: byRole.quality_report,
     provenance: GENERATION_RECEIPT_PATH,
   };
+  if (representation === "whole-head-layer") {
+    motion.region = [...result.provenance.region];
+  }
+  return motion;
 }
 
 export function speechBundlePaths(speechMotion) {
@@ -63,6 +68,13 @@ export async function verifySpeechMotionBundle(speechMotion, assets) {
     "validation_report", "quality_report", "provenance",
   ]) {
     if (speechMotion[field] !== expected[field]) throw new Error(`speech_motion ${field} is not receipt-bound`);
+  }
+  if (expected.representation === "whole-head-layer") {
+    if (!Array.isArray(speechMotion.region)
+        || speechMotion.region.length !== expected.region.length
+        || speechMotion.region.some((val, index) => val !== expected.region[index])) {
+      throw new Error("speech_motion region is not receipt-bound");
+    }
   }
   if (!Array.isArray(speechMotion.inventory)
       || speechMotion.inventory.length !== expected.inventory.length

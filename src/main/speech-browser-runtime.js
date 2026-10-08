@@ -33,6 +33,36 @@ export function drawBlendedFactorizedSpeechFrame(context, neutralHead, layers, r
   context.globalAlpha = previousAlpha;
 }
 
+export function drawBlendedWholeHeadSpeechFrame(context, neutralHead, layers, region) {
+  if (!context || typeof context.drawImage !== "function") throw new TypeError("2D canvas context is required");
+  if (!Array.isArray(region) || region.length !== 4) throw new TypeError("region must be [x,y,width,height]");
+  if (!Array.isArray(layers) || layers.length > 2) throw new TypeError("at most two speech layers are supported");
+  const previousOperation = context.globalCompositeOperation;
+  const previousAlpha = context.globalAlpha;
+  context.save?.();
+  context.globalCompositeOperation = "source-over";
+  context.globalAlpha = 1;
+  context.drawImage(neutralHead, ...region);
+  if (layers.length > 0) {
+    const first = layers[0];
+    if (!first?.image) throw new TypeError("speech layer image is required");
+    context.globalAlpha = 1;
+    context.drawImage(first.image, ...region);
+  }
+  if (layers.length > 1) {
+    const second = layers[1];
+    if (!second?.image || typeof second.opacity !== "number" || second.opacity < 0 || second.opacity > 1)
+      throw new TypeError("speech layer image and opacity are required");
+    if (second.opacity > 0) {
+      context.globalAlpha = second.opacity;
+      context.drawImage(second.image, ...region);
+    }
+  }
+  context.restore?.();
+  context.globalCompositeOperation = previousOperation;
+  context.globalAlpha = previousAlpha;
+}
+
 export class AlternatingSpeechDecoder {
   constructor(videos, urlApi = globalThis.URL) {
     if (!Array.isArray(videos) || videos.length !== 2 || videos.some((video) => !video))

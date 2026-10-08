@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Record Studio Way SpeechSet</title>
+<script src="/.agy-work/studio-way.bundle.js"></script>
+<style>
+  body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
+  canvas { display: block; width: 720px; height: 1280px; }
+  video { display: none; }
+  audio { display: none; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="720" height="1280"></canvas>
+<audio id="audio"></audio>
+<video id="baseVideo" loop muted playsinline preload="auto"></video>
+
+<script>
+window.__consoleErrors = [];
+window.__pageErrors = [];
+
+const origConsoleError = console.error;
+console.error = function(...args) {
+  window.__consoleErrors.push(args.map(a => String(a)).join(" "));
+  origConsoleError.apply(console, args);
+};
+
+window.addEventListener("error", (e) => {
+  window.__pageErrors.push(e.message || String(e));
+});
+
+window.runStudioRecording = async function(manifestUrl, atlasUrl, baseVideoUrl, audioUrl) {
+  try {
+    const canvas = document.getElementById("stage");
+    const ctx = canvas.getContext("2d");
+    const audioEl = document.getElementById("audio");
+    const videoEl = document.getElementById("baseVideo");
+
+    // 1. 매니페스트 fetch
+    const manifestRes = await fetch(manifestUrl);
+    if (!manifestRes.ok) throw new Error(`Failed to load manifest: ${manifestRes.status}`);
+    const manifest = await manifestRes.json();
+
+    canvas.width = manifest.canvas?.width || 720;
+    canvas.height = manifest.canvas?.height || 1280;
+
+    // 2. 아틀라스 이미지 로드
+    const atlasImg = new Image();
+    const atlasLoaded = new Promise((resolve, reject) => {
+      atlasImg.onload = resolve;
+      atlasImg.onerror = reject;
+    });
+    atlasImg.src = atlasUrl;
+    await atlasLoaded;
+
+    // 3. 바탕 비디오 로드
+    const videoLoaded = new Promise((resolve, reject) => {
+      videoEl.onloadeddata = resolve;
+      videoEl.onerror = reject;
+    });
+    videoEl.src = baseVideoUrl;
+    videoEl.load();
+    await videoLoaded;
+    await videoEl.play().catch(() => {});
+
+    // 4. 오디오 로드 및 Web Audio 라우팅
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const actx = new AudioCtx();
+    const sourceNode = actx.createMediaElementSource(audioEl);
+    const destNode = actx.createMediaStreamDestination();
+    sourceNode.connect(destNode);
+    sourceNode.connect(actx.destination);
+
+    audioEl.src = audioUrl;
+    audioEl.preload = "auto";
+    const audioLoaded = new Promise((resolve, reject) => {
+      audioEl.onloadedmetadata = resolve;
+      audioEl.onerror = reject;
+    });
+    await audioLoaded;
+
+    // 5. StudioWay 드라이버 & 셀 셀렉터 생성
+    const { createFileMouthDriver, createCellSelector, drawSpeechFrame } = window.StudioWay;
+    const driver = createFileMouthDriver(audioEl, audioUrl, { fps: 30 });
+    await driver.ready;
+
+    const selector = createCellSelector(manifest.cells);
+    const set = {
+      manifest,
+      atlas: atlasImg,
+      baseKey: "idle"
+    };
+
+    // 6. MediaRecorder 준비
+    const videoStream = canvas.captureStream(25);
+    const combinedStream = new MediaStream([
+      ...videoStream.getVideoTracks(),
+      ...destNode.stream.getAudioTracks()
+    ]);
+
+    let mimeType = 'video/webm; codecs="vp9,opus"';
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = "video/webm";
+    }
+
+    const recorder = new MediaRecorder(combinedStream, { mimeType });
+    const chunks = [];
+
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunks.push(e.data);
+    };
+
+    const stopPromise = new Promise((resolve) => {
+      recorder.onstop = resolve;
+    });
+
+    let isCancelled = false;
+    let animId = null;
+
+    const targetRect = {
+      x: 0,
+      y: 0,
+      width: canvas.width,
+      height: canvas.height
+    };
+
+    const renderLoop = () => {
+      if (isCancelled) return;
+      try {
+        const mouthFrame = driver.frame();
+        const pick = selector(mouthFrame.openness, mouthFrame.shape);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawSpeechFrame(ctx, videoEl, set, pick, targetRect);
+      } catch (err) {
+        console.error("renderLoop error:", err);
+      }
+      animId = requestAnimationFrame(renderLoop);
+    };
+
+    let startTime = 0;
+    let endTime = 0;
+
+    const playPromise = new Promise((resolve, reject) => {
+      audioEl.addEventListener("ended", () => {
+        endTime = performance.now();
+        isCancelled = true;
+        if (animId) cancelAnimationFrame(animId);
+        recorder.stop();
+        resolve();
+      }, { once: true });
+
+      audioEl.addEventListener("error", (err) => {
+        isCancelled = true;
+        if (animId) cancelAnimationFrame(animId);
+        recorder.stop();
+        reject(err);
+      }, { once: true });
+    });
+
+    recorder.start(100);
+    renderLoop();
+    startTime = performance.now();
+    await audioEl.play();
+
+    await playPromise;
+    await stopPromise;
+    driver.dispose();
+
+    const finalBlob = new Blob(chunks, { type: mimeType });
+    const recordDurationSec = (endTime - startTime) / 1000;
+    const audioDurationSec = audioEl.duration || 0;
+
+    const arrayBuf = await finalBlob.arrayBuffer();
+    let binary = "";
+    const bytes = new Uint8Array(arrayBuf);
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.byteLength; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + chunkSize, bytes.byteLength)));
+    }
+    const base64Data = btoa(binary);
+
+    window.__recordingResult = {
+      ok: true,
+      audioDuration: audioDurationSec,
+      recordDuration: recordDurationSec,
+      durationDiff: Math.abs(recordDurationSec - audioDurationSec),
+      consoleErrors: window.__consoleErrors,
+      pageErrors: window.__pageErrors,
+      blobSize: finalBlob.size,
+      base64: base64Data,
+    };
+  } catch (err) {
+    console.error("runStudioRecording error:", err);
+    window.__recordingResult = {
+      ok: false,
+      error: err.message || String(err),
+      consoleErrors: window.__consoleErrors,
+      pageErrors: window.__pageErrors,
+    };
+  }
+};
+</script>
+</body>
+</html>

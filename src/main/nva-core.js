@@ -227,8 +227,22 @@ export function validateManifest(m, opts = {}) {
       E("speech_motion은 객체여야 함");
     } else {
       if (speech.version !== "1") E('speech_motion.version은 "1"이어야 함');
-      if (speech.representation !== "factorized-difference-layer")
-        E("speech_motion.representation은 factorized-difference-layer여야 함");
+      if (speech.representation !== "factorized-difference-layer" && speech.representation !== "whole-head-layer")
+        E('speech_motion.representation은 factorized-difference-layer 또는 whole-head-layer여야 함');
+      if (speech.representation === "whole-head-layer") {
+        const r = speech.region;
+        if (!Array.isArray(r) || r.length !== 4 || r.some((v) => !Number.isInteger(v))) {
+          E("speech_motion.region은 정수 [x,y,w,h]여야 함");
+        } else {
+          const [x, y, w, h] = r;
+          if (w <= 0 || h <= 0 || w % 2 !== 0 || h % 2 !== 0) {
+            E("speech_motion.region의 w, h는 양수 짝수여야 함");
+          }
+          if (x < 0 || y < 0 || x + w > m.canvas.width || y + h > m.canvas.height) {
+            E("speech_motion.region이 canvas 범위를 벗어남");
+          }
+        }
+      }
       if (speech.inventory_version !== "1.0.0")
         E("speech_motion.inventory_version은 1.0.0이어야 함");
       if (!Array.isArray(speech.inventory)

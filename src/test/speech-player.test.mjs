@@ -77,3 +77,136 @@ test("default browser frame functions retain their global invocation context", (
     globalThis.cancelAnimationFrame = originalCancel;
   }
 });
+
+test("SpeechPlayer accepts whole-head-layer without ditto_region and binds region from speech_motion", async () => {
+  const media = () => ({
+    pause() {}, removeEventListener() {}, addEventListener(event, cb) {
+      if (event === "loadeddata" || event === "loadedmetadata") queueMicrotask(cb);
+    }, removeAttribute() {}, load() {}, duration: 0.1,
+  });
+  const player = new SpeechPlayer({
+    audio: media(), canvas: { getContext: () => ({ clearRect() {}, drawImage() {}, save() {}, restore() {} }), width: 720, height: 1280 },
+    bodyVideo: media(), speechVideos: [media(), media()],
+    urlApi: { createObjectURL: () => "blob:test", revokeObjectURL() {} },
+    imageLoader: async () => ({ close() {} }),
+  });
+
+  const manifest = {
+    nva_version: "0.2",
+    canvas: { width: 720, height: 1280, fps: 25 },
+    animations: {
+      speak: { clip: "clips/speak.webm", loop: true, can_talk: true, face_bbox: [0.2, 0.1, 0.6, 0.4] },
+    },
+    speech_motion: {
+      version: "1",
+      representation: "whole-head-layer",
+      region: [280, 70, 158, 242],
+      inventory_version: "1.0.0",
+      inventory: ["sil", "closed", "labiodental", "dental", "alveolar", "postalveolar", "palatal", "velar", "glottal", "vowel-open", "vowel-mid", "vowel-spread", "vowel-round"],
+      neutral_head: "speech/neutral-head.png",
+      atlas: "speech/atlas.bin",
+      atlas_index: "speech/atlas-index.json",
+      validation_report: "speech/validation-report.json",
+      quality_report: "speech/quality-report.json",
+      provenance: "speech/generation-result.json",
+    },
+  };
+
+  const audioBytes = new Uint8Array([1, 2, 3, 4]);
+  const audioDigest = await crypto.subtle.digest("SHA-256", audioBytes);
+  const audioSha = Buffer.from(audioDigest).toString("hex");
+
+  const plan = {
+    version: "1",
+    quality_mode: "aligned",
+    aligner: { provider: "test", version: "1.0", model_sha256: "0".repeat(64) },
+    audio: { sha256: audioSha, duration_us: 100_000 },
+    text: "test",
+    events: [
+      { unit: "sil", start_us: 0, end_us: 50_000 },
+      { unit: "closed", start_us: 50_000, end_us: 100_000 },
+    ],
+  };
+
+  const receipt = {
+    version: "1",
+    job_id: "job_01JINA2Y7Q0M8T6R4P2N",
+    assets: [
+      { role: "neutral_head", path: "speech/neutral-head.png", sha256: "a".repeat(64), bytes: 10 },
+      { role: "speech_atlas", path: "speech/atlas.bin", sha256: "b".repeat(64), bytes: 5 },
+      { role: "speech_atlas_index", path: "speech/atlas-index.json", sha256: "c".repeat(64), bytes: 20 },
+      { role: "validation_report", path: "speech/validation-report.json", sha256: "d".repeat(64), bytes: 10 },
+      { role: "quality_report", path: "speech/quality-report.json", sha256: "e".repeat(64), bytes: 10 },
+    ],
+    provenance: {
+      generator: { kind: "ditto", version: "1.0" },
+      input_sha256: "1".repeat(64), settings_sha256: "2".repeat(64),
+      inventory_version: "1.0.0", inventory: [...manifest.speech_motion.inventory],
+      validation: { status: "passed", report_sha256: "d".repeat(64) },
+      representation: "whole-head-layer",
+      region: [280, 70, 158, 242],
+    },
+    quality: {
+      report_sha256: "e".repeat(64),
+      sync: { status: "screened" }, continuity: { status: "screened" }, naturalness: { status: "not_evaluated" },
+      performance: { status: "screened" }, bundle: { status: "not_evaluated" },
+    },
+    source_deleted_at: null,
+    source_retention: "local-operator-file",
+  };
+
+  const atlasBlob = new Blob([new Uint8Array([1, 2, 3, 4, 5])]);
+  const atlasDigest = await crypto.subtle.digest("SHA-256", await atlasBlob.arrayBuffer());
+  const atlasSha = Buffer.from(atlasDigest).toString("hex");
+  receipt.assets.find((a) => a.role === "speech_atlas").sha256 = atlasSha;
+
+  const atlasIndexObj = {
+    version: "1",
+    entries: {
+      "sil>closed": { offset: 0, length: 5, sha256: atlasSha, frames: 5, fps: 25, codec: "vp09.00.10.08", lossless: true },
+    },
+  };
+  const atlasIndexBlob = new Blob([JSON.stringify(atlasIndexObj)]);
+  const atlasIndexDigest = await crypto.subtle.digest("SHA-256", await atlasIndexBlob.arrayBuffer());
+  receipt.assets.find((a) => a.role === "speech_atlas_index").sha256 = Buffer.from(atlasIndexDigest).toString("hex");
+  receipt.assets.find((a) => a.role === "speech_atlas_index").bytes = atlasIndexBlob.size;
+
+  const neutralBlob = new Blob([new Uint8Array(10)]);
+  const neutralDigest = await crypto.subtle.digest("SHA-256", await neutralBlob.arrayBuffer());
+  receipt.assets.find((a) => a.role === "neutral_head").sha256 = Buffer.from(neutralDigest).toString("hex");
+
+  const valBlob = new Blob([new Uint8Array(10)]);
+  const valDigest = await crypto.subtle.digest("SHA-256", await valBlob.arrayBuffer());
+  const valSha = Buffer.from(valDigest).toString("hex");
+  receipt.assets.find((a) => a.role === "validation_report").sha256 = valSha;
+  receipt.provenance.validation.report_sha256 = valSha;
+
+  const qualBlob = new Blob([new Uint8Array(10)]);
+  const qualDigest = await crypto.subtle.digest("SHA-256", await qualBlob.arrayBuffer());
+  const qualSha = Buffer.from(qualDigest).toString("hex");
+  receipt.assets.find((a) => a.role === "quality_report").sha256 = qualSha;
+  receipt.quality.report_sha256 = qualSha;
+
+  const receiptBlob = new Blob([JSON.stringify(receipt)]);
+
+  const assets = new Map([
+    ["clips/speak.webm", new Blob([new Uint8Array(20)])],
+    ["speech/neutral-head.png", neutralBlob],
+    ["speech/atlas.bin", atlasBlob],
+    ["speech/atlas-index.json", atlasIndexBlob],
+    ["speech/validation-report.json", valBlob],
+    ["speech/quality-report.json", qualBlob],
+    ["speech/generation-result.json", receiptBlob],
+  ]);
+
+  const result = await player.load({
+    manifest,
+    assets,
+    plan,
+    audioBlob: new Blob([audioBytes]),
+  });
+
+  assert.equal(result.transitions, 1);
+  assert.equal(player.representation, "whole-head-layer");
+  assert.deepEqual(player.region, [280, 70, 158, 242]);
+});

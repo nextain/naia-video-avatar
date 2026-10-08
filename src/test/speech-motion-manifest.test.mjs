@@ -58,3 +58,34 @@ test("bundle inventory rejects a missing speech asset", () => {
     clipFiles: ["clips/speak.webm", "speech/neutral-head.png"],
   }).ok, false);
 });
+
+test("speech_motion validates whole-head-layer and requires region without ditto_region", () => {
+  const value = manifest();
+  value.speech_motion.representation = "whole-head-layer";
+  value.speech_motion.region = [280, 70, 158, 242];
+  const files = [
+    "clips/speak.webm",
+    "speech/neutral-head.png",
+    "speech/atlas.bin",
+    "speech/atlas-index.json",
+    "speech/validation-report.json",
+    "speech/quality-report.json",
+    "speech/generation-result.json",
+  ];
+  assert.deepEqual(validateManifest(value, { clipFiles: files }).errors, []);
+
+  // Missing region fails
+  const missingRegion = structuredClone(value);
+  delete missingRegion.speech_motion.region;
+  assert.equal(validateManifest(missingRegion, { clipFiles: files }).ok, false);
+
+  // Odd width fails
+  const oddWidth = structuredClone(value);
+  oddWidth.speech_motion.region = [280, 70, 157, 242];
+  assert.equal(validateManifest(oddWidth, { clipFiles: files }).ok, false);
+
+  // Out of bounds region fails
+  const outOfBounds = structuredClone(value);
+  outOfBounds.speech_motion.region = [600, 70, 158, 242]; // 600 + 158 > 720
+  assert.equal(validateManifest(outOfBounds, { clipFiles: files }).ok, false);
+});

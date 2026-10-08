@@ -93,3 +93,68 @@ test("generation result requires complete provenance and quality sections", () =
   unboundReport.assets.find((asset) => asset.role === "quality_report").sha256 = "0".repeat(64);
   assert.equal(validateGenerationResult(unboundReport).ok, false);
 });
+
+test("whole-head-layer accepts screened and not_evaluated quality statuses with required region and local retention", () => {
+  const wholeHeadResult = {
+    version: "1",
+    job_id: "job_01JINA2Y7Q0M8T6R4P2N",
+    assets: [
+      { role: "neutral_head", path: "speech/neutral-head.png", sha256: sha, bytes: 100 },
+      { role: "speech_atlas", path: "speech/atlas.bin", sha256: sha, bytes: 200 },
+      { role: "speech_atlas_index", path: "speech/atlas-index.json", sha256: sha, bytes: 300 },
+      { role: "validation_report", path: "speech/validation-report.json", sha256: sha, bytes: 400 },
+      { role: "quality_report", path: "speech/quality-report.json", sha256: sha, bytes: 500 },
+    ],
+    provenance: {
+      generator: { kind: "jina-fastpath-gpu0-media-agent-ditto", version: "test" },
+      input_sha256: sha,
+      settings_sha256: sha,
+      inventory_version: "1.0.0",
+      inventory: ["sil", "closed", "labiodental", "dental", "alveolar", "postalveolar", "palatal", "velar", "glottal", "vowel-open", "vowel-mid", "vowel-spread", "vowel-round"],
+      validation: { status: "passed", report_sha256: sha },
+      representation: "whole-head-layer",
+      region: [280, 70, 158, 242],
+    },
+    quality: {
+      report_sha256: sha,
+      sync: { status: "screened" },
+      continuity: { status: "screened" },
+      naturalness: { status: "not_evaluated" },
+      performance: { status: "screened" },
+      bundle: { status: "not_evaluated" },
+    },
+    source_deleted_at: null,
+    source_retention: "local-operator-file",
+  };
+  assert.equal(validateGenerationResult(wholeHeadResult).ok, true);
+
+  // whole-head-layer rejects passed quality status
+  const rejectedPassed = structuredClone(wholeHeadResult);
+  rejectedPassed.quality.sync.status = "passed";
+  assert.equal(validateGenerationResult(rejectedPassed).ok, false);
+
+  // whole-head-layer requires region
+  const missingRegion = structuredClone(wholeHeadResult);
+  delete missingRegion.provenance.region;
+  assert.equal(validateGenerationResult(missingRegion).ok, false);
+
+  // validation.status must be passed for whole-head-layer too
+  const badValidation = structuredClone(wholeHeadResult);
+  badValidation.provenance.validation.status = "screened";
+  assert.equal(validateGenerationResult(badValidation).ok, false);
+
+  // factorized-difference-layer rejects local-operator-file retention and null deletion
+  const badRetention = structuredClone(wholeHeadResult);
+  badRetention.provenance.representation = "factorized-difference-layer";
+  badRetention.quality.sync.status = "passed";
+  badRetention.quality.continuity.status = "passed";
+  badRetention.quality.naturalness.status = "passed";
+  badRetention.quality.performance.status = "passed";
+  badRetention.quality.bundle.status = "passed";
+  assert.equal(validateGenerationResult(badRetention).ok, false);
+
+  // whole-head-layer rejects other retention values
+  const otherRetention = structuredClone(wholeHeadResult);
+  otherRetention.source_retention = "cloud-storage";
+  assert.equal(validateGenerationResult(otherRetention).ok, false);
+});

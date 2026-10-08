@@ -2,7 +2,7 @@ import { SPEECH_UNITS } from "./speech-plan.js";
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const OPAQUE_ID = /^(src|job)_[A-Za-z0-9]{12,64}$/;
-const REPRESENTATIONS = new Set(["factorized-difference-layer"]);
+const REPRESENTATIONS = new Set(["factorized-difference-layer", "whole-head-layer"]);
 const REQUIRED_ROLES = new Set([
   "neutral_head",
   "speech_atlas",
@@ -49,7 +49,7 @@ export function validateGenerationResult(result) {
   const fail = (message) => errors.push(message);
   if (!result || typeof result !== "object" || Array.isArray(result))
     return { ok: false, errors: ["generation result must be an object"] };
-  rejectUnknown(result, new Set(["version", "job_id", "assets", "provenance", "quality", "source_deleted_at"]), "result", fail);
+  rejectUnknown(result, new Set(["version", "job_id", "assets", "provenance", "quality", "source_deleted_at", "source_retention"]), "result", fail);
   if (result.version !== "1") fail('version must be "1"');
   if (!OPAQUE_ID.test(result.job_id || "") || !result.job_id.startsWith("job_"))
     fail("job_id must be an opaque job_ identifier");
@@ -77,11 +77,29 @@ export function validateGenerationResult(result) {
   const assetsByRole = new Map((result.assets || []).map((asset) => [asset?.role, asset]));
 
   const provenance = result.provenance;
+  let representation = "factorized-difference-layer";
   if (!provenance || typeof provenance !== "object") fail("provenance is required");
   else {
-    rejectUnknown(provenance, new Set(["generator", "input_sha256", "settings_sha256", "inventory_version", "inventory", "validation"]), "provenance", fail);
+    rejectUnknown(provenance, new Set(["generator", "input_sha256", "settings_sha256", "inventory_version", "inventory", "validation", "representation", "region"]), "provenance", fail);
     rejectUnknown(provenance.generator, new Set(["kind", "version"]), "provenance.generator", fail);
     rejectUnknown(provenance.validation, new Set(["status", "report_sha256"]), "provenance.validation", fail);
+    if (provenance.representation !== undefined) {
+      if (!REPRESENTATIONS.has(provenance.representation)) {
+        fail("provenance.representation is unsupported");
+      } else {
+        representation = provenance.representation;
+      }
+    }
+    if (provenance.region !== undefined) {
+      if (!Array.isArray(provenance.region) || provenance.region.length !== 4 || provenance.region.some((v) => !Number.isSafeInteger(v))) {
+        fail("provenance.region must be four integers [x,y,w,h]");
+      }
+    }
+    if (representation === "whole-head-layer") {
+      if (!provenance.region) {
+        fail("provenance.region is required for whole-head-layer");
+      }
+    }
     if (typeof provenance.generator?.kind !== "string" || !provenance.generator.kind)
       fail("provenance.generator.kind is required");
     if (typeof provenance.generator?.version !== "string" || !provenance.generator.version)
@@ -109,12 +127,27 @@ export function validateGenerationResult(result) {
       fail("quality report asset is not bound to quality.report_sha256");
     for (const section of QUALITY_SECTIONS) {
       rejectUnknown(result.quality[section], new Set(["status"]), `quality.${section}`, fail);
-      if (result.quality[section]?.status !== "passed") fail(`quality.${section} must be passed`);
+      const status = result.quality[section]?.status;
+      if (representation === "whole-head-layer") {
+        if (status !== "screened" && status !== "not_evaluated") {
+          fail(`quality.${section}.status must be "screened" or "not_evaluated" for whole-head-layer`);
+        }
+      } else {
+        if (status !== "passed") fail(`quality.${section} must be passed`);
+      }
     }
   }
-  const deletedAt = typeof result.source_deleted_at === "string" ? Date.parse(result.source_deleted_at) : NaN;
-  if (!Number.isFinite(deletedAt) || new Date(deletedAt).toISOString() !== result.source_deleted_at)
-    fail("source_deleted_at must be an ISO timestamp");
+
+  if (representation === "whole-head-layer" && result.source_deleted_at === null && result.source_retention === "local-operator-file") {
+    // Permitted local operator retention exception for whole-head-layer
+  } else {
+    if (result.source_retention !== undefined) {
+      fail('source_retention is not allowed for this representation or configuration');
+    }
+    const deletedAt = typeof result.source_deleted_at === "string" ? Date.parse(result.source_deleted_at) : NaN;
+    if (!Number.isFinite(deletedAt) || new Date(deletedAt).toISOString() !== result.source_deleted_at)
+      fail("source_deleted_at must be an ISO timestamp");
+  }
 
   return { ok: errors.length === 0, errors };
 }

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   AlternatingSpeechDecoder,
   drawBlendedFactorizedSpeechFrame,
+  drawBlendedWholeHeadSpeechFrame,
   drawFactorizedSpeechFrame,
 } from "../main/speech-browser-runtime.js";
 
@@ -32,6 +33,22 @@ test("factorized compositor blends no more than two transition layers over one n
     { image: { id: "right" }, opacity: 0.25 },
   ], [0, 0, 512, 512]);
   assert.deepEqual(calls, ["save", ["neutral", 1], ["left", 0.75], ["right", 0.25], "restore"]);
+  assert.equal(context.globalCompositeOperation, "copy");
+  assert.equal(context.globalAlpha, 0.25);
+});
+
+test("whole-head compositor draws first layer opaque (alpha 1) and second layer with its opacity over neutral head", () => {
+  const calls = [];
+  const context = {
+    globalCompositeOperation: "copy", globalAlpha: 0.25,
+    save: () => calls.push("save"), restore: () => calls.push("restore"),
+    drawImage: (item) => calls.push([item.id, context.globalAlpha]),
+  };
+  drawBlendedWholeHeadSpeechFrame(context, { id: "neutral" }, [
+    { image: { id: "first" }, opacity: 0.75 },
+    { image: { id: "second" }, opacity: 0.25 },
+  ], [280, 70, 158, 242]);
+  assert.deepEqual(calls, ["save", ["neutral", 1], ["first", 1], ["second", 0.25], "restore"]);
   assert.equal(context.globalCompositeOperation, "copy");
   assert.equal(context.globalAlpha, 0.25);
 });
