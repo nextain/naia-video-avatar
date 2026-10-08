@@ -95,6 +95,12 @@ let preComposedSnapshot = null;
 let composedPlayActive = false;
 let composedSession = 0;
 let pendingComposedPlay = null;
+// Session whose play() has resolved; audio ended/error events belong only to it.
+let liveComposedSession = 0;
+// A stop that lands while play() is pending silences the late-starting audio until that call settles and is stopped.
+function silencePendingComposedPlay() {
+  if (pendingComposedPlay) get("speechAudio").muted = true;
+}
 let playRequest = 0;
 const stageBackground = new StageBackground(get("stage"));
 
@@ -383,6 +389,7 @@ get("playComposed").addEventListener("click", async () => {
   if (!player) return;
   if (composedPlayActive) {
     clearSpeechMonitor();
+    silencePendingComposedPlay();
     player?.stop("cancel");
     restoreFromSnapshot(preComposedSnapshot);
     preComposedSnapshot = null;
@@ -402,6 +409,7 @@ get("playComposed").addEventListener("click", async () => {
     try { await pendingComposedPlay; } catch { /* earlier session's failure is not ours */ }
     if (session !== composedSession || !composedPlayActive) return;
   }
+  get("speechAudio").muted = false;
   const playPromise = player.play();
   pendingComposedPlay = playPromise;
   try {
@@ -413,6 +421,7 @@ get("playComposed").addEventListener("click", async () => {
       player?.stop("cancel");
       return;
     }
+    liveComposedSession = session;
     startSpeechMonitor();
     setStatus("Playing from the audio clock.");
   } catch (error) {
@@ -429,6 +438,7 @@ get("playComposed").addEventListener("click", async () => {
 
 get("stopComposed").addEventListener("click", () => {
   clearSpeechMonitor();
+  silencePendingComposedPlay();
   player?.stop("cancel");
   if (preComposedSnapshot) {
     restoreFromSnapshot(preComposedSnapshot);
@@ -439,8 +449,10 @@ get("stopComposed").addEventListener("click", () => {
 });
 
 get("speechAudio").addEventListener("ended", () => {
+  // Ignore events from a superseded session's late audio; a pending session's own failure arrives through play().
+  if (!composedPlayActive || liveComposedSession !== composedSession) return;
   clearSpeechMonitor();
-  if (composedPlayActive) {
+  {
     player?.stop("complete");
     restoreFromSnapshot(preComposedSnapshot);
     preComposedSnapshot = null;
@@ -449,8 +461,10 @@ get("speechAudio").addEventListener("ended", () => {
   }
 });
 get("speechAudio").addEventListener("error", () => {
+  // Ignore events from a superseded session's late audio; a pending session's own failure arrives through play().
+  if (!composedPlayActive || liveComposedSession !== composedSession) return;
   clearSpeechMonitor();
-  if (composedPlayActive) {
+  {
     player?.stop("error");
     restoreFromSnapshot(preComposedSnapshot);
     preComposedSnapshot = null;
@@ -461,6 +475,7 @@ get("speechAudio").addEventListener("error", () => {
 
 get("stop").addEventListener("click", async () => {
   clearSpeechMonitor();
+  silencePendingComposedPlay();
   if (composedPlayActive) {
     player?.stop("cancel");
     restoreFromSnapshot(preComposedSnapshot);

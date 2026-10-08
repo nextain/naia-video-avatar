@@ -476,6 +476,39 @@ def run_e2e() -> None:
             page.wait_for_timeout(500)
             assert page.evaluate("() => document.querySelector('#speechAudio').paused"), "Case 6c: audio kept playing after final stop"
 
+            # --- Case 6d/6e: forced late media start (bodyVideo.play delayed 800ms) ---
+            delay_js = "() => { const v = document.querySelector('#bodyVideo'); const orig = HTMLMediaElement.prototype.play; v.play = function () { return new Promise((r) => setTimeout(r, 800)).then(() => orig.call(this)); }; }"
+            undelay_js = "() => { delete document.querySelector('#bodyVideo').play; }"
+            print("Testing Case 6d: Stop while a delayed play() is pending...")
+            page.evaluate(delay_js)
+            page.locator("#playComposed").click()
+            page.wait_for_timeout(100)
+            page.locator("#stopComposed").click()
+            page.wait_for_timeout(1_500)
+            status_text6d = page.locator("#status").inner_text()
+            assert status_text6d.startswith("Stopped; original ready state restored."), f"Case 6d: unexpected status: {status_text6d}"
+            assert page.evaluate("() => document.querySelector('#speechAudio').paused"), "Case 6d: late audio kept playing after stop"
+            assert page.locator("#stageCanvas").evaluate("el => el.style.display === 'none'")
+
+            print("Testing Case 6e: Restart while a delayed play() is pending...")
+            page.locator("#playComposed").click()
+            page.wait_for_timeout(100)
+            page.locator("#stopComposed").click()
+            page.evaluate(undelay_js)
+            page.locator("#playComposed").click()
+            page.locator("#status").filter(has_text="Playing from the audio clock.").wait_for(timeout=10_000)
+            page.wait_for_timeout(500)
+            status_text6e = page.locator("#status").inner_text()
+            assert "Playback failed" not in status_text6e, f"Case 6e: stale play() leaked: {status_text6e}"
+            assert not page.evaluate("() => document.querySelector('#speechAudio').muted"), "Case 6e: new session audio left muted"
+            assert not page.evaluate("() => document.querySelector('#speechAudio').paused"), "Case 6e: new session audio stopped by stale call"
+            t0 = page.evaluate("() => document.querySelector('#speechAudio').currentTime")
+            page.wait_for_timeout(300)
+            t1 = page.evaluate("() => document.querySelector('#speechAudio').currentTime")
+            assert 0.15 <= t1 - t0 <= 0.6, f"Case 6e: audio clock not advancing once ({t0} -> {t1})"
+            page.locator("#stopComposed").click()
+            page.locator("#status").filter(has_text="Stopped; original ready state restored.").wait_for(timeout=5_000)
+
             # --- Case 7: Mid-playback chunk decode error ---
             print("Testing Case 7: Mid-playback chunk decode error...")
             page.locator("#action").select_option(value="motion")
