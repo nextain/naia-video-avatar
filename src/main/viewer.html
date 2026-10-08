@@ -48,6 +48,7 @@
     <label for="speechClip">Pre-rendered speech video</label>
     <select id="speechClip" disabled><option value="">No speech videos loaded</option></select>
     <button id="playSpeech" disabled>Play packaged speech</button>
+    <button id="playTalking" class="secondary" disabled>Play talking loop</button>
   </div>
   <div class="section">
     <label for="action">NVA action</label>
@@ -100,6 +101,7 @@ async function openNva(loadSource, label) {
   const { generation, signal } = avatarLoads.begin();
   get("playSpeech").disabled = true;
   get("playAction").disabled = true;
+  get("playTalking").disabled = true;
   setStatus(`Loading ${label}…`);
   try {
     animationPlayer?.stop();
@@ -121,6 +123,7 @@ async function openNva(loadSource, label) {
     get("action").replaceChildren(...selectOptions(loaded.actions, "No actions in this NVA"));
     get("action").disabled = !loaded.actions.length;
     get("playAction").disabled = !loaded.actions.length;
+    get("playTalking").disabled = !loaded.talking;
     get("stop").disabled = false;
     const avatarName = bundle.manifest.meta?.name || label;
     setStatus(`Ready · ${avatarName} · ${loaded.speechClips.length} packaged speech videos · ${loaded.actions.length} actions`);
@@ -143,6 +146,15 @@ get("playSpeech").addEventListener("click", async () => {
     setStatus(`Playing packaged speech: ${get("speechClip").selectedOptions[0].textContent}`);
   } catch (error) {
     await restoreIdle(`Speech video failed: ${error.message}`);
+    get("status").style.color = "#ff8d8d";
+  }
+});
+get("playTalking").addEventListener("click", async () => {
+  try {
+    await animationPlayer.playTalking();
+    setStatus("Playing talking loop.");
+  } catch (error) {
+    await restoreIdle("Talking failed: " + error.message);
     get("status").style.color = "#ff8d8d";
   }
 });

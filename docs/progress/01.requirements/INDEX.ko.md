@@ -35,3 +35,4 @@ scripts/check-traceability.mjs 가 이 표를 파싱한다.
 | NFR-012 | deploy | 정적 파일 서버와 일반 브라우저만으로 동작하며 계정·키·서버 API·GPU가 필요 없다 | Approved (#16) | — | — | TEST-S-021, TEST-S-022 |
 | NFR-013 | public-boundary | create, 편집기, TTS, 실시간 생성, Cascade, 제작 프롬프트와 내부 파이프라인을 공개 실행 코드·예제에서 제외한다 | Approved (#16) | — | — | TEST-S-023 |
 | NFR-014 | simplicity | 공개 기본 화면은 파일 열기·재생·배경 확인에 필요한 제어만 제공하고 노드 그래프나 제작 타임라인을 제공하지 않는다 | Approved (#16) | — | — | TEST-S-021, TEST-S-023 |
+| REQ-028 | compatibility | Player가 v0.2 번들의 말하기 루프(loop·can_talk)를 재생하고, 알 수 없는 확장 키를 무시하며, 데모 예제를 정상 로드한다 (read compatibility under NFR-011) | Approved (#22) | UC-020 | SPEC-024 | TEST-S-024 |

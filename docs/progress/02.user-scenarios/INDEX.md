@@ -20,3 +20,4 @@ NFRs (non-functional) do not cascade to UCs; they connect REQ→TEST-S directly.
 | UC-017 | playback | A visitor opens a finished `.nva` file and checks idle, embedded speech, and actions on one screen without an account, server, or GPU | REQ-023, REQ-024, REQ-025 | Approved (#16) | TEST-S-020, TEST-S-021 |
 | UC-018 | integration | A developer validates a completed-media package built to the public NVA v0.3 spec and connects the Player to a web service | REQ-023, REQ-026 | Approved (#16) | TEST-S-020, TEST-S-022 |
 | UC-019 | evaluation | A visitor changes the transparent background of a character to colors or images to judge how well it fits a real service layout | REQ-027 | Approved (#16) | TEST-S-021 |
+| UC-020 | playback | A visitor opens a Studio 0.2 avatar, plays the idle video, actions, and talking loop, and returns to idle when stopped | REQ-028 | Approved (#22) | TEST-S-024 |

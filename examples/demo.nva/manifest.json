@@ -21,6 +21,32 @@
     "sitting"
   ],
   "animations": {
+    "stand_idle": {
+      "clip": "clips/stand_idle.webm",
+      "entry_pose": "standing",
+      "exit_pose": "standing",
+      "loop": true,
+      "can_talk": false,
+      "face_bbox": [
+        0.417,
+        0.234,
+        0.167
+      ],
+      "label": "서서 대기"
+    },
+    "sit_idle": {
+      "clip": "clips/sit_idle.webm",
+      "entry_pose": "sitting",
+      "exit_pose": "sitting",
+      "loop": true,
+      "can_talk": false,
+      "face_bbox": [
+        0.417,
+        0.456,
+        0.167
+      ],
+      "label": "앉아서 대기"
+    },
     "stand_talk": {
       "clip": "clips/stand_idle.webm",
       "entry_pose": "standing",
