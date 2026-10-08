@@ -90,16 +90,111 @@ const get = (id) => document.getElementById(id);
 const avatarLoads = new LoadCoordinator();
 let bundle = null;
 let animationPlayer = null;
-let player = null;
+// One composed-speech session = one SpeechPlayer plus its own canvas, audio, body and speech video
+// elements. Sessions are never reused: every end (complete, stop, interrupt, error, NVA reopen, clip
+// switch, re-prepare) removes the session's listeners and discards it, so a superseded session's late
+// media events or decode failures can only reach its own discarded player and detached elements.
+let preparedSpeech = null; // { plan, audioBlob } validated by prepareSpeechPlayer
+let readySession = null; // loaded and never played
+let activeSession = null; // playing, or its play() is pending
 let preComposedSnapshot = null;
 let composedPlayActive = false;
 let composedSession = 0;
-let pendingComposedPlay = null;
-// Session whose play() has resolved; audio ended/error events belong only to it.
-let liveComposedSession = 0;
-// A stop that lands while play() is pending silences the late-starting audio until that call settles and is stopped.
-function silencePendingComposedPlay() {
-  if (pendingComposedPlay) get("speechAudio").muted = true;
+let prepareToken = 0;
+const SESSION_ELEMENT_IDS = ["stageCanvas", "speechAudio", "bodyVideo", "speechVideoA", "speechVideoB"];
+window.__speechRebuildMs = [];
+
+function freshSessionElements() {
+  const elements = {};
+  for (const id of SESSION_ELEMENT_IDS) {
+    const old = get(id);
+    const fresh = old.cloneNode(false);
+    fresh.removeAttribute("src");
+    old.replaceWith(fresh);
+    elements[id] = fresh;
+  }
+  return elements;
+}
+
+function disposeSession(session) {
+  if (!session || session.disposed) return;
+  session.disposed = true;
+  const { speechAudio, bodyVideo, speechVideoA, speechVideoB } = session.elements;
+  for (const [event, handler] of session.listeners.splice(0)) speechAudio.removeEventListener(event, handler);
+  speechAudio.muted = true;
+  const player = session.player;
+  try { player?.stop("cancel"); } catch { /* already stopped */ }
+  try { player?.dispose(); } catch { /* already disposed */ }
+  for (const media of [speechAudio, bodyVideo, speechVideoA, speechVideoB]) {
+    media.pause();
+    media.removeAttribute("src");
+    media.load();
+  }
+  // Detach the discarded elements; blank placeholders keep the stage layout and ids.
+  for (const element of Object.values(session.elements)) {
+    if (!element.isConnected) continue;
+    const blank = element.cloneNode(false);
+    blank.removeAttribute("src");
+    element.replaceWith(blank);
+  }
+  if (session === activeSession) activeSession = null;
+  if (session === readySession) readySession = null;
+}
+
+async function buildSession() {
+  if (!preparedSpeech || !bundle?.manifest?.speech_motion) throw new Error("composed speech is not prepared");
+  const elements = freshSessionElements();
+  const session = { elements, player: null, listeners: [], disposed: false, result: null };
+  session.player = new SpeechPlayer({
+    audio: elements.speechAudio,
+    canvas: elements.stageCanvas,
+    bodyVideo: elements.bodyVideo,
+    speechVideos: [elements.speechVideoA, elements.speechVideoB],
+  });
+  try {
+    session.result = await session.player.load({
+      manifest: bundle.manifest,
+      assets: bundle.assets,
+      plan: preparedSpeech.plan,
+      audioBlob: preparedSpeech.audioBlob,
+    });
+  } catch (error) {
+    disposeSession(session);
+    throw error;
+  }
+  const on = (event, handler) => {
+    elements.speechAudio.addEventListener(event, handler);
+    session.listeners.push([event, handler]);
+  };
+  on("ended", () => endComposedSession(session, "Playback complete; idle restored."));
+  on("error", () => endComposedSession(session, "Playback failed: audio error", true));
+  return session;
+}
+
+// Ends the active session because of something that happened inside it (complete, audio or asset error).
+function endComposedSession(session, message, isError = false) {
+  if (!session || session !== activeSession) return false;
+  composedSession++;
+  clearSpeechMonitor();
+  disposeSession(session);
+  restoreFromSnapshot(preComposedSnapshot);
+  preComposedSnapshot = null;
+  composedPlayActive = false;
+  setStatus(message, isError);
+  return true;
+}
+
+// Ends whatever composed playback is active or still being built, from outside (stop, interrupt, clip switch).
+function cancelComposed(message) {
+  if (!composedPlayActive) return false;
+  composedSession++;
+  clearSpeechMonitor();
+  disposeSession(activeSession);
+  restoreFromSnapshot(preComposedSnapshot);
+  preComposedSnapshot = null;
+  composedPlayActive = false;
+  if (message) setStatus(message);
+  return true;
 }
 let playRequest = 0;
 const stageBackground = new StageBackground(get("stage"));
@@ -186,9 +281,11 @@ function restoreFromSnapshot(snapshot) {
 async function openNva(loadSource, label) {
   const request = ++playRequest;
   const { generation, signal } = avatarLoads.begin();
-  player?.stop("cancel");
-  player?.dispose();
-  player = null;
+  composedSession++;
+  clearSpeechMonitor();
+  disposeSession(activeSession);
+  disposeSession(readySession);
+  preparedSpeech = null;
   preComposedSnapshot = null;
   composedPlayActive = false;
   get("stageCanvas").style.display = "none";
@@ -251,32 +348,24 @@ async function openNva(loadSource, label) {
 
 async function prepareSpeechPlayer() {
   if (!get("audioFile").files[0] || !get("planFile").files[0] || !bundle?.manifest?.speech_motion) return;
-  if (composedPlayActive) {
-    clearSpeechMonitor();
-    player?.stop("cancel");
-    restoreFromSnapshot(preComposedSnapshot);
-    preComposedSnapshot = null;
-    composedPlayActive = false;
-  }
+  cancelComposed();
+  disposeSession(readySession);
+  preparedSpeech = null;
+  const token = ++prepareToken;
   get("playComposed").disabled = true;
   get("stopComposed").disabled = true;
   setStatus("Validating bundle, atlas, audio, and SpeechPlan…");
   try {
     const plan = JSON.parse(await get("planFile").files[0].text());
-    player?.stop("cancel");
-    player?.dispose();
-    player = new SpeechPlayer({
-      audio: get("speechAudio"),
-      canvas: get("stageCanvas"),
-      bodyVideo: get("bodyVideo"),
-      speechVideos: [get("speechVideoA"), get("speechVideoB")],
-    });
-    const result = await player.load({
-      manifest: bundle.manifest,
-      assets: bundle.assets,
-      plan,
-      audioBlob: get("audioFile").files[0],
-    });
+    if (token !== prepareToken) return;
+    preparedSpeech = { plan, audioBlob: get("audioFile").files[0] };
+    const session = await buildSession();
+    if (token !== prepareToken) {
+      disposeSession(session);
+      return;
+    }
+    readySession = session;
+    const result = session.result;
     get("quality").className = `badge ${result.quality_mode}`;
     get("quality").textContent = result.quality_mode === "aligned" ? "aligned quality path" : "approximate preview";
     get("quality").style.display = "";
@@ -284,9 +373,8 @@ async function prepareSpeechPlayer() {
     get("stopComposed").disabled = false;
     setStatus(`Ready · composed speech ready (${result.transitions} transitions) · no GPU/model runtime`);
   } catch (error) {
-    player?.stop("cancel");
-    player?.dispose();
-    player = null;
+    if (token !== prepareToken) return;
+    preparedSpeech = null;
     get("quality").style.display = "none";
     setStatus(`Blocked: ${error.message}`, true);
   }
@@ -304,13 +392,7 @@ get("audioFile").addEventListener("change", prepareSpeechPlayer);
 get("planFile").addEventListener("change", prepareSpeechPlayer);
 
 get("playSpeech").addEventListener("click", async () => {
-  if (composedPlayActive) {
-    clearSpeechMonitor();
-    player?.stop("cancel");
-    restoreFromSnapshot(preComposedSnapshot);
-    preComposedSnapshot = null;
-    composedPlayActive = false;
-  }
+  cancelComposed();
   const request = ++playRequest;
   try {
     await animationPlayer.playSpeech(get("speechClip").value);
@@ -322,13 +404,7 @@ get("playSpeech").addEventListener("click", async () => {
   }
 });
 get("playTalking").addEventListener("click", async () => {
-  if (composedPlayActive) {
-    clearSpeechMonitor();
-    player?.stop("cancel");
-    restoreFromSnapshot(preComposedSnapshot);
-    preComposedSnapshot = null;
-    composedPlayActive = false;
-  }
+  cancelComposed();
   const request = ++playRequest;
   try {
     await animationPlayer.playTalking();
@@ -340,13 +416,7 @@ get("playTalking").addEventListener("click", async () => {
   }
 });
 get("playAction").addEventListener("click", async () => {
-  if (composedPlayActive) {
-    clearSpeechMonitor();
-    player?.stop("cancel");
-    restoreFromSnapshot(preComposedSnapshot);
-    preComposedSnapshot = null;
-    composedPlayActive = false;
-  }
+  cancelComposed();
   const request = ++playRequest;
   try {
     await animationPlayer.playAction(get("action").value);
@@ -367,121 +437,71 @@ function clearSpeechMonitor() {
   }
 }
 
-function startSpeechMonitor() {
+// The moved SpeechPlayer stops itself on a chunk read/decode failure without telling the viewer;
+// treat that as an asset error of this session only.
+function startSpeechMonitor(session) {
   clearSpeechMonitor();
   speechMonitorTimer = setInterval(() => {
-    if (!composedPlayActive) {
+    if (session !== activeSession) {
       clearSpeechMonitor();
       return;
     }
-    if (player && player.state !== "speaking") {
-      clearSpeechMonitor();
-      player?.stop("error");
-      restoreFromSnapshot(preComposedSnapshot);
-      preComposedSnapshot = null;
-      composedPlayActive = false;
-      setStatus("Playback failed: speech asset error", true);
-    }
+    if (session.player.state !== "speaking") endComposedSession(session, "Playback failed: speech asset error", true);
   }, 20);
 }
 
 get("playComposed").addEventListener("click", async () => {
-  if (!player) return;
   if (composedPlayActive) {
-    clearSpeechMonitor();
-    silencePendingComposedPlay();
-    player?.stop("cancel");
-    restoreFromSnapshot(preComposedSnapshot);
-    preComposedSnapshot = null;
-    composedPlayActive = false;
-    setStatus("Interrupted; original ready state restored.");
+    cancelComposed("Interrupted; original ready state restored.");
     return;
   }
-  preComposedSnapshot = takeAnimationPlayerSnapshot();
+  if (!preparedSpeech) return;
+  // Pause first so the recorded position is the settled paused position, but keep the pre-pause playing state.
+  const wasPaused = get("animation").paused;
   get("animation").pause();
+  preComposedSnapshot = { ...takeAnimationPlayerSnapshot(), paused: wasPaused };
   get("animation").style.display = "none";
   get("stageCanvas").style.display = "";
   composedPlayActive = true;
-  const session = ++composedSession;
-  // Never run two SpeechPlayer.play() calls at once: wait for an earlier pending call
-  // (already superseded) to settle and be stopped before starting this session.
-  while (pendingComposedPlay) {
-    try { await pendingComposedPlay; } catch { /* earlier session's failure is not ours */ }
-    if (session !== composedSession || !composedPlayActive) return;
-  }
-  get("speechAudio").muted = false;
-  const playPromise = player.play();
-  pendingComposedPlay = playPromise;
-  try {
-    await playPromise;
-    if (pendingComposedPlay === playPromise) pendingComposedPlay = null;
-    if (session !== composedSession || !composedPlayActive) {
-      // Stopped or interrupted while play() was pending: that path already restored.
-      // Stop the late-started playback before any newer session calls play().
-      player?.stop("cancel");
+  const token = ++composedSession;
+  let session = readySession;
+  readySession = null;
+  if (!session) {
+    const started = performance.now();
+    try {
+      session = await buildSession();
+    } catch (error) {
+      if (token !== composedSession) return;
+      cancelComposed();
+      setStatus(`Playback failed: ${error.message}`, true);
       return;
     }
-    liveComposedSession = session;
-    startSpeechMonitor();
-    setStatus("Playing from the audio clock.");
-  } catch (error) {
-    if (pendingComposedPlay === playPromise) pendingComposedPlay = null;
-    if (session !== composedSession || !composedPlayActive) return;
-    clearSpeechMonitor();
-    player?.stop("cancel");
-    restoreFromSnapshot(preComposedSnapshot);
-    preComposedSnapshot = null;
-    composedPlayActive = false;
-    setStatus(`Playback failed: ${error.message}`, true);
+    window.__speechRebuildMs.push(Math.round((performance.now() - started) * 10) / 10);
+    if (token !== composedSession) {
+      disposeSession(session);
+      return;
+    }
   }
+  session.elements.stageCanvas.style.display = "";
+  activeSession = session;
+  try {
+    await session.player.play();
+  } catch (error) {
+    endComposedSession(session, `Playback failed: ${error.message}`, true);
+    return;
+  }
+  if (session !== activeSession) return;
+  startSpeechMonitor(session);
+  setStatus("Playing from the audio clock.");
 });
 
 get("stopComposed").addEventListener("click", () => {
-  clearSpeechMonitor();
-  silencePendingComposedPlay();
-  player?.stop("cancel");
-  if (preComposedSnapshot) {
-    restoreFromSnapshot(preComposedSnapshot);
-    preComposedSnapshot = null;
-  }
-  composedPlayActive = false;
+  cancelComposed();
   setStatus("Stopped; original ready state restored.");
 });
 
-get("speechAudio").addEventListener("ended", () => {
-  // Ignore events from a superseded session's late audio; a pending session's own failure arrives through play().
-  if (!composedPlayActive || liveComposedSession !== composedSession) return;
-  clearSpeechMonitor();
-  {
-    player?.stop("complete");
-    restoreFromSnapshot(preComposedSnapshot);
-    preComposedSnapshot = null;
-    composedPlayActive = false;
-    setStatus("Playback complete; idle restored.");
-  }
-});
-get("speechAudio").addEventListener("error", () => {
-  // Ignore events from a superseded session's late audio; a pending session's own failure arrives through play().
-  if (!composedPlayActive || liveComposedSession !== composedSession) return;
-  clearSpeechMonitor();
-  {
-    player?.stop("error");
-    restoreFromSnapshot(preComposedSnapshot);
-    preComposedSnapshot = null;
-    composedPlayActive = false;
-    setStatus("Playback failed: audio error", true);
-  }
-});
-
 get("stop").addEventListener("click", async () => {
-  clearSpeechMonitor();
-  silencePendingComposedPlay();
-  if (composedPlayActive) {
-    player?.stop("cancel");
-    restoreFromSnapshot(preComposedSnapshot);
-    preComposedSnapshot = null;
-    composedPlayActive = false;
-  }
+  cancelComposed();
   const request = ++playRequest;
   await animationPlayer?.playIdle();
   if (request === playRequest) setStatus("Stopped; idle restored.");
@@ -524,14 +544,14 @@ window.addEventListener("beforeunload", () => {
   clearSpeechMonitor();
   avatarLoads.cancel();
   animationPlayer?.dispose();
-  player?.stop("cancel");
-  player?.dispose();
+  cancelComposed();
+  disposeSession(readySession);
   stageBackground.dispose();
 });
 
 // Test inspection hooks
 window.__animationPlayer = () => animationPlayer;
-window.__player = () => player;
+window.__player = () => activeSession?.player ?? readySession?.player ?? null;
 window.__getSnapshot = () => preComposedSnapshot;
 window.__takeSnapshot = takeAnimationPlayerSnapshot;
 window.__restoreSnapshot = restoreFromSnapshot;

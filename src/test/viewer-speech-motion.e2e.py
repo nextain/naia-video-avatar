@@ -155,6 +155,9 @@ def assert_rejected_state(snapshot: dict, post_state: dict, time_elapsed: float 
         )
 
 
+REBUILD_MS: list = []
+
+
 def run_e2e() -> None:
     port = find_free_port()
     server = start_server(port)
@@ -265,8 +268,8 @@ def run_e2e() -> None:
             assert page.locator("#animation").evaluate("el => el.style.display === 'none'")
 
             # Wait for speechAudio to complete naturally
-            page.wait_for_function("() => document.querySelector('#speechAudio')?.ended === true", timeout=15_000)
-            page.locator("#status").filter(has_text="Playback complete; idle restored.").wait_for(timeout=5_000)
+            # (the session's audio is discarded on completion, so wait on the viewer's completion status)
+            page.locator("#status").filter(has_text="Playback complete; idle restored.").wait_for(timeout=20_000)
 
             # Assert canvas hidden, animation visible
             assert page.locator("#stageCanvas").evaluate("el => el.style.display === 'none'")
@@ -420,6 +423,8 @@ def run_e2e() -> None:
             page.wait_for_timeout(200)
 
             # Trigger a real browser media error on #speechAudio (unsupported source), not a synthetic event
+            # The viewer discards the session (clearing the element) on error, so record the real MediaError code in the capture phase first
+            page.evaluate("() => { window.__audioErrCode = null; document.addEventListener('error', (e) => { if (e.target?.id === 'speechAudio' && window.__audioErrCode === null) window.__audioErrCode = e.target.error?.code ?? null; }, true); }")
             page.evaluate("() => { const a = document.querySelector('#speechAudio'); a.src = 'data:audio/wav;base64,AAAA'; a.load(); }")
             page.locator("#status").filter(has_text="Playback failed: audio error").wait_for(timeout=5_000)
             status_text6 = page.locator("#status").inner_text()
@@ -432,7 +437,7 @@ def run_e2e() -> None:
             last_restore6 = page.evaluate("() => window.__lastRestore")
             assert_restored_state(snap6, last_restore6, "Case 6: Mid-playback audio error")
 
-            err_code6 = page.evaluate("() => document.querySelector('#speechAudio').error?.code ?? null")
+            err_code6 = page.evaluate("() => window.__audioErrCode")
             assert err_code6 is not None, "Case 6: audio element has no real MediaError"
 
             page.evaluate("() => { const v = document.querySelector('#animation'); v.currentTime = 4.95; }")
@@ -463,22 +468,22 @@ def run_e2e() -> None:
             print("Testing Case 6c: Restart while earlier play() is pending...")
             page.evaluate("() => { const p = document.querySelector('#playComposed'), s = document.querySelector('#stopComposed'); p.click(); s.click(); p.click(); }")
             page.locator("#status").filter(has_text="Playing from the audio clock.").wait_for(timeout=10_000)
-            page.wait_for_timeout(500)
+            page.wait_for_timeout(150)  # s1.wav is 1.115 s
             status_text6c = page.locator("#status").inner_text()
             assert "Playback failed" not in status_text6c, f"Case 6c: stale play() leaked: {status_text6c}"
             assert not page.evaluate("() => document.querySelector('#speechAudio').paused"), "Case 6c: new session audio stopped by stale call"
             t0 = page.evaluate("() => document.querySelector('#speechAudio').currentTime")
-            page.wait_for_timeout(300)
+            page.wait_for_timeout(200)
             t1 = page.evaluate("() => document.querySelector('#speechAudio').currentTime")
-            assert 0.15 <= t1 - t0 <= 0.6, f"Case 6c: audio clock not advancing once ({t0} -> {t1})"
+            assert 0.1 <= t1 - t0 <= 0.45, f"Case 6c: audio clock not advancing once ({t0} -> {t1})"
             page.locator("#stopComposed").click()
             page.locator("#status").filter(has_text="Stopped; original ready state restored.").wait_for(timeout=5_000)
             page.wait_for_timeout(500)
             assert page.evaluate("() => document.querySelector('#speechAudio').paused"), "Case 6c: audio kept playing after final stop"
 
             # --- Case 6d/6e: forced late media start (bodyVideo.play delayed 800ms) ---
-            delay_js = "() => { const v = document.querySelector('#bodyVideo'); const orig = HTMLMediaElement.prototype.play; v.play = function () { return new Promise((r) => setTimeout(r, 800)).then(() => orig.call(this)); }; }"
-            undelay_js = "() => { delete document.querySelector('#bodyVideo').play; }"
+            delay_js = "() => { if (!window.__origMediaPlay) window.__origMediaPlay = HTMLMediaElement.prototype.play; const orig = window.__origMediaPlay; HTMLMediaElement.prototype.play = function () { if (this.id !== 'bodyVideo') return orig.call(this); return new Promise((r) => setTimeout(r, 800)).then(() => orig.call(this)); }; }"
+            undelay_js = "() => { if (window.__origMediaPlay) HTMLMediaElement.prototype.play = window.__origMediaPlay; }"
             print("Testing Case 6d: Stop while a delayed play() is pending...")
             page.evaluate(delay_js)
             page.locator("#playComposed").click()
@@ -493,19 +498,45 @@ def run_e2e() -> None:
             print("Testing Case 6e: Restart while a delayed play() is pending...")
             page.locator("#playComposed").click()
             page.wait_for_timeout(100)
+            page.evaluate("() => { window.__staleAudio = document.querySelector('#speechAudio'); }")
             page.locator("#stopComposed").click()
             page.evaluate(undelay_js)
             page.locator("#playComposed").click()
             page.locator("#status").filter(has_text="Playing from the audio clock.").wait_for(timeout=10_000)
-            page.wait_for_timeout(500)
+            # s1.wav is 1.115 s: check within the first ~0.7 s, after the stale call's delayed start (800 ms) has fired
+            page.wait_for_timeout(150)
             status_text6e = page.locator("#status").inner_text()
             assert "Playback failed" not in status_text6e, f"Case 6e: stale play() leaked: {status_text6e}"
             assert not page.evaluate("() => document.querySelector('#speechAudio').muted"), "Case 6e: new session audio left muted"
             assert not page.evaluate("() => document.querySelector('#speechAudio').paused"), "Case 6e: new session audio stopped by stale call"
             t0 = page.evaluate("() => document.querySelector('#speechAudio').currentTime")
-            page.wait_for_timeout(300)
+            page.wait_for_timeout(200)
             t1 = page.evaluate("() => document.querySelector('#speechAudio').currentTime")
-            assert 0.15 <= t1 - t0 <= 0.6, f"Case 6e: audio clock not advancing once ({t0} -> {t1})"
+            dbg6e = page.evaluate("() => ({ status: document.getElementById('status').textContent, src: document.querySelector('#speechAudio').getAttribute('src'), paused: document.querySelector('#speechAudio').paused, rebuild: window.__speechRebuildMs })")
+            assert 0.1 <= t1 - t0 <= 0.45, f"Case 6e: audio clock not advancing once ({t0} -> {t1}) {dbg6e}"
+
+            # Case 6f: a real late MediaError on the superseded session's audio must not touch the live session
+            print("Testing Case 6f: Late error from a superseded session...")
+            assert page.evaluate("() => window.__staleAudio !== document.querySelector('#speechAudio') && !window.__staleAudio.isConnected"), "Case 6f: stale audio element was reused or still attached"
+            page.evaluate("() => { const a = window.__staleAudio; a.src = 'data:audio/wav;base64,AAAA'; a.load(); }")
+            page.wait_for_function("() => window.__staleAudio.error !== null", timeout=5_000)
+            page.wait_for_timeout(50)
+            status_text6f = page.locator("#status").inner_text()
+            assert status_text6f.startswith("Playing from the audio clock."), f"Case 6f: live session affected: {status_text6f}"
+            assert not page.evaluate("() => document.querySelector('#speechAudio').paused"), "Case 6f: live session audio stopped"
+
+            # Case 6g: switching to another clip discards the session (muted, paused, detached)
+            print("Testing Case 6g: Clip switch discards the composed session...")
+            page.evaluate("() => { window.__liveAudio = document.querySelector('#speechAudio'); }")
+            page.locator("#playAction").click()
+            page.wait_for_timeout(300)
+            assert page.evaluate("() => window.__liveAudio.muted && window.__liveAudio.paused && !window.__liveAudio.isConnected"), "Case 6g: switched-away session audio not discarded"
+            assert page.locator("#stageCanvas").evaluate("el => el.style.display === 'none'")
+            page.wait_for_function("() => window.__animationPlayer()?.state === 'action'", timeout=5_000)
+            page.evaluate("() => { const v = document.querySelector('#animation'); v.currentTime = 4.95; }")
+            page.wait_for_function("() => window.__animationPlayer()?.state === 'idle'", timeout=5_000)
+            page.locator("#playComposed").click()
+            page.locator("#status").filter(has_text="Playing from the audio clock.").wait_for(timeout=10_000)
             page.locator("#stopComposed").click()
             page.locator("#status").filter(has_text="Stopped; original ready state restored.").wait_for(timeout=5_000)
 
@@ -524,7 +555,9 @@ def run_e2e() -> None:
             page.wait_for_function("() => document.querySelector('#stageCanvas')?.style.display !== 'none'")
             assert page.locator("#animation").evaluate("el => el.style.display === 'none'")
 
-            # Arm chunk corruption for the first lazily sliced WebM chunk
+            # Arm chunk corruption for the first lazily sliced WebM chunk, after this session's
+            # (re)build and prefetch are done, so only a read during playback is hit
+            page.locator("#status").filter(has_text="Playing from the audio clock.").wait_for(timeout=10_000)
             page.evaluate("() => { window.__corruptNextSlice = true; }")
 
             page.locator("#status").filter(has_text="Playback failed: speech asset error").wait_for(timeout=10_000)
@@ -573,16 +606,37 @@ def run_e2e() -> None:
                 page.evaluate("() => { const v = document.querySelector('#animation'); v.currentTime = 4.95; }")
                 page.wait_for_function("() => window.__animationPlayer()?.state === 'idle'", timeout=5_000)
 
+            # --- Case 9: Reopening an NVA during composed playback discards the session ---
+            print("Testing Case 9: Reopen NVA during composed playback...")
+            plan9 = rebuild_dir / "case9.plan.json"
+            plan9.write_bytes(PLAN_PATH.read_bytes())
+            page.locator("#planFile").set_input_files(str(plan9))
+            page.locator("#status").filter(has_text="composed speech ready").wait_for(timeout=10_000)
+            page.locator("#playComposed").click()
+            page.locator("#status").filter(has_text="Playing from the audio clock.").wait_for(timeout=10_000)
+            page.evaluate("() => { window.__reopenAudio = document.querySelector('#speechAudio'); }")
+            reopen_copy = rebuild_dir / "reopen.nva"
+            reopen_copy.write_bytes(NVA_PATH.read_bytes())
+            page.locator("#nvaFile").set_input_files(str(reopen_copy))
+            page.locator("#status").filter(has_text="Ready ·").wait_for(timeout=15_000)
+            assert page.evaluate("() => window.__reopenAudio.muted && window.__reopenAudio.paused && !window.__reopenAudio.isConnected"), "Case 9: session audio not discarded on NVA reopen"
+            assert page.locator("#stageCanvas").evaluate("el => el.style.display === 'none'")
+            assert page.locator("#animation").evaluate("el => el.style.display !== 'none'")
+
             # Assert clean network and browser runtime
             assert external_requests == [], f"external requests detected: {external_requests}"
             assert console_errors == [], f"console errors detected: {console_errors}"
             assert page_errors == [], f"page errors detected: {page_errors}"
+
+            REBUILD_MS[:] = page.evaluate("() => window.__speechRebuildMs")
+            assert REBUILD_MS, "no composed session rebuild was measured"
 
             browser.close()
     finally:
         server.shutdown()
         server.server_close()
 
+    print(f"Rebuild timings (ms, fresh SpeechPlayer + media elements per composed session): {REBUILD_MS}")
     print("PASS: viewer speech motion e2e: normal completion, explicit stop, invalid unit, receipt asset hash mismatch, mid-playback audio error, mid-playback chunk error, interruptions (120/240/480/720/960ms), idle restoration, external requests=0, browser errors=0")
 
 
