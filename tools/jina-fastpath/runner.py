@@ -705,12 +705,13 @@ def find_syllable(text: str, t: float, unit: str, total_dur: float) -> str:
     return syllables[best_idx]
 
 def extract_mouth_crop(webm_path: Path, t_sec: float) -> np.ndarray:
-    # Mouth crop: head is [280, 70, 158, 242], bottom half is [280, 191, 158, 121]
+    # Mouth crop: head is [280, 70, 158, 242], bottom half is [280, 190, 158, 122]
     cmd = [
         "ffmpeg", "-v", "error", "-y",
         "-ss", f"{t_sec:.3f}",
         "-i", str(webm_path),
-        "-vf", "crop=158:121:280:191",
+        # yuv420 영상은 홀수 높이 crop 을 짝수로 내림해 크기가 어긋난다(121→120, A3 입 비교 그림 전부 검정). 짝수로 자른다.
+        "-vf", "crop=158:122:280:190",
         "-vframes", "1",
         "-f", "rawvideo",
         "-pix_fmt", "bgr24",
@@ -718,10 +719,9 @@ def extract_mouth_crop(webm_path: Path, t_sec: float) -> np.ndarray:
     ]
     res = subprocess.run(cmd, capture_output=True, check=True)
     raw = res.stdout
-    if len(raw) != 158 * 121 * 3:
-        # Fallback to zero image
-        return np.zeros((121, 158, 3), dtype=np.uint8)
-    return np.frombuffer(raw, dtype=np.uint8).reshape((121, 158, 3))
+    if len(raw) != 158 * 122 * 3:
+        raise RuntimeError(f"mouth crop size mismatch: {webm_path} t={t_sec:.3f} got {len(raw)} bytes")
+    return np.frombuffer(raw, dtype=np.uint8).reshape((122, 158, 3))
 
 def generate_mouth_strips(videos_dir: Path, data_dir: Path, out_dir: Path) -> dict:
     strips_meta = {}
@@ -768,7 +768,7 @@ def generate_mouth_strips(videos_dir: Path, data_dir: Path, out_dir: Path) -> di
             cv2.imwrite(str(out_png), full_strip)
         else:
             out_png = out_dir / f"mouth-comparison-{sid}.png"
-            cv2.imwrite(str(out_png), np.zeros((121 * 3, 158, 3), dtype=np.uint8))
+            cv2.imwrite(str(out_png), np.zeros((122 * 3, 158, 3), dtype=np.uint8))
 
         strips_meta[sid] = {
             "png_file": f"mouth-comparison-{sid}.png",
@@ -848,7 +848,7 @@ def generate_index_html(
 
           <div class="mouth-section">
             <h4>발화 순간 입술 표본 비교 (닫힘·열림 사건 중심 시각)</h4>
-            <p class="mouth-desc">MFA 음소 정렬 계획에서 길이가 60ms 이상인 닫힘(ㅁ·ㅂ·ㅍ)과 열림 모음 사건 중심 시각의 입 영역(가로 158px, 세로 121px)을 1행 조합 재생, 2행 스튜디오 방식, 3행 NVA 뷰어 순으로 나란히 추출한 비교 표본입니다.</p>
+            <p class="mouth-desc">MFA 음소 정렬 계획에서 길이가 60ms 이상인 닫힘(ㅁ·ㅂ·ㅍ)과 열림 모음 사건 중심 시각의 입 영역(가로 158px, 세로 122px)을 1행 조합 재생, 2행 스튜디오 방식, 3행 NVA 뷰어 순으로 나란히 추출한 비교 표본입니다.</p>
             <div class="mouth-scroll">
               <table class="mouth-table">
                 <thead>
@@ -1028,7 +1028,7 @@ def generate_index_html(
   .syl-unit {{ font-size: 10px; color: #8b949e; }}
   .mouth-strip-img {{
     display: block;
-    height: 363px; /* 121px * 3 */
+    height: 366px; /* 122px * 3 */
     max-width: none;
   }}
   .mouth-rows-legend {{
