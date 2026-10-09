@@ -9,7 +9,7 @@ import argparse
 import os
 import sys
 import mimetypes
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 
 WORKTREE_DIR = Path("/var/home/luke/alpha-adk/.agents/work/nva-jina-fastpath").resolve()
@@ -172,7 +172,9 @@ def main():
     parser.add_argument("--pid-file", type=str, default="", help="File to write PID to")
     args = parser.parse_args()
 
-    server = HTTPServer(("127.0.0.1", args.port), CustomHandler)
+    # 녹화 Chrome 이 큰 .nva 범위 응답 연결을 붙잡아도 다른 요청이 막히지 않게 요청마다 스레드로 처리한다(A3 재녹화 25분 멈춤).
+    ThreadingHTTPServer.daemon_threads = True
+    server = ThreadingHTTPServer(("127.0.0.1", args.port), CustomHandler)
     actual_port = server.server_port
     pid = os.getpid()
 

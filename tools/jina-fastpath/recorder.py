@@ -18,7 +18,8 @@ def record_composed(page, server_url: str, nva_url: str, audio_url: str, plan_ur
 
     # runComposedRecording 실행
     script = f"window.runComposedRecording('{nva_url}', '{audio_url}', '{plan_url}')"
-    page.evaluate(script)
+    # 녹화 Promise 를 기다리지 않는다. 끝나지 않으면 아래 120초 대기가 실패로 끊는다(A3 재녹화 멈춤).
+    page.evaluate(f"() => {{ Promise.resolve({script}).catch(e => {{ window.__recordingResult = {{ ok: false, error: String(e) }}; }}); }}")
 
     # 녹화 완료 대기 (최대 120초)
     page.wait_for_function("window.__recordingResult !== undefined", timeout=120000)
@@ -47,7 +48,8 @@ def record_studio(page, server_url: str, manifest_url: str, atlas_url: str, base
 
     # runStudioRecording 실행
     script = f"window.runStudioRecording('{manifest_url}', '{atlas_url}', '{base_video_url}', '{audio_url}')"
-    page.evaluate(script)
+    # 녹화 Promise 를 기다리지 않는다. 끝나지 않으면 아래 120초 대기가 실패로 끊는다(A3 재녹화 멈춤).
+    page.evaluate(f"() => {{ Promise.resolve({script}).catch(e => {{ window.__recordingResult = {{ ok: false, error: String(e) }}; }}); }}")
 
     # 녹화 완료 대기 (최대 120초)
     page.wait_for_function("window.__recordingResult !== undefined", timeout=120000)
