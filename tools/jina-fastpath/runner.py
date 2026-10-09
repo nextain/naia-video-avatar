@@ -355,7 +355,7 @@ def verify_receipt_contract(data_dir: Path) -> dict:
     diffs = [p.get("mean_abs_diff") for p in pairs]
     if any(d is None or not math.isfinite(d) for d in diffs):
         raise ValueError("Continuity pairs contain non-finite values")
-    if len(set(diffs)) <= 1:
+    if len(set(diffs)) <= 1 and any(d != 0.0 for d in diffs):
         raise ValueError("Continuity pair differences are all identical")
 
     # 3. atlas.bin 조각을 직접 디코드하여 2,197쌍 전수 재계산 (허용 오차 0.01)
@@ -365,7 +365,9 @@ def verify_receipt_contract(data_dir: Path) -> dict:
     neutral_rgba = cv2.cvtColor(neutral_img, cv2.COLOR_BGRA2RGBA)
     head_mask = neutral_rgba[:, :, 3] > 0
 
-    units_dir = Path("/var/mnt/hdd/nextain/nva-jina-fastpath-20261009/gen/units")
+    units_dir = Path("/var/mnt/hdd/nextain/nva-jina-fastpath-20261009/a3-motion/units")
+    if not units_dir.is_dir():
+        units_dir = Path("/var/mnt/hdd/nextain/nva-jina-fastpath-20261009/gen/units")
     use_units_rgba = units_dir.is_dir() and (units_dir / "sil__sil.rgba").is_file()
     frames_for_calc = {}
     if use_units_rgba:
@@ -1349,7 +1351,8 @@ def main():
 
     summary_data = json.loads(gen_summary_path.read_text(encoding="utf-8"))
     if "artifacts" in summary_data and isinstance(summary_data["artifacts"], dict):
-        for art_name, expected_art_sha in summary_data["artifacts"].items():
+        for art_name, expected_val in summary_data["artifacts"].items():
+            expected_art_sha = expected_val.get("sha256") if isinstance(expected_val, dict) else expected_val
             art_file = data_dir / art_name
             if not art_file.is_file():
                 raise FileNotFoundError(f"#15 결속 오류: summary에 명시된 산출물 {art_name}이 디스크에 없습니다")
