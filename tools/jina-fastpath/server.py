@@ -15,6 +15,7 @@ from pathlib import Path
 WORKTREE_DIR = Path("/var/home/luke/alpha-adk/.agents/work/nva-jina-fastpath").resolve()
 SITE_DIR = Path("/var/home/luke/alpha-adk/.agents/work/nva-jina-fastpath-site").resolve()
 STUDIO_ASSETS_DIR = Path("/var/home/luke/alpha-adk/projects/naia-land-worktrees/r12-template-web/public/assets/nva-preview").resolve()
+VIEWER_DIR = Path("/var/home/luke/alpha-adk/projects/naia-video-avatar/src/main").resolve()
 
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("application/javascript", ".mjs")
@@ -55,6 +56,11 @@ class CustomHandler(BaseHTTPRequestHandler):
             rel = path_str[len("/studio-assets/"):]
             target = (STUDIO_ASSETS_DIR / rel).resolve()
             if target.is_relative_to(STUDIO_ASSETS_DIR) and target.is_file():
+                return target
+        elif path_str.startswith("/viewer/"):
+            rel = path_str[len("/viewer/"):]
+            target = (VIEWER_DIR / rel).resolve()
+            if target.is_relative_to(VIEWER_DIR) and target.is_file():
                 return target
         elif path_str.startswith("/.agy-work/"):
             rel = path_str[len("/.agy-work/"):]

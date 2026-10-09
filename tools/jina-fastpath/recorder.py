@@ -69,11 +69,104 @@ def record_studio(page, server_url: str, manifest_url: str, atlas_url: str, base
 
     return result
 
+def record_viewer_rejection(page, server_url: str, nva_path: Path, out_screenshot: Path) -> dict:
+    import time
+    url = f"{server_url}/viewer/viewer.html"
+    page.goto(url)
+    page.wait_for_selector("#nvaFile", timeout=10000)
+    page.set_input_files("#nvaFile", str(nva_path))
+    page.wait_for_function('document.getElementById("status").textContent.includes("Blocked:")', timeout=30000)
+    time.sleep(0.5)
+    status_text = page.text_content("#status")
+    out_screenshot.parent.mkdir(parents=True, exist_ok=True)
+    page.screenshot(path=str(out_screenshot))
+    return {
+        "ok": True,
+        "mode": "viewer_rejection",
+        "status_text": status_text,
+        "screenshot": str(out_screenshot),
+    }
+
+def record_viewer_speech(page, server_url: str, nva_path: Path, out_path: Path) -> dict:
+    url = f"{server_url}/viewer/viewer.html"
+    page.goto(url)
+    page.wait_for_selector("#nvaFile", timeout=10000)
+    page.set_input_files("#nvaFile", str(nva_path))
+    page.wait_for_function('!document.getElementById("playSpeech").disabled', timeout=30000)
+
+    res = page.evaluate('''() => {
+        return new Promise((resolve, reject) => {
+            const video = document.getElementById("animation");
+            let mimeType = 'video/webm; codecs="vp9,opus"';
+            if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
+
+            let recorder = null;
+            const chunks = [];
+            let startTime = 0;
+            let endTime = 0;
+
+            const onPlay = () => {
+                const stream = video.captureStream();
+                recorder = new MediaRecorder(stream, { mimeType });
+                recorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) chunks.push(e.data);
+                };
+                recorder.onstop = async () => {
+                    endTime = performance.now();
+                    const finalBlob = new Blob(chunks, { type: mimeType });
+                    const arrayBuf = await finalBlob.arrayBuffer();
+                    let binary = "";
+                    const bytes = new Uint8Array(arrayBuf);
+                    const chunkSize = 0x8000;
+                    for (let i = 0; i < bytes.byteLength; i += chunkSize) {
+                        binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + chunkSize, bytes.byteLength)));
+                    }
+                    resolve({
+                        ok: true,
+                        recordDurationSec: (endTime - startTime) / 1000,
+                        videoDuration: video.duration,
+                        blobSize: finalBlob.size,
+                        base64: btoa(binary)
+                    });
+                };
+                startTime = performance.now();
+                recorder.start(100);
+            };
+
+            const onEnded = () => {
+                if (recorder && recorder.state !== "inactive") {
+                    recorder.stop();
+                }
+            };
+
+            video.addEventListener("play", onPlay, { once: true });
+            video.addEventListener("ended", onEnded, { once: true });
+            video.addEventListener("error", (err) => {
+                if (recorder && recorder.state !== "inactive") recorder.stop();
+                reject(err);
+            }, { once: true });
+
+            document.getElementById("playSpeech").click();
+        });
+    }''')
+
+    b64_data = res.pop("base64", None)
+    if not b64_data:
+        raise RuntimeError("No base64 video data returned from viewer recording")
+    b64_data = b64_data.strip()
+    missing_padding = len(b64_data) % 4
+    if missing_padding:
+        b64_data += '=' * (4 - missing_padding)
+    raw_bytes = base64.b64decode(b64_data)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_bytes(raw_bytes)
+    return res
+
 def main():
     parser = argparse.ArgumentParser(description="Jina Fastpath Playwright Recorder")
-    parser.add_argument("--mode", choices=["composed", "studio"], required=True)
+    parser.add_argument("--mode", choices=["composed", "studio", "viewer_rejection", "viewer_speech"], required=True)
     parser.add_argument("--server-url", required=True)
-    parser.add_argument("--out", required=True, help="Output webm path")
+    parser.add_argument("--out", required=True, help="Output path (webm or png)")
     parser.add_argument("--report", required=True, help="Report json path")
 
     # composed args
@@ -85,6 +178,9 @@ def main():
     parser.add_argument("--manifest-url", default="/studio-assets/jina-speech-set.json")
     parser.add_argument("--atlas-url", default="/studio-assets/jina-mouth-atlas.png")
     parser.add_argument("--base-video-url", default="/studio-assets/jina-idle-transparent.webm")
+
+    # viewer args
+    parser.add_argument("--nva-file", default="", help="File path for viewer upload")
 
     args = parser.parse_args()
     out_path = Path(args.out).resolve()
@@ -118,7 +214,7 @@ def main():
                     args.plan_url,
                     out_path
                 )
-            else:
+            elif args.mode == "studio":
                 res = record_studio(
                     page,
                     args.server_url,
@@ -128,6 +224,22 @@ def main():
                     args.audio_url,
                     out_path
                 )
+            elif args.mode == "viewer_rejection":
+                res = record_viewer_rejection(
+                    page,
+                    args.server_url,
+                    Path(args.nva_file).resolve(),
+                    out_path
+                )
+            elif args.mode == "viewer_speech":
+                res = record_viewer_speech(
+                    page,
+                    args.server_url,
+                    Path(args.nva_file).resolve(),
+                    out_path
+                )
+            else:
+                raise ValueError(f"Unknown mode: {args.mode}")
 
             res["browserConsole"] = console_messages
             report_path.parent.mkdir(parents=True, exist_ok=True)

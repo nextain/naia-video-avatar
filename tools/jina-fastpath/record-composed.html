@@ -93,11 +93,36 @@ window.runComposedRecording = async function(nvaUrl, audioUrl, planUrl) {
 
     const { manifest, assets } = await loadBundle(nvaBlob);
 
+    const drawnMap = new Map();
+    let isPlaying = false;
+
     const player = new SpeechPlayer({
       audio: audioEl,
       canvas: canvasEl,
       bodyVideo: bodyVideo,
       speechVideos: [speechA, speechB],
+      onDraw: ({ timeUs, resolved, audioTime }) => {
+        if (!isPlaying || !player.schedule || !player.schedule.transitions) return;
+        for (const layer of resolved) {
+          const trans = player.schedule.transitions[layer.index];
+          if (!trans) continue;
+          const plannedUs = trans.boundary_us;
+          const diffMs = Math.abs((timeUs - plannedUs) / 1000);
+          const existing = drawnMap.get(layer.index);
+          if (!existing || diffMs < existing.minDiffMs) {
+            drawnMap.set(layer.index, {
+              minDiffMs: diffMs,
+              record: {
+                index: layer.index,
+                key: layer.key,
+                planned_time_us: plannedUs,
+                display_time_us: timeUs,
+                diff_ms: (timeUs - plannedUs) / 1000,
+              }
+            });
+          }
+        }
+      }
     });
 
     const loadResult = await player.load({
@@ -143,10 +168,12 @@ window.runComposedRecording = async function(nvaUrl, audioUrl, planUrl) {
     const playPromise = new Promise((resolve, reject) => {
       audioEl.addEventListener("ended", () => {
         endTime = performance.now();
+        isPlaying = false;
         recorder.stop();
         resolve();
       }, { once: true });
       audioEl.addEventListener("error", (err) => {
+        isPlaying = false;
         recorder.stop();
         reject(err);
       }, { once: true });
@@ -154,10 +181,24 @@ window.runComposedRecording = async function(nvaUrl, audioUrl, planUrl) {
 
     recorder.start(100);
     startTime = performance.now();
+    isPlaying = true;
     await player.play();
 
     await playPromise;
     await stopPromise;
+
+    const drawnTransitions = [];
+    const totalTransitions = player.schedule?.transitions?.length || 0;
+    for (let i = 0; i < totalTransitions; i++) {
+      if (drawnMap.has(i)) {
+        drawnTransitions.push(drawnMap.get(i).record);
+      }
+    }
+    const drawnKeys = drawnTransitions.map(d => d.key);
+    const absDiffs = drawnTransitions.map(d => Math.abs(d.diff_ms)).sort((a, b) => a - b);
+    const max_ms = absDiffs.length ? Math.max(...absDiffs) : 0;
+    const p95_ms = absDiffs.length ? absDiffs[Math.floor(absDiffs.length * 0.95)] : 0;
+    const mean_ms = absDiffs.length ? (absDiffs.reduce((a, b) => a + b, 0) / absDiffs.length) : 0;
 
     const finalBlob = new Blob(chunks, { type: mimeType });
     const recordDurationSec = (endTime - startTime) / 1000;
@@ -176,6 +217,13 @@ window.runComposedRecording = async function(nvaUrl, audioUrl, planUrl) {
       ok: true,
       transitions: loadResult.transitions,
       quality_mode: loadResult.quality_mode,
+      drawnTransitions,
+      drawnKeys,
+      transitionTimeDiffs: {
+        max_ms,
+        p95_ms,
+        mean_ms,
+      },
       audioDuration: audioDurationSec,
       recordDuration: recordDurationSec,
       durationDiff: Math.abs(recordDurationSec - audioDurationSec),

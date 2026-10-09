@@ -38,6 +38,7 @@ export class SpeechPlayer {
     imageLoader = globalThis.createImageBitmap,
     requestFrame = (callback) => globalThis.requestAnimationFrame(callback),
     cancelFrame = (handle) => globalThis.cancelAnimationFrame(handle),
+    onDraw = null,
   }) {
     if (!audio || !canvas || !bodyVideo) throw new TypeError("audio, canvas, and bodyVideo are required");
     if (typeof canvas.getContext !== "function") throw new TypeError("canvas must expose a 2D context");
@@ -54,6 +55,7 @@ export class SpeechPlayer {
     this.imageLoader = imageLoader;
     this.requestFrame = requestFrame;
     this.cancelFrame = cancelFrame;
+    this.onDraw = typeof onDraw === "function" ? onDraw : null;
     this.decoder = new AlternatingSpeechDecoder(speechVideos, urlApi);
     this.playbackState = new SpeechPlaybackState(
       () => this.state,
@@ -240,6 +242,9 @@ export class SpeechPlayer {
       drawBlendedWholeHeadSpeechFrame(this.context, this.neutralHead, readyLayers, this.region);
     } else {
       drawBlendedFactorizedSpeechFrame(this.context, this.neutralHead, readyLayers, this.region);
+    }
+    if (this.onDraw) {
+      this.onDraw({ timeUs, resolved, audioTime: this.audio.currentTime || 0 });
     }
 
     const current = resolved[0]?.index;
