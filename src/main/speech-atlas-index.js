@@ -20,8 +20,10 @@ export function validateSpeechAtlasIndex(index, atlasBytes) {
     return { ok: false, errors };
   }
   const entryKeys = Object.keys(entries);
+  const unitKeys = entryKeys.filter((key) => key.split(">").length === 1);
   const pairKeys = entryKeys.filter((key) => key.split(">").length === 2);
   const contextKeys = entryKeys.filter((key) => key.split(">").length === 3);
+  if (unitKeys.length > 13) fail("atlas may contain at most 13 single units");
   if (pairKeys.length > 169) fail("atlas may contain at most 169 directional pair units");
   if (contextKeys.length > 64) fail("atlas may contain at most 64 three-unit contexts");
   const pairSet = new Set(pairKeys);
@@ -34,8 +36,8 @@ export function validateSpeechAtlasIndex(index, atlasBytes) {
   const ranges = [];
   for (const [key, entry] of Object.entries(entries)) {
     const units = key.split(">");
-    if ((units.length !== 2 && units.length !== 3) || units.some((unit) => !UNIT_SET.has(unit)))
-      fail(`${key}: key must be a frozen inventory transition or three-unit context`);
+    if ((units.length !== 1 && units.length !== 2 && units.length !== 3) || units.some((unit) => !UNIT_SET.has(unit)))
+      fail(`${key}: key must be a frozen inventory unit, transition, or three-unit context`);
     if (!entry || typeof entry !== "object") {
       fail(`${key}: entry must be an object`);
       continue;

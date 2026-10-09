@@ -67,3 +67,14 @@ test("atlas caps context units at 64 and requires every B fallback pair", () => 
     tooManyContexts.entries[key] = { offset: offset++, length: 1, sha256: sha, frames: 5, fps: 25, codec: "vp09.00.10.08", lossless: true };
   assert.equal(validateSpeechAtlasIndex(tooManyContexts, offset).ok, false);
 });
+
+test("atlas accepts single unit keys and caps at 13", () => {
+  const withUnits = index();
+  withUnits.entries = {
+    "sil": { offset: 0, length: 50, sha256: sha, frames: 5, fps: 25, codec: "vp09.00.10.08", lossless: true },
+    "closed": { offset: 50, length: 50, sha256: sha, frames: 5, fps: 25, codec: "vp09.00.10.08", lossless: true },
+    "closed>vowel-open": { offset: 100, length: 100, sha256: sha, frames: 5, fps: 25, codec: "vp09.00.10.08", lossless: true },
+  };
+  assert.equal(validateSpeechAtlasIndex(withUnits, 200).ok, true);
+});
+

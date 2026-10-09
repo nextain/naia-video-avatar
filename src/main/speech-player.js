@@ -138,8 +138,7 @@ export class SpeechPlayer {
       throw new Error("SpeechPlan audio duration mismatch");
 
     for (const range of prefetchSpeechRanges(this.schedule, atlasIndex)) {
-      const index = this.schedule.transitions.findIndex((item) => item.key === range.key);
-      if (index >= 0) await this.#ensureTransition(index);
+      await this.#ensureKey(range.key);
     }
     this.audio.addEventListener("ended", this.onEnded);
     this.audio.addEventListener("error", this.onAudioError);
@@ -196,22 +195,29 @@ export class SpeechPlayer {
     this.pending.clear();
   }
 
-  async #ensureTransition(index) {
-    const transition = this.schedule.transitions[index];
-    if (this.keyToSlot.has(transition.key)) return this.speechVideos[this.keyToSlot.get(transition.key)];
-    if (this.pending.has(transition.key)) return this.pending.get(transition.key);
-    const entry = this.atlasIndex.entries[transition.key];
+  async #ensureKey(key) {
+    if (!key) return null;
+    if (this.keyToSlot.has(key)) return this.speechVideos[this.keyToSlot.get(key)];
+    if (this.pending.has(key)) return this.pending.get(key);
+    const entry = this.atlasIndex?.entries?.[key];
+    if (!entry) throw new Error(`missing atlas index entry: ${key}`);
     const promise = (async () => {
       const blob = await this.atlasSource.read(entry.offset, entry.offset + entry.length);
       const loaded = await this.decoder.load(blob);
       const replaced = this.slotToKey[loaded.slot];
       if (replaced !== null) this.keyToSlot.delete(replaced);
-      this.slotToKey[loaded.slot] = transition.key;
-      this.keyToSlot.set(transition.key, loaded.slot);
+      this.slotToKey[loaded.slot] = key;
+      this.keyToSlot.set(key, loaded.slot);
       return loaded.video;
-    })().finally(() => this.pending.delete(transition.key));
-    this.pending.set(transition.key, promise);
+    })().finally(() => this.pending.delete(key));
+    this.pending.set(key, promise);
     return promise;
+  }
+
+  async #ensureTransition(index) {
+    const transition = this.schedule?.transitions?.[index];
+    if (!transition) return null;
+    return this.#ensureKey(transition.key);
   }
 
   #tick() {
@@ -230,7 +236,7 @@ export class SpeechPlayer {
     for (const layer of resolved) {
       const slot = this.keyToSlot.get(layer.key);
       if (slot === undefined) {
-        void this.#ensureTransition(layer.index).catch(() => this.stop("error"));
+        void this.#ensureKey(layer.key).catch(() => this.stop("error"));
         continue;
       }
       const video = this.speechVideos[slot];

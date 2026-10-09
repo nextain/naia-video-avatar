@@ -221,6 +221,8 @@ def normalize_short_events(events: list[dict], min_duration_us: int = 40_000) ->
 def build_speech_schedule(plan: dict, available_keys: set[str] | None = None) -> list[dict]:
     events = normalize_short_events(plan["events"])
     transitions = []
+    m = len(events) - 1
+    total_dur = int(plan["audio"]["duration_us"])
     for i in range(1, len(events)):
         prev = events[i - 1]
         curr = events[i]
@@ -229,14 +231,30 @@ def build_speech_schedule(plan: dict, available_keys: set[str] | None = None) ->
         context_key = f"{prev['unit']}>{curr['unit']}>{next_ev['unit']}" if next_ev else None
         key = context_key if context_key and available_keys and context_key in available_keys else pair_key
         boundary_us = curr["start_us"]
+
+        t_idx = i - 1
+        prev_bound = 0 if t_idx == 0 else events[i - 1]["start_us"]
+        next_bound = total_dur if t_idx == m - 1 else events[i + 1]["start_us"]
+        prev_mid = 0 if t_idx == 0 else int(round((prev_bound + boundary_us) / 2.0))
+        next_mid = total_dur if t_idx == m - 1 else int(round((boundary_us + next_bound) / 2.0))
+        alloc_dur = next_mid - prev_mid
+
+        rate = min(2.0, 80_000.0 / alloc_dur) if alloc_dur < 80_000 else 1.0
+        frame_interval_us = int(round(40_000.0 / rate))
+        frame_times = [boundary_us + k * frame_interval_us for k in [-2, -1, 0, 1, 2]]
+
         transitions.append({
             "key": key,
             "previous_unit": prev["unit"],
             "current_unit": curr["unit"],
             "boundary_us": boundary_us,
-            "frame_times_us": [boundary_us + off for off in [-80_000, -40_000, 0, 40_000, 80_000]],
+            "frame_times_us": frame_times,
             "frames": 5,
             "fps": 25,
+            "rate": rate,
+            "frame_interval_us": frame_interval_us,
+            "window_start_us": frame_times[0],
+            "window_end_us": frame_times[4],
         })
     return transitions
 
@@ -267,13 +285,20 @@ def decode_atlas_slices(atlas_bin_path: Path, atlas_index: dict) -> dict[str, li
         ]
         res = subprocess.run(dec_cmd, capture_output=True, check=True)
         raw = res.stdout
-        frame_bytes = 158 * 242 * 4
+        total_pixels = len(raw) // (5 * 4)
+        if total_pixels == 512 * 512:
+            sh, sw = 512, 512
+        elif total_pixels == 242 * 158:
+            sh, sw = 242, 158
+        else:
+            sh, sw = 512, 512
+        frame_bytes = sh * sw * 4
         if len(raw) != 5 * frame_bytes:
             raise ValueError(f"Slice {key} decoded byte count mismatch: got {len(raw)}, expected {5 * frame_bytes}")
         frames = []
         for fi in range(5):
             chunk = raw[fi * frame_bytes : (fi + 1) * frame_bytes]
-            arr = np.frombuffer(chunk, dtype=np.uint8).reshape((242, 158, 4))
+            arr = np.frombuffer(chunk, dtype=np.uint8).reshape((sh, sw, 4))
             frames.append(arr)
         slices[key] = frames
 
@@ -350,7 +375,11 @@ def verify_receipt_contract(data_dir: Path) -> dict:
                 k = f"{a}>{b}"
                 safe = f"{a}__{b}"
                 raw = (units_dir / f"{safe}.rgba").read_bytes()
-                frames_for_calc[k] = np.frombuffer(raw, dtype=np.uint8).reshape((5, 242, 158, 4))
+                pix_count = len(raw) // 4
+                if pix_count == 5 * 512 * 512:
+                    frames_for_calc[k] = np.frombuffer(raw, dtype=np.uint8).reshape((5, 512, 512, 4))
+                else:
+                    frames_for_calc[k] = np.frombuffer(raw, dtype=np.uint8).reshape((5, 242, 158, 4))
     else:
         frames_for_calc = slices
 
@@ -456,10 +485,17 @@ def verify_composed_video(
 
     schedule = build_speech_schedule(plan)
 
+    # 512x512 whole head at [104, 0, 512, 512] or 158x242 head at [280, 70, 158, 242]
+    h_dim, w_dim = neutral_head.shape[:2]
+    if h_dim == 512 and w_dim == 512:
+        head_x, head_y, head_w, head_h = 104, 0, 512, 512
+    else:
+        head_x, head_y, head_w, head_h = 280, 70, 158, 242
+
     # 오프라인 합성 머리 프레임 생성 헬퍼 (SpeechPlayer/speech-runtime.js import 절대 안 함)
     # transition frame 2 (가운데) 프레임을 neutral_head 위에 alpha 합성
     def synthesize_head_frame(key: str) -> np.ndarray:
-        slice_f2 = atlas_slices[key][2] # (242, 158, 4)
+        slice_f2 = atlas_slices[key][2]
         out = neutral_head.copy().astype(np.float32)
         alpha = slice_f2[:, :, 3:4].astype(np.float32) / 255.0
         out[:, :, :3] = slice_f2[:, :, :3] * alpha + out[:, :, :3] * (1.0 - alpha)
@@ -467,23 +503,67 @@ def verify_composed_video(
 
     def synthesize_head_at_time(t_sec: float) -> np.ndarray:
         t_us = int(round(t_sec * 1_000_000))
-        best_t = None
-        min_dist = 120_000
-        for trans in schedule:
-            dist = abs(t_us - trans["boundary_us"])
-            if dist < min_dist:
-                min_dist = dist
-                best_t = trans
-        if best_t:
-            diff = t_us - best_t["boundary_us"]
-            f_idx = max(0, min(4, int(round(diff / 40_000)) + 2))
-            slice_f = atlas_slices[best_t["key"]][f_idx]
-            alpha = slice_f[:, :, 3:4].astype(np.float32) / 255.0
-            out = neutral_head.copy().astype(np.float32)
-            out[:, :, :3] = slice_f[:, :, :3] * alpha + out[:, :, :3] * (1.0 - alpha)
-            return np.clip(out[:, :, :3], 0, 255).astype(np.uint8)
-        else:
+        if not schedule or t_us < schedule[0]["window_start_us"]:
             return neutral_head[:, :, :3].copy()
+
+        layers = []
+        for idx in range(len(schedule) - 1):
+            left = schedule[idx]
+            right = schedule[idx + 1]
+            overlaps = left["window_end_us"] > right["window_start_us"]
+
+            if overlaps:
+                midpoint = int(round((left["boundary_us"] + right["boundary_us"]) / 2.0))
+                start = midpoint - 40_000
+                end = midpoint + 40_000
+                if t_us < start:
+                    f_idx = max(0, min(4, int(round((t_us - left["frame_times_us"][0]) / left["frame_interval_us"]))))
+                    layers = [{"key": left["key"], "frame": f_idx, "opacity": 1.0}]
+                    break
+                elif t_us <= end:
+                    prog = max(0.0, min(1.0, (t_us - start) / float(end - start)))
+                    r_op = (1.0 - math.cos(math.pi * prog)) / 2.0
+                    f_left = max(0, min(4, int(round((t_us - left["frame_times_us"][0]) / left["frame_interval_us"]))))
+                    f_right = max(0, min(4, int(round((t_us - right["frame_times_us"][0]) / right["frame_interval_us"]))))
+                    layers = [
+                        {"key": left["key"], "frame": f_left, "opacity": 1.0 - r_op},
+                        {"key": right["key"], "frame": f_right, "opacity": r_op},
+                    ]
+                    break
+            else:
+                if t_us <= left["window_end_us"]:
+                    f_idx = max(0, min(4, int(round((t_us - left["frame_times_us"][0]) / left["frame_interval_us"]))))
+                    layers = [{"key": left["key"], "frame": f_idx, "opacity": 1.0}]
+                    break
+                elif t_us < right["window_start_us"]:
+                    unit_key = left["current_unit"]
+                    if unit_key in atlas_slices:
+                        layers = [{"key": unit_key, "frame": 2, "opacity": 1.0}]
+                    else:
+                        layers = [{"key": left["key"], "frame": 4, "opacity": 1.0}]
+                    break
+
+        if not layers:
+            last = schedule[-1]
+            if t_us <= last["window_end_us"]:
+                f_idx = max(0, min(4, int(round((t_us - last["frame_times_us"][0]) / last["frame_interval_us"]))))
+                layers = [{"key": last["key"], "frame": f_idx, "opacity": 1.0}]
+            else:
+                unit_key = last["current_unit"]
+                if unit_key in atlas_slices:
+                    layers = [{"key": unit_key, "frame": 2, "opacity": 1.0}]
+                else:
+                    layers = [{"key": last["key"], "frame": 4, "opacity": 1.0}]
+
+        out = neutral_head.copy().astype(np.float32)
+        for layer in layers:
+            op = layer["opacity"]
+            if op <= 0 or layer["key"] not in atlas_slices:
+                continue
+            slice_f = atlas_slices[layer["key"]][layer["frame"]]
+            alpha = (slice_f[:, :, 3:4].astype(np.float32) / 255.0) * op
+            out[:, :, :3] = slice_f[:, :, :3] * alpha + out[:, :, :3] * (1.0 - alpha)
+        return np.clip(out[:, :, :3], 0, 255).astype(np.uint8)
 
     # 30프레임에 대한 기대 프레임 목록 (시간 기반 오프라인 합성)
     synth_heads = [synthesize_head_at_time(i / 25.0) for i in range(25)]
@@ -496,7 +576,7 @@ def verify_composed_video(
         for i in range(len(synth_heads)):
             rec_idx = i + shift
             if 0 <= rec_idx < len(rec_frames):
-                rec_head = rec_frames[rec_idx][70:70+242, 280:280+158]
+                rec_head = rec_frames[rec_idx][head_y:head_y+head_h, head_x:head_x+head_w]
                 exp_h = synth_heads[i]
                 mad = np.mean(np.abs(rec_head[head_mask].astype(np.float32) - exp_h[head_mask].astype(np.float32)))
                 mads.append(mad)
@@ -539,7 +619,7 @@ def verify_composed_video(
         center_t = trans["boundary_us"] / 1_000_000.0
         frame_idx = int(round((center_t + calibrated_delay_sec) * 25.0))
         rec_frame = get_rec_frame(frame_idx)
-        rec_head = rec_frame[70:70+242, 280:280+158]
+        rec_head = rec_frame[head_y:head_y+head_h, head_x:head_x+head_w]
 
         exp_head = all_synth_middle[trans["key"]]
         mad = float(np.mean(np.abs(rec_head[head_mask].astype(np.float32) - exp_head[head_mask].astype(np.float32))))
@@ -1227,12 +1307,36 @@ def main():
     parser = argparse.ArgumentParser(description="Jina Fastpath Comprehensive Recording Runner")
     parser.add_argument("--smoke", action="store_true", help="Run in smoke mode only")
     parser.add_argument("--force", action="store_true", help="Force re-recording even if cache matches")
+    parser.add_argument(
+        "--result-file",
+        type=Path,
+        default=Path("/var/home/luke/alpha-adk/.agents/progress/nva-jina-fastpath-20261009/result-A2.md"),
+        help="Path to result markdown file for input binding",
+    )
     args = parser.parse_args()
 
     data_dir = SITE_DIR / "data"
     nva_path = data_dir / "jina-speech-set.nva"
     segments_path = data_dir / "sentences" / "segments.json"
     gen_summary_path = data_dir / "generation-summary.json"
+
+    # 0. 입력 결속 파일 검증 (result-A2.md or result-A3.md)
+    result_file = args.result_file
+    if result_file.is_file():
+        print(f"\n[Result Binding] Validating result file: {result_file}")
+        lines = result_file.read_text(encoding="utf-8").splitlines()
+        if not lines or not (lines[0].startswith("status: success") or lines[0].startswith("status: rendered")):
+            raise ValueError(f"Invalid result file status in line 1: {lines[0] if lines else 'empty'}")
+        summary_sha = None
+        for line in lines[1:5]:
+            if line.startswith("summary_sha256:"):
+                summary_sha = line.split(":", 1)[1].strip()
+                break
+        if summary_sha and summary_sha != "null":
+            actual_summary_sha = sha256_file(gen_summary_path)
+            if summary_sha != actual_summary_sha:
+                raise ValueError(f"Summary sha256 mismatch with result file: expected {summary_sha}, got {actual_summary_sha}")
+            print(f"Result file summary sha256 verified: {summary_sha}")
 
     # 1. 영수증 계약 및 2,197개 연속성 전수 검증 (Item 7)
     print("\n[Step 1] Verifying generation receipt contract and 2,197 continuity pairs...")
