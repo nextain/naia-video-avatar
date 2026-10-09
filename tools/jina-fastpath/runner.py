@@ -1310,7 +1310,7 @@ def main():
     parser.add_argument(
         "--result-file",
         type=Path,
-        default=Path("/var/home/luke/alpha-adk/.agents/progress/nva-jina-fastpath-20261009/result-A2.md"),
+        default=Path("/var/home/luke/alpha-adk/.agents/progress/nva-jina-fastpath-20261009/result-A3.md"),
         help="Path to result markdown file for input binding",
     )
     args = parser.parse_args()
@@ -1320,23 +1320,45 @@ def main():
     segments_path = data_dir / "sentences" / "segments.json"
     gen_summary_path = data_dir / "generation-summary.json"
 
-    # 0. 입력 결속 파일 검증 (result-A2.md or result-A3.md)
+    # 0. 입력 결속 파일 검증 (#15 결속)
     result_file = args.result_file
-    if result_file.is_file():
-        print(f"\n[Result Binding] Validating result file: {result_file}")
-        lines = result_file.read_text(encoding="utf-8").splitlines()
-        if not lines or not (lines[0].startswith("status: success") or lines[0].startswith("status: rendered")):
-            raise ValueError(f"Invalid result file status in line 1: {lines[0] if lines else 'empty'}")
-        summary_sha = None
-        for line in lines[1:5]:
-            if line.startswith("summary_sha256:"):
-                summary_sha = line.split(":", 1)[1].strip()
-                break
-        if summary_sha and summary_sha != "null":
-            actual_summary_sha = sha256_file(gen_summary_path)
-            if summary_sha != actual_summary_sha:
-                raise ValueError(f"Summary sha256 mismatch with result file: expected {summary_sha}, got {actual_summary_sha}")
-            print(f"Result file summary sha256 verified: {summary_sha}")
+    if not result_file.is_file():
+        raise FileNotFoundError(f"#15 결속 오류: 결과 파일이 존재하지 않습니다: {result_file}")
+
+    print(f"\n[Result Binding] Validating result file: {result_file}")
+    lines = result_file.read_text(encoding="utf-8").splitlines()
+    if not lines or not lines[0].startswith("status: rendered"):
+        raise ValueError(
+            f"#15 결속 오류: 1행은 반드시 'status: rendered'여야 합니다. (실제: '{lines[0] if lines else 'empty'}')"
+        )
+    summary_sha = None
+    for line in lines[1:10]:
+        if line.startswith("summary_sha256:"):
+            summary_sha = line.split(":", 1)[1].strip()
+            break
+    if not summary_sha or summary_sha == "null":
+        raise ValueError(f"#15 결속 오류: 결과 파일에 유효한 summary_sha256이 없습니다: {result_file}")
+
+    if not gen_summary_path.is_file():
+        raise FileNotFoundError(f"#15 결속 오류: generation-summary.json이 없습니다: {gen_summary_path}")
+    actual_summary_sha = sha256_file(gen_summary_path)
+    if summary_sha != actual_summary_sha:
+        raise ValueError(
+            f"#15 결속 오류: summary_sha256 불일치: expected {summary_sha}, got {actual_summary_sha}"
+        )
+
+    summary_data = json.loads(gen_summary_path.read_text(encoding="utf-8"))
+    if "artifacts" in summary_data and isinstance(summary_data["artifacts"], dict):
+        for art_name, expected_art_sha in summary_data["artifacts"].items():
+            art_file = data_dir / art_name
+            if not art_file.is_file():
+                raise FileNotFoundError(f"#15 결속 오류: summary에 명시된 산출물 {art_name}이 디스크에 없습니다")
+            actual_art_sha = sha256_file(art_file)
+            if actual_art_sha != expected_art_sha:
+                raise ValueError(
+                    f"#15 결속 오류: 산출물 {art_name} sha256 불일치: expected {expected_art_sha}, got {actual_art_sha}"
+                )
+    print(f"Result file summary sha256 and artifacts verified: {summary_sha}")
 
     # 1. 영수증 계약 및 2,197개 연속성 전수 검증 (Item 7)
     print("\n[Step 1] Verifying generation receipt contract and 2,197 continuity pairs...")

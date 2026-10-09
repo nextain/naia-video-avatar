@@ -200,7 +200,7 @@ export class SpeechPlayer {
     if (this.keyToSlot.has(key)) return this.speechVideos[this.keyToSlot.get(key)];
     if (this.pending.has(key)) return this.pending.get(key);
     const entry = this.atlasIndex?.entries?.[key];
-    if (!entry) throw new Error(`missing atlas index entry: ${key}`);
+    if (!entry) return null;
     const promise = (async () => {
       const blob = await this.atlasSource.read(entry.offset, entry.offset + entry.length);
       const loaded = await this.decoder.load(blob);
@@ -234,13 +234,29 @@ export class SpeechPlayer {
     this.context.drawImage(this.bodyVideo, 0, 0, this.canvas.width, this.canvas.height);
     const readyLayers = [];
     for (const layer of resolved) {
-      const slot = this.keyToSlot.get(layer.key);
+      let key = layer.key;
+      let frame = layer.frame;
+      if (!this.atlasIndex?.entries?.[key]) {
+        // Fallback for legacy atlas without single-unit keys (b81a188 format)
+        if (layer.fallbackKey && this.atlasIndex?.entries?.[layer.fallbackKey]) {
+          key = layer.fallbackKey;
+          frame = layer.fallbackFrame ?? frame;
+        } else if (layer.index !== undefined && this.schedule?.transitions?.[layer.index]?.key && this.atlasIndex?.entries?.[this.schedule.transitions[layer.index].key]) {
+          key = this.schedule.transitions[layer.index].key;
+          frame = 4;
+        } else {
+          continue;
+        }
+      }
+      const slot = this.keyToSlot.get(key);
       if (slot === undefined) {
-        void this.#ensureKey(layer.key).catch(() => this.stop("error"));
+        if (this.atlasIndex?.entries?.[key]) {
+          void this.#ensureKey(key).catch(() => this.stop("error"));
+        }
         continue;
       }
       const video = this.speechVideos[slot];
-      const targetTime = layer.frame / 25;
+      const targetTime = frame / 25;
       if (Math.abs((video.currentTime || 0) - targetTime) > 0.005) video.currentTime = targetTime;
       readyLayers.push({ image: video, opacity: layer.opacity });
     }

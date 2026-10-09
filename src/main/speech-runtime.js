@@ -98,9 +98,19 @@ function transitionFrame(transition, timeUs) {
   return Math.max(0, Math.min(4, frame));
 }
 
+function makeUnitLayer(key, frame, opacity, fallbackKey, fallbackFrame, index) {
+  const layer = { key, frame, opacity };
+  Object.defineProperties(layer, {
+    fallbackKey: { value: fallbackKey, writable: true, configurable: true, enumerable: false },
+    fallbackFrame: { value: fallbackFrame ?? 4, writable: true, configurable: true, enumerable: false },
+    index: { value: index, writable: true, configurable: true, enumerable: false },
+  });
+  return layer;
+}
+
 // Resolve the atlas layers for one audio-clock instant.
 // (가) 인접 경계 창이 실제로 겹칠 때만 두 경계 중간에서 정확히 2프레임 raised-cosine 교차 혼합
-// (나) 창 밖 남는 음소 구간은 현재 단위의 중앙 프레임(index 2) 유지
+// (나) 창 밖 남는 음소 구간은 현재 단위의 중앙 프레임(index 2) 유지 (단위 키 없는 구형 atlas 호환 fallback 포함)
 export function resolveSpeechLayers(schedule, timeUs) {
   if (!schedule || !Array.isArray(schedule.transitions))
     throw new TypeError("schedule.transitions is required");
@@ -134,9 +144,9 @@ export function resolveSpeechLayers(schedule, timeUs) {
       if (timeUs <= left.window_end_us) {
         return [{ index, key: left.key, frame: transitionFrame(left, timeUs), opacity: 1 }];
       }
-      // 비중첩: 창 밖 남는 구간 -> 현재 단위 중앙 프레임(index 2) 유지
+      // 비중첩: 창 밖 남는 구간 -> 현재 단위 중앙 프레임(index 2) 유지 (구형 atlas는 left.key frame 4 fallback)
       if (timeUs < right.window_start_us) {
-        return [{ key: left.current_unit, frame: 2, opacity: 1 }];
+        return [makeUnitLayer(left.current_unit, 2, 1, left.key, 4, index)];
       }
     }
   }
@@ -146,8 +156,8 @@ export function resolveSpeechLayers(schedule, timeUs) {
   if (timeUs <= transition.window_end_us) {
     return [{ index, key: transition.key, frame: transitionFrame(transition, timeUs), opacity: 1 }];
   }
-  // 마지막 전이 창 밖 남는 구간 -> 현재 단위 중앙 프레임(index 2) 유지
-  return [{ key: transition.current_unit, frame: 2, opacity: 1 }];
+  // 마지막 전이 창 밖 남는 구간 -> 현재 단위 중앙 프레임(index 2) 유지 (구형 atlas는 transition.key frame 4 fallback)
+  return [makeUnitLayer(transition.current_unit, 2, 1, transition.key, 4, index)];
 }
 
 export class SpeechPlaybackState {
