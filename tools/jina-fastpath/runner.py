@@ -365,25 +365,8 @@ def verify_receipt_contract(data_dir: Path) -> dict:
     neutral_rgba = cv2.cvtColor(neutral_img, cv2.COLOR_BGRA2RGBA)
     head_mask = neutral_rgba[:, :, 3] > 0
 
-    units_dir = Path("/var/mnt/hdd/nextain/nva-jina-fastpath-20261009/a3-motion/units")
-    if not units_dir.is_dir():
-        units_dir = Path("/var/mnt/hdd/nextain/nva-jina-fastpath-20261009/gen/units")
-    use_units_rgba = units_dir.is_dir() and (units_dir / "sil__sil.rgba").is_file()
-    frames_for_calc = {}
-    if use_units_rgba:
-        print("Using validated source RGBA frames (bit-identical to decoded YUVA) for 2,197 pairs...")
-        for a in SPEECH_UNITS:
-            for b in SPEECH_UNITS:
-                k = f"{a}>{b}"
-                safe = f"{a}__{b}"
-                raw = (units_dir / f"{safe}.rgba").read_bytes()
-                pix_count = len(raw) // 4
-                if pix_count == 5 * 512 * 512:
-                    frames_for_calc[k] = np.frombuffer(raw, dtype=np.uint8).reshape((5, 512, 512, 4))
-                else:
-                    frames_for_calc[k] = np.frombuffer(raw, dtype=np.uint8).reshape((5, 242, 158, 4))
-    else:
-        frames_for_calc = slices
+    # 생성기 원본 RGBA 로 대신 계산하면 보고서와 같은 입력을 다시 재는 것이라 독립 검증이 아니다(B2 보고). 항상 atlas 디코드 결과로 잰다.
+    frames_for_calc = slices
 
     reported_map = {(p["a"], p["b"], p["c"]): p["mean_abs_diff"] for p in pairs}
     max_err = 0.0
@@ -408,11 +391,12 @@ def verify_receipt_contract(data_dir: Path) -> dict:
                 if err > max_err:
                     max_err = err
                 
-                tol = 0.01 if use_units_rgba else 0.10
+                # yuva420p 무손실 VP9 를 rgba 로 디코드하면 색 변환 반올림이 생겨 생성기 값과 완전히 같지 않다.
+                tol = 0.10
                 if err > tol:
                     raise ValueError(f"Continuity mismatch for ({a},{b},{c}): computed {mad:.5f} vs reported {rep_mad:.5f} (err {err:.5f} > {tol})")
 
-    print(f"Verified all 2,197 continuity pairs against decoded atlas! (Max error = {max_err:.5f} <= 0.01)")
+    print(f"Verified all 2,197 continuity pairs against decoded atlas! (Max error = {max_err:.5f} <= 0.10)")
     return {
         "status": "passed",
         "pair_count": len(pairs),
