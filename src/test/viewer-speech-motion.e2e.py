@@ -23,17 +23,25 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
-SITE_DATA = Path(os.environ.get("NVA_SITE_DATA", "/var/home/luke/alpha-adk/.agents/work/nva-jina-fastpath-site/data"))
+site_data_env = os.environ.get("NVA_SITE_DATA")
+if not site_data_env:
+    print("NVA_SITE_DATA 환경변수 없음 — 건너뜀")
+    raise SystemExit(0)
+
+SITE_DATA = Path(site_data_env)
 NVA_PATH = SITE_DATA / "jina-speech-set.nva"
 AUDIO_PATH = SITE_DATA / "sentences/s1.wav"
 PLAN_PATH = SITE_DATA / "sentences/s1.plan.json"
 
 if not NVA_PATH.exists():
-    raise SystemExit(f"Missing bundle: {NVA_PATH}")
+    print(f"Missing bundle: {NVA_PATH} — 건너뜀")
+    raise SystemExit(0)
 if not AUDIO_PATH.exists():
-    raise SystemExit(f"Missing audio: {AUDIO_PATH}")
+    print(f"Missing audio: {AUDIO_PATH} — 건너뜀")
+    raise SystemExit(0)
 if not PLAN_PATH.exists():
-    raise SystemExit(f"Missing plan: {PLAN_PATH}")
+    print(f"Missing plan: {PLAN_PATH} — 건너뜀")
+    raise SystemExit(0)
 
 # Minimal valid 1x1 transparent PNG
 TINY_PNG = bytes.fromhex(
