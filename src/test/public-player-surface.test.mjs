@@ -8,7 +8,6 @@ const removed = [
   "demo.html",
   "generation-client.js",
   "nva-cascade-adapter.js",
-  "browser-tts.js",
   "speech-provenance.js",
 ];
 
@@ -20,6 +19,7 @@ test("public runtime contains only completed-media format and Player surfaces", 
     "speech-player.js", "speech-plan.js", "speech-runtime.js",
     "speech-browser-runtime.js", "speech-atlas-index.js",
     "speech-atlas-source.js", "speech-bundle.js", "generation-contract.js", "zip-budget.js",
+    "browser-tts.js",
   ]) await access(new URL(path, main));
   for (const path of removed)
     await assert.rejects(access(new URL(path, main)), /ENOENT/);
@@ -29,7 +29,7 @@ test("README presents NVA Avatar Player as the current product", async () => {
   const readme = await readFile(new URL("../../README.md", import.meta.url), "utf8");
   assert.match(readme, /^# NVA Avatar Player/m);
   assert.match(readme, /completed.*speech|pre-rendered.*speech/is);
-  assert.doesNotMatch(readme, /browser.*TTS|Cascade|TensorRT|TRT/is);
+  assert.doesNotMatch(readme, /Cascade|TensorRT|TRT/is);
   assert.doesNotMatch(readme, /src\/main\/editor\.html|src\/main\/demo\.html/);
 });
 
