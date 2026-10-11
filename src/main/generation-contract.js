@@ -72,7 +72,7 @@ export function validateGenerationResult(result) {
     else totalAssetBytes += asset.bytes;
   }
   for (const role of REQUIRED_ROLES) if (!seenRoles.has(role)) fail(`asset role ${role} is required`);
-  if (totalAssetBytes > 100 * 1024 * 1024) fail("speech assets exceed the 100 MiB bundle limit");
+  if (totalAssetBytes > 160 * 1024 * 1024) fail("speech assets exceed the 160 MiB bundle limit");
 
   const assetsByRole = new Map((result.assets || []).map((asset) => [asset?.role, asset]));
 

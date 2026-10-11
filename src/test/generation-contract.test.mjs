@@ -85,8 +85,14 @@ test("generation result requires complete provenance and quality sections", () =
   weakDeletion.source_deleted_at = "2026-08-01";
   assert.equal(validateGenerationResult(weakDeletion).ok, false);
 
+  const limit = 160 * 1024 * 1024;
+  const otherBytes = result.assets.reduce((sum, asset, index) => (index === 1 ? sum : sum + asset.bytes), 0);
+  const atLimit = structuredClone(result);
+  atLimit.assets[1].bytes = limit - otherBytes;
+  assert.equal(validateGenerationResult(atLimit).ok, true);
+
   const oversized = structuredClone(result);
-  oversized.assets[1].bytes = 100 * 1024 * 1024;
+  oversized.assets[1].bytes = limit - otherBytes + 1;
   assert.equal(validateGenerationResult(oversized).ok, false);
 
   const unboundReport = structuredClone(result);

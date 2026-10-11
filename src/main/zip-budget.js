@@ -1,4 +1,4 @@
-const DEFAULT_MAX_BYTES = 100 * 1024 * 1024;
+const DEFAULT_MAX_BYTES = 160 * 1024 * 1024;
 
 function safePath(path) {
   if (typeof path !== "string" || !path || path.includes("\\") || path.startsWith("/")
@@ -20,7 +20,7 @@ export function assertZipBudget(zip, { maxBytes = DEFAULT_MAX_BYTES, maxFiles = 
     if (!Number.isSafeInteger(size) || size < 0) throw new Error("NVA ZIP size metadata is unavailable");
     bytes += size;
     if (!Number.isSafeInteger(bytes) || bytes > maxBytes)
-      throw new Error("expanded NVA assets exceed the 100 MiB limit");
+      throw new Error("expanded NVA assets exceed the 160 MiB limit");
     if (path === "manifest.json" && size > 1024 * 1024)
       throw new Error("NVA manifest exceeds the 1 MiB limit");
   }
