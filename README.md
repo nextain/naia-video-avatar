@@ -31,6 +31,16 @@ local image can be chosen to preview the transparent character in a service
 layout. No account, key, server-side
 application, GPU, or network API is required after the file has loaded.
 
+The default path is fully frontend-only:
+
+```text
+.nva + text → browser speechSynthesis → approximate speech-motion playback
+```
+
+Browser TTS does not normally expose PCM or phoneme timestamps, so this mode is
+honestly labelled `approximate`. It is the zero-account, zero-server open-source
+demo path.
+
 ## NVA v0.3 layout
 
 ```text
