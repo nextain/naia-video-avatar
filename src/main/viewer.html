@@ -641,8 +641,7 @@ get("speak").addEventListener("click", async () => {
   const textValue = (get("text") || get("speechText"))?.value;
   try {
     if (isSpeechMotion && !browserSpeechPrepared) {
-      get("speak").disabled = true;
-      setStatus("Preparing precomputed speech fragments…");
+      get("speak").disabled = true; // no new status text while preparing (baseline wording only)
       try {
         await prepareBrowserSpeech();
       } catch (error) {
