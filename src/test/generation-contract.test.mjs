@@ -106,7 +106,7 @@ test("whole-head-layer accepts screened and not_evaluated quality statuses with 
       { role: "quality_report", path: "speech/quality-report.json", sha256: sha, bytes: 500 },
     ],
     provenance: {
-      generator: { kind: "jina-fastpath-gpu0-media-agent-ditto", version: "test" },
+      generator: { kind: "test-generator", version: "test" },
       input_sha256: sha,
       settings_sha256: sha,
       inventory_version: "1.0.0",
