@@ -73,7 +73,8 @@ def build_fixtures(work: Path, contract_bundle: Path) -> dict:
     c = json.loads(json.dumps(base))
     c["animations"]["stand_talk"]["clip"] = "clips/talk.webm"
     out = {"c": work / "fixture-c-demo.nva", "b": work / "fixture-b-speech-set.nva",
-           "none": work / "fixture-c-no-talking.nva", "atlas": work / "fixture-missing-atlas.nva"}
+           "none": work / "fixture-c-no-talking.nva", "atlas": work / "fixture-missing-atlas.nva",
+           "v03": work / "fixture-v03-completed.nva"}
     _zip_dir_with(demo, out["c"], c, talk)
 
     b = json.loads(json.dumps(c))
@@ -90,6 +91,29 @@ def build_fixtures(work: Path, contract_bundle: Path) -> dict:
         if v.get("animation") in talking:
             v["animation"] = "nod"
     _zip_dir_with(demo, out["none"], n, {})
+
+    # v0.3 completed-media bundle (as in standalone-player.e2e.py): talking is v0.2 only (28913c2 nva-animation-player.js 58).
+    v03 = {
+        "nva_version": "0.3", "profile": "completed-media",
+        "meta": {"name": "Completed fixture", "delivery": {"kind": "completed-media", "realtime": False}},
+        "canvas": {"width": 360, "height": 640, "fps": 25}, "background": {"type": "transparent"},
+        "animations": {
+            "idle": {"clip": "clips/stand_idle.webm", "loop": True, "label": "Idle"},
+            "action": {"clip": "clips/nod.webm", "loop": False, "label": "Nod"},
+        },
+        "speech_clips": {"greeting": {"clip": "speech/greeting.mp4", "audio": "embedded",
+                                      "language": "ko-KR", "label": "greeting", "duration_ms": 1200}},
+        "scenario": {"nodes": {"start": {"type": "start"}, "idle": {"type": "scene", "animation": "idle"}},
+                     "edges": [{"from": "start", "to": "idle"}]},
+    }
+    speech = work / "greeting.mp4"
+    subprocess.run([
+        "ffmpeg", "-loglevel", "error", "-y",
+        "-f", "lavfi", "-i", "color=c=0x203040:s=360x640:r=25:d=1.2",
+        "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=1.2",
+        "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(speech),
+    ], check=True)
+    _zip_dir_with(demo, out["v03"], v03, {"speech/greeting.mp4": speech.read_bytes()})
 
     with zipfile.ZipFile(contract_bundle, "r") as zin, zipfile.ZipFile(out["atlas"], "w") as zout:
         for info in zin.infolist():
@@ -355,6 +379,14 @@ def main() -> None:
                 time.sleep(0.3)
                 assert page.locator("#animation").evaluate("v => v.currentSrc || v.src") == idle_src
                 print("#22 talking loop direct play/stop passed.")
+
+                # v0.3 bundle: [Play talking loop] stays off as in 28913c2, and with neither speech_motion
+                # nor a talking loop [Speak] stays off too (D27).
+                page.locator("#nvaFile").set_input_files(str(fx["v03"]))
+                page.locator("#status").filter(has_text="Ready").wait_for(timeout=20_000)
+                assert page.locator("#playTalking").is_disabled(), "v0.3 must not enable the talking loop"
+                assert page.locator("#speak").is_disabled(), "v0.3 without speech_motion must keep [Speak] off"
+                print("v0.3 talking/speak off passed.")
 
             # Part 3A: Contract bundles
             for bundle_path in contract_bundles:
