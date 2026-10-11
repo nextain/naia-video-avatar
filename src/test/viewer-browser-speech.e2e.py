@@ -99,6 +99,7 @@ const fakeSynthesis = {
     }, 20);
   },
   cancel() {
+    window.__ttsCancelCount = (window.__ttsCancelCount || 0) + 1;
     this.speaking = false;
     if (boundaryInterval) {
       clearInterval(boundaryInterval);
@@ -257,12 +258,50 @@ def main() -> None:
             page.goto(f"{BASE_URL}/src/main/viewer.html")
             page.wait_for_load_state("networkidle")
 
+            # Part 3-0: speak off before any NVA is opened (ad48be3 160 condition)
+            assert page.locator("#speak").is_disabled(), "#speak must be disabled before an NVA is opened"
+
+            # Part 3-0b: no speechSynthesis -> speak stays off after opening a talking-loop bundle
+            if fixture_c.exists():
+                nosynth = browser.new_page(viewport={"width": 1280, "height": 900})
+                nosynth.add_init_script("""
+                    Object.defineProperty(window, 'speechSynthesis', { configurable: true, get: () => undefined });
+                    Object.defineProperty(window, 'SpeechSynthesisUtterance', { configurable: true, get: () => undefined });
+                """)
+                nosynth.goto(f"{BASE_URL}/src/main/viewer.html")
+                nosynth.wait_for_load_state("networkidle")
+                nosynth.locator("#nvaFile").set_input_files(str(fixture_c))
+                nosynth.locator("#status").filter(has_text="Ready").wait_for(timeout=20_000)
+                assert nosynth.locator("#speak").is_disabled(), "#speak must be disabled without speechSynthesis"
+                nosynth.close()
+                print("Speak-off conditions (before open, no speechSynthesis) passed.")
+
+            # Part 3-0c: #22 [Play talking loop] direct play, Stop, idle (same as baseline record)
+            if fixture_c.exists():
+                page.locator("#nvaFile").set_input_files(str(fixture_c))
+                page.locator("#status").filter(has_text="Ready").wait_for(timeout=20_000)
+                time.sleep(0.5)
+                idle_src = page.locator("#animation").evaluate("v => v.currentSrc || v.src")
+                page.locator("#playTalking").click()
+                page.locator("#status").filter(has_text="Playing talking loop.").wait_for(timeout=5_000)
+                time.sleep(0.4)
+                t_a = page.locator("#animation").evaluate("v => [v.currentSrc || v.src, v.currentTime, v.loop, v.paused]")
+                time.sleep(0.6)
+                t_b = page.locator("#animation").evaluate("v => [v.currentSrc || v.src, v.currentTime]")
+                assert t_a[0] != idle_src and t_a[2] is True and t_a[3] is False and t_b[0] == t_a[0] and t_b[1] > t_a[1], (idle_src, t_a, t_b)
+                page.locator("#stop").click()
+                page.locator("#status").filter(has_text="idle restored").wait_for(timeout=5_000)
+                time.sleep(0.3)
+                assert page.locator("#animation").evaluate("v => v.currentSrc || v.src") == idle_src
+                print("#22 talking loop direct play/stop passed.")
+
             # Part 3A: Contract bundles
             for bundle_path in contract_bundles:
                 print(f"Testing contract bundle: {bundle_path.name}")
                 with zipfile.ZipFile(bundle_path, "r") as zf:
                     manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
 
+                stage_bg_before = page.locator("#stage").evaluate("s => [s.style.backgroundColor, s.style.backgroundImage]")
                 page.locator("#nvaFile").set_input_files(str(bundle_path))
                 page.locator("#status").filter(has_text="Ready").wait_for(timeout=30_000)
 
@@ -289,19 +328,12 @@ def main() -> None:
                 # Check talking loop button
                 assert not page.locator("#playTalking").is_disabled()
 
-                # Check canvas dimensions
+                # Background: opening a bundle keeps the viewer's stage background setting as before
+                # (28913c2/c6db101 do not apply manifest.background to the stage; #16 picker owns it).
+                stage_bg_after_open = page.locator("#stage").evaluate("s => [s.style.backgroundColor, s.style.backgroundImage]")
+                assert stage_bg_after_open == stage_bg_before, f"stage background changed on open: {stage_bg_before} -> {stage_bg_after_open}"
                 canvas_w = manifest.get("canvas", {}).get("width")
                 canvas_h = manifest.get("canvas", {}).get("height")
-                if canvas_w and canvas_h:
-                    actual_w = page.locator("#stageCanvas").evaluate("c => c.width")
-                    actual_h = page.locator("#stageCanvas").evaluate("c => c.height")
-                    assert actual_w == canvas_w and actual_h == canvas_h
-
-                # Check background
-                bg = manifest.get("background")
-                if bg and bg.get("type") == "color" and bg.get("color"):
-                    bg_val = page.locator("#backgroundColor").input_value()
-                    assert bg_val.lower() == bg["color"].lower()
 
                 # Check speak button & quality badge
                 assert not page.locator("#speak").is_disabled()
@@ -313,7 +345,9 @@ def main() -> None:
                 page.locator("#speak").click()
                 page.wait_for_function("() => document.querySelector('#stageCanvas')?.style.display !== 'none'")
                 assert page.locator("#animation").evaluate("v => v.style.display === 'none'")
-                page.locator("#status").filter(has_text="Speaking with browser TTS").wait_for(timeout=5_000)
+                page.locator("#status").filter(has_text="Speaking with browser TTS").wait_for(timeout=15_000)
+                if canvas_w and canvas_h:
+                    assert page.locator("#stageCanvas").evaluate("c => [c.width, c.height]") == [canvas_w, canvas_h]
 
                 # Sample 1 at 300ms
                 time.sleep(0.3)
@@ -335,8 +369,15 @@ def main() -> None:
             # Part 3B: Reject bundles
             for bundle_path in reject_bundles:
                 print(f"Testing reject bundle: {bundle_path.name}")
+                # As in c6db101, the bundle itself opens (idle/actions kept); its speech fragments are
+                # rejected by the generation contract when browser speech prepares them.
                 page.locator("#nvaFile").set_input_files(str(bundle_path))
-                page.locator("#status").filter(has_text="provenance.generator_commit is not allowed").wait_for(timeout=15_000)
+                page.locator("#status").filter(has_text="Ready").wait_for(timeout=30_000)
+                page.locator("#text").fill("Contract check.")
+                page.locator("#speak").click()
+                page.locator("#status").filter(has_text="provenance.generator_commit is not allowed").wait_for(timeout=30_000)
+                assert page.locator("#status").inner_text().startswith("Blocked:")
+                assert page.evaluate("() => window.__animationPlayer()?.state") != "talking"
                 assert page.locator("#speak").is_disabled(), f"Speak button must be disabled for reject bundle {bundle_path.name}"
                 print(f"Reject bundle {bundle_path.name} failed closed as expected.")
 
@@ -381,11 +422,42 @@ def main() -> None:
             # Part 3F: Broken atlas fixture
             if fixture_broken_atlas.exists():
                 print(f"Testing broken atlas fixture: {fixture_broken_atlas.name}")
+                # Missing atlas entry: the bundle itself is invalid, opening is Blocked (same in c6db101).
                 page.locator("#nvaFile").set_input_files(str(fixture_broken_atlas))
                 page.locator("#status").filter(has_text="Blocked:").wait_for(timeout=15_000)
                 assert page.locator("#speak").is_disabled()
                 page.locator("#speak").click(force=True)
                 assert page.evaluate("() => window.__animationPlayer()?.state") != "talking"
+                print("Missing-atlas bundle Blocked on open passed.")
+
+            # Corrupted atlas bytes: the bundle opens (idle/actions kept, as c6db101), but browser speech
+            # preparation fails -> Blocked, and it never falls back to the talking loop (ad48be3, RQ-08 4).
+            work_dir = ROOT / "examples/.local"
+            if contract_bundles and work_dir.is_dir():
+                with tempfile.TemporaryDirectory(prefix="p1-corrupt-", dir=work_dir) as tmpdir:
+                    corrupted = Path(tmpdir) / "corrupted-atlas.nva"
+                    with zipfile.ZipFile(contract_bundles[0], "r") as zin, zipfile.ZipFile(corrupted, "w") as zout:
+                        for info in zin.infolist():
+                            data = zin.read(info.filename)
+                            if info.filename == "speech/atlas.bin":
+                                changed = bytearray(data)
+                                changed[100] ^= 0xFF
+                                data = bytes(changed)
+                            zout.writestr(info, data)
+                    print("Testing corrupted-atlas bundle (speech preparation failure)...")
+                    page.locator("#nvaFile").set_input_files(str(corrupted))
+                    page.locator("#status").filter(has_text="Ready").wait_for(timeout=30_000)
+                    assert not page.locator("#speak").is_disabled()
+                    page.locator("#text").fill("Broken fragments must not fall back.")
+                    page.locator("#speak").click()
+                    page.locator("#status").filter(has_text="Blocked:").wait_for(timeout=30_000)
+                    assert page.locator("#speak").is_disabled()
+                    time.sleep(0.5)
+                    assert page.evaluate("() => window.__animationPlayer()?.state") != "talking"
+                    assert page.locator("#animation").evaluate("v => v.style.display !== 'none' && !v.paused")
+                    print("Corrupted-atlas speech preparation Blocked without talking fallback passed.")
+                    page.locator("#nvaFile").set_input_files(str(contract_bundles[0]))
+                    page.locator("#status").filter(has_text="Ready").wait_for(timeout=30_000)
                 print("Broken atlas check passed.")
 
             # Part 3G: Overlap and Cancellation
@@ -415,17 +487,39 @@ def main() -> None:
                     page.locator("#playComposed").click()
                     page.locator("#status").filter(has_text="Playing from the audio clock.").wait_for(timeout=5_000)
                     page.locator("#speak").click()
-                    page.locator("#status").filter(has_text="Speaking with browser TTS").wait_for(timeout=5_000)
+                    page.locator("#status").filter(has_text="Speaking with browser TTS").wait_for(timeout=15_000)
+                    assert page.evaluate("() => window.__player()?.state") != "speaking", "composed session must stop when browser speech starts"
+                    assert page.evaluate("() => window.__browserSpeechPlayer()?.state") == "speaking"
                     page.locator("#status").filter(has_text="Speech complete; idle restored.").wait_for(timeout=10_000)
 
                     # Speak interrupted by composed
                     page.locator("#speak").click()
                     page.locator("#status").filter(has_text="Speaking with browser TTS").wait_for(timeout=5_000)
+                    cancels = page.evaluate("() => window.__ttsCancelCount || 0")
                     page.locator("#playComposed").click()
                     page.locator("#status").filter(has_text="Playing from the audio clock.").wait_for(timeout=5_000)
+                    assert page.evaluate("() => window.speechSynthesis.speaking") is False
+                    assert page.evaluate("() => window.__ttsCancelCount || 0") > cancels, "browser speech must be cancelled when composed playback starts"
+                    assert page.evaluate("() => window.__browserSpeechPlayer()?.state") != "speaking"
                     page.locator("#stopComposed").click()
                     page.locator("#status").filter(has_text="original ready state restored.").wait_for(timeout=5_000)
                     print("Composed speech <-> Browser speech overlap passed.")
+
+            # Part 3H: opening another NVA during browser speech cancels it and returns to idle
+            if fixture_c.exists():
+                page.locator("#nvaFile").set_input_files(str(contract_bundles[0]))
+                page.locator("#status").filter(has_text="Ready").wait_for(timeout=30_000)
+                page.locator("#text").fill("Reopen during speech.")
+                page.locator("#speak").click()
+                page.locator("#status").filter(has_text="Speaking with browser TTS").wait_for(timeout=15_000)
+                cancels = page.evaluate("() => window.__ttsCancelCount || 0")
+                page.locator("#nvaFile").set_input_files(str(fixture_c))
+                page.locator("#status").filter(has_text="Ready").wait_for(timeout=20_000)
+                assert page.evaluate("() => window.__ttsCancelCount || 0") > cancels
+                assert page.evaluate("() => window.speechSynthesis.speaking") is False
+                assert page.locator("#stageCanvas").evaluate("c => c.style.display === 'none'")
+                assert page.locator("#animation").evaluate("v => v.style.display !== 'none' && !v.paused")
+                print("Reopen during browser speech cancels and restores idle passed.")
 
             page.close()
             context.close()
