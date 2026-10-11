@@ -6,7 +6,9 @@ import http.server
 import json
 import os
 from pathlib import Path
+import shutil
 import socket
+import subprocess
 import sys
 import tempfile
 import threading
@@ -22,24 +24,86 @@ contract_env = os.environ.get("NVA_CONTRACT_BUNDLES")
 reject_env = os.environ.get("NVA_REJECT_BUNDLES")
 site_data_env = os.environ.get("NVA_SITE_DATA")
 
-if not contract_env or not reject_env:
-    print("NVA_CONTRACT_BUNDLES or NVA_REJECT_BUNDLES not set — skipping.")
-    sys.exit(0)
+# Missing inputs are NOT RUN (exit 2), never a silent pass.
+if not contract_env or not reject_env or not site_data_env:
+    print("NOT RUN: NVA_CONTRACT_BUNDLES, NVA_REJECT_BUNDLES and NVA_SITE_DATA are required.")
+    sys.exit(2)
 
 contract_bundles = [Path(p.strip()) for p in contract_env.split(",") if p.strip()]
 reject_bundles = [Path(p.strip()) for p in reject_env.split(",") if p.strip()]
 
 for p in contract_bundles:
     if not p.exists():
-        print(f"Contract bundle not found: {p} — skipping.")
-        sys.exit(0)
+        print(f"NOT RUN: contract bundle not found: {p}")
+        sys.exit(2)
 
 for p in reject_bundles:
     if not p.exists():
-        print(f"Reject bundle not found: {p} — skipping.")
-        sys.exit(0)
+        print(f"NOT RUN: reject bundle not found: {p}")
+        sys.exit(2)
 
-site_data_dir = Path(site_data_env) if site_data_env else None
+site_data_dir = Path(site_data_env)
+for need in ("sentences/s1.wav", "sentences/s1.plan.json"):
+    if not (site_data_dir / need).exists():
+        print(f"NOT RUN: {site_data_dir / need} not found")
+        sys.exit(2)
+
+
+def _zip_dir_with(src_dir: Path, dst: Path, manifest: dict, extra: dict) -> None:
+    with zipfile.ZipFile(dst, "w", zipfile.ZIP_STORED) as zf:
+        zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False))
+        for clip in sorted((src_dir / "clips").iterdir()):
+            zf.write(clip, f"clips/{clip.name}")
+        for name, data in extra.items():
+            zf.writestr(name, data)
+
+
+def build_fixtures(work: Path, contract_bundle: Path) -> dict:
+    """Build the v0.2 fixtures from the tracked examples/demo.nva so the test does not depend on local files.
+
+    (다) demo: stand_talk points at a separate talk clip (a copy of nod.webm) so a src switch is observable.
+    (나) speech_set: the same plus a legacy speech_set block.
+    no-talking: talking animations and the scenario nodes using them removed.
+    missing-atlas: a contract bundle without speech/atlas.bin.
+    """
+    demo = ROOT / "examples/demo.nva"
+    base = json.loads((demo / "manifest.json").read_text(encoding="utf-8"))
+    talk = {"clips/talk.webm": (demo / "clips/nod.webm").read_bytes()}
+
+    c = json.loads(json.dumps(base))
+    c["animations"]["stand_talk"]["clip"] = "clips/talk.webm"
+    out = {"c": work / "fixture-c-demo.nva", "b": work / "fixture-b-speech-set.nva",
+           "none": work / "fixture-c-no-talking.nva", "atlas": work / "fixture-missing-atlas.nva"}
+    _zip_dir_with(demo, out["c"], c, talk)
+
+    b = json.loads(json.dumps(c))
+    b["speech_set"] = {"version": "1.0", "items": []}
+    _zip_dir_with(demo, out["b"], b, talk)
+
+    n = json.loads(json.dumps(base))
+    talking = {k for k, v in n["animations"].items() if v.get("can_talk")}
+    for k in talking:
+        del n["animations"][k]
+    sc = n.get("scenario", {})
+    nodes = sc.get("nodes", {})
+    for k, v in list(nodes.items()):
+        if v.get("animation") in talking:
+            v["animation"] = "nod"
+    _zip_dir_with(demo, out["none"], n, {})
+
+    with zipfile.ZipFile(contract_bundle, "r") as zin, zipfile.ZipFile(out["atlas"], "w") as zout:
+        for info in zin.infolist():
+            if info.filename != "speech/atlas.bin":
+                zout.writestr(info, zin.read(info.filename))
+    return out
+
+
+def extract_baseline(commit: str, dest: Path) -> Path:
+    """Extract src/main of a baseline commit (28913c2, ad48be3) from git history."""
+    dest.mkdir(parents=True, exist_ok=True)
+    archive = subprocess.run(["git", "archive", commit, "src/main"], cwd=ROOT, check=True, capture_output=True).stdout
+    subprocess.run(["tar", "-x", "-C", str(dest)], input=archive, check=True)
+    return dest / "src/main/viewer.html"
 
 FAKE_TTS_INIT_SCRIPT = """
 window.__blobSizes = {};
@@ -168,16 +232,13 @@ def main() -> None:
         server_thread.start()
         time.sleep(0.3)
 
-    fixture_b = ROOT / "examples/.local/p1-work/fixture-b-speech-set.nva"
-    fixture_c = ROOT / "examples/.local/p1-work/fixture-c-demo.nva"
-    fixture_no_talking = ROOT / "examples/.local/p1-work/fixture-c-no-talking.nva"
-    fixture_broken_atlas = ROOT / "examples/.local/p1-work/fixture-broken-atlas.nva"
-
-    base_viewer_28913c2 = ROOT / "examples/.local/p1-work/base28913c2/src/main/viewer.html"
-    if not base_viewer_28913c2.exists():
-        base_viewer_28913c2 = ROOT / "examples/.local/p1-work/base/src/main/viewer.html"
-
-    base_viewer_ad48be3 = ROOT / "examples/.local/p1-work/basead48be3/src/main/viewer.html"
+    local_dir = ROOT / "examples/.local"  # gitignored; served by the same HTTP root
+    local_dir.mkdir(parents=True, exist_ok=True)
+    work = Path(tempfile.mkdtemp(prefix="viewer-browser-speech-", dir=local_dir))
+    fx = build_fixtures(work, contract_bundles[0])
+    fixture_b, fixture_c, fixture_no_talking, fixture_broken_atlas = fx["b"], fx["c"], fx["none"], fx["atlas"]
+    base_viewer_28913c2 = extract_baseline("28913c2", work / "base28913c2")
+    base_viewer_ad48be3 = extract_baseline("ad48be3", work / "basead48be3")
 
     try:
         with sync_playwright() as playwright:
@@ -394,9 +455,15 @@ def main() -> None:
                 assert "not lip-synced" in badge_text
                 assert not page.locator("#speak").is_disabled()
 
+                time.sleep(0.4)
+                idle_src = page.locator("#animation").evaluate("v => v.currentSrc || v.src")
                 page.locator("#speak").click()
                 page.locator("#status").filter(has_text="not lip-synced").wait_for(timeout=5_000)
                 assert page.locator("#animation").evaluate("v => !v.paused && v.style.display !== 'none'")
+                talk_src = page.locator("#animation").evaluate("v => v.currentSrc || v.src")
+                assert talk_src and talk_src != idle_src, "talking loop must switch to the talk clip"
+                assert page.evaluate("() => window.__animationPlayer()?.state") == "talking"
+                assert page.locator("#animation").evaluate("v => v.muted === true || v.volume === 0"), "talking loop must be muted during browser TTS"
 
                 page.locator("#status").filter(has_text="Speech complete; idle restored.").wait_for(timeout=10_000)
                 assert page.locator("#animation").evaluate("v => v.loop === true")
@@ -529,6 +596,7 @@ def main() -> None:
             print("ALL VIEWER BROWSER SPEECH E2E TESTS PASSED!")
 
     finally:
+        shutil.rmtree(work, ignore_errors=True)
         if server:
             server.shutdown()
             server.server_close()
