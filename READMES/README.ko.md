@@ -30,6 +30,16 @@ python3 -m http.server 8099 --bind 127.0.0.1
 확인하도록 배경 색상이나 로컬 이미지를 고를 수 있습니다. 파일을 읽은 뒤에는 계정,
 키, 서버 애플리케이션, GPU, 네트워크 API가 필요하지 않습니다.
 
+기본 경로는 완전한 프론트엔드 전용입니다:
+
+```text
+.nva + text → browser speechSynthesis → approximate speech-motion playback
+```
+
+브라우저 내장 TTS는 PCM이나 음소 타임스탬프를 직접 노출하지 않으므로, 이 모드는
+솔직하게 `approximate(근사)`로 표기됩니다. 계정이나 서버가 전혀 필요 없는 오픈소스
+데모 경로입니다.
+
 ## NVA v0.3 구조
 
 ```text
