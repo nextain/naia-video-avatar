@@ -78,19 +78,7 @@ test("default browser frame functions retain their global invocation context", (
   }
 });
 
-test("SpeechPlayer accepts whole-head-layer without ditto_region and binds region from speech_motion", async () => {
-  const media = () => ({
-    pause() {}, removeEventListener() {}, addEventListener(event, cb) {
-      if (event === "loadeddata" || event === "loadedmetadata") queueMicrotask(cb);
-    }, removeAttribute() {}, load() {}, duration: 0.1,
-  });
-  const player = new SpeechPlayer({
-    audio: media(), canvas: { getContext: () => ({ clearRect() {}, drawImage() {}, save() {}, restore() {} }), width: 720, height: 1280 },
-    bodyVideo: media(), speechVideos: [media(), media()],
-    urlApi: { createObjectURL: () => "blob:test", revokeObjectURL() {} },
-    imageLoader: async () => ({ close() {} }),
-  });
-
+async function buildWholeHeadFixture() {
   const manifest = {
     nva_version: "0.2",
     canvas: { width: 720, height: 1280, fps: 25 },
@@ -116,11 +104,22 @@ test("SpeechPlayer accepts whole-head-layer without ditto_region and binds regio
   const audioDigest = await crypto.subtle.digest("SHA-256", audioBytes);
   const audioSha = Buffer.from(audioDigest).toString("hex");
 
-  const plan = {
+  const alignedPlan = {
     version: "1",
     quality_mode: "aligned",
     aligner: { provider: "test", version: "1.0", model_sha256: "0".repeat(64) },
     audio: { sha256: audioSha, duration_us: 100_000 },
+    text: "test",
+    events: [
+      { unit: "sil", start_us: 0, end_us: 50_000 },
+      { unit: "closed", start_us: 50_000, end_us: 100_000 },
+    ],
+  };
+
+  const approxPlan = {
+    version: "1",
+    quality_mode: "approximate",
+    audio: { sha256: "0".repeat(64), duration_us: 100_000 },
     text: "test",
     events: [
       { unit: "sil", start_us: 0, end_us: 50_000 },
@@ -199,14 +198,150 @@ test("SpeechPlayer accepts whole-head-layer without ditto_region and binds regio
     ["speech/generation-result.json", receiptBlob],
   ]);
 
+  return { manifest, assets, alignedPlan, approxPlan, audioBytes };
+}
+
+test("SpeechPlayer accepts whole-head-layer without ditto_region and binds region from speech_motion", async () => {
+  const media = () => ({
+    pause() {}, removeEventListener() {}, addEventListener(event, cb) {
+      if (event === "loadeddata" || event === "loadedmetadata") queueMicrotask(cb);
+    }, removeAttribute() {}, load() {}, duration: 0.1,
+  });
+  const player = new SpeechPlayer({
+    audio: media(), canvas: { getContext: () => ({ clearRect() {}, drawImage() {}, save() {}, restore() {} }), width: 720, height: 1280 },
+    bodyVideo: media(), speechVideos: [media(), media()],
+    urlApi: { createObjectURL: () => "blob:test", revokeObjectURL() {} },
+    imageLoader: async () => ({ close() {} }),
+  });
+
+  const { manifest, assets, alignedPlan, audioBytes } = await buildWholeHeadFixture();
+
   const result = await player.load({
     manifest,
     assets,
-    plan,
+    plan: alignedPlan,
     audioBlob: new Blob([audioBytes]),
   });
 
   assert.equal(result.transitions, 1);
   assert.equal(player.representation, "whole-head-layer");
   assert.deepEqual(player.region, [280, 70, 158, 242]);
+});
+
+test("SpeechPlayer external clock mode requires approximate plan, prepares without audio, rejects play() mix, and releases clock on stop", async () => {
+  const media = () => ({
+    pause() {}, removeEventListener() {}, addEventListener(event, cb) {
+      if (event === "loadeddata" || event === "loadedmetadata") queueMicrotask(cb);
+    }, removeAttribute() {}, load() {}, duration: 0.1, async play() {},
+    currentTime: 0, readyState: 4,
+  });
+  let frameCallback = null;
+  const player = new SpeechPlayer({
+    audio: media(),
+    canvas: { getContext: () => ({ clearRect() {}, drawImage() {}, save() {}, restore() {} }), width: 720, height: 1280 },
+    bodyVideo: media(), speechVideos: [media(), media()],
+    urlApi: { createObjectURL: () => "blob:test", revokeObjectURL() {} },
+    imageLoader: async () => ({ close() {} }),
+    requestFrame: (cb) => { frameCallback = cb; return 1; },
+    cancelFrame: () => {},
+  });
+
+  const { manifest, assets, alignedPlan, approxPlan } = await buildWholeHeadFixture();
+
+  // (1) loadExternal rejects aligned SpeechPlan
+  await assert.rejects(
+    () => player.loadExternal({ manifest, assets, plan: alignedPlan }),
+    /external browser clock requires an approximate SpeechPlan/
+  );
+
+  // (2) loadExternal prepares without audioBlob
+  const loadResult = await player.loadExternal({ manifest, assets, plan: approxPlan });
+  assert.equal(loadResult.quality_mode, "approximate");
+  assert.equal(player.state, "ready");
+  assert.equal(player.mode, "external");
+
+  // (3) Calling play() when loaded external rejects
+  await assert.rejects(
+    () => player.play(),
+    /SpeechPlayer is not loaded for audio playback/
+  );
+
+  // (4) playExternal draws with external clock function
+  let clockTime = 0.02;
+  await player.playExternal(() => clockTime);
+  assert.equal(player.state, "speaking");
+  assert.equal(typeof frameCallback, "function");
+
+  // Advance clock and tick
+  clockTime = 0.08;
+  frameCallback();
+  assert.equal(player.state, "speaking");
+
+  // (5) stop clears externalClock and restores ready state
+  player.stop("complete");
+  assert.equal(player.state, "ready");
+  assert.equal(player.externalClock, null);
+  assert.equal(player.playbackState.lastOutcome, "complete");
+});
+
+test("SpeechPlayer rejects playExternal when loaded in audio mode", async () => {
+  const media = () => ({
+    pause() {}, removeEventListener() {}, addEventListener(event, cb) {
+      if (event === "loadeddata" || event === "loadedmetadata") queueMicrotask(cb);
+    }, removeAttribute() {}, load() {}, duration: 0.1, async play() {},
+    currentTime: 0, readyState: 4,
+  });
+  const player = new SpeechPlayer({
+    audio: media(),
+    canvas: { getContext: () => ({ clearRect() {}, drawImage() {}, save() {}, restore() {} }), width: 720, height: 1280 },
+    bodyVideo: media(), speechVideos: [media(), media()],
+    urlApi: { createObjectURL: () => "blob:test", revokeObjectURL() {} },
+    imageLoader: async () => ({ close() {} }),
+  });
+  const { manifest, assets, alignedPlan, audioBytes } = await buildWholeHeadFixture();
+  await player.load({ manifest, assets, plan: alignedPlan, audioBlob: new Blob([audioBytes]) });
+  assert.equal(player.mode, "audio");
+  await assert.rejects(
+    () => player.playExternal(() => 0.1),
+    /SpeechPlayer is not loaded for browser TTS playback/
+  );
+  player.dispose();
+});
+
+test("SpeechPlayer renders whole-head-layer frames with external clock", async () => {
+  const media = () => ({
+    pause() {}, removeEventListener() {}, addEventListener(event, cb) {
+      if (event === "loadeddata" || event === "loadedmetadata") queueMicrotask(cb);
+    }, removeAttribute() {}, load() {}, duration: 0.1, async play() {},
+    currentTime: 0, readyState: 4,
+  });
+  const drawn = [];
+  const player = new SpeechPlayer({
+    audio: media(),
+    canvas: {
+      getContext: () => ({
+        clearRect(...args) { drawn.push(["clearRect", ...args]); },
+        drawImage(...args) { drawn.push(["drawImage", ...args]); },
+        save() {}, restore() {},
+      }),
+      width: 720, height: 1280,
+    },
+    bodyVideo: media(), speechVideos: [media(), media()],
+    urlApi: { createObjectURL: () => "blob:test", revokeObjectURL() {} },
+    imageLoader: async () => ({ close() {} }),
+    requestFrame: () => 1,
+    cancelFrame: () => {},
+  });
+
+  const { manifest, assets, approxPlan } = await buildWholeHeadFixture();
+  await player.loadExternal({ manifest, assets, plan: approxPlan });
+  assert.equal(player.representation, "whole-head-layer");
+
+  let clockTime = 0.01;
+  await player.playExternal(() => clockTime);
+  assert.equal(player.state, "speaking");
+  assert.ok(drawn.some((call) => call[0] === "clearRect"));
+  assert.ok(drawn.some((call) => call[0] === "drawImage"));
+  player.stop("complete");
+  assert.equal(player.state, "ready");
 });
