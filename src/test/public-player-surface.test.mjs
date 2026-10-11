@@ -29,6 +29,7 @@ test("README presents NVA Avatar Player as the current product", async () => {
   const readme = await readFile(new URL("../../README.md", import.meta.url), "utf8");
   assert.match(readme, /^# NVA Avatar Player/m);
   assert.match(readme, /completed.*speech|pre-rendered.*speech/is);
+  assert.match(readme, /browser.*TTS/is);
   assert.doesNotMatch(readme, /Cascade|TensorRT|TRT/is);
   assert.doesNotMatch(readme, /src\/main\/editor\.html|src\/main\/demo\.html/);
 });
