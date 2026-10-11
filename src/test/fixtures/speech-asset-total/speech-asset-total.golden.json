@@ -1,0 +1,7 @@
+{
+  "fixture": "speech-asset-total.nva",
+  "sha256": "4d4da92b612e888ecf2f0c93848fd40a9d70db8d6218afd7855872e4be838e2d",
+  "expected_speech_asset_total_bytes": 24925,
+  "speech_dir_all_bytes": 32956,
+  "definition": "alpha-adk D25: manifest.speech_motion 이 가리키는 발화 조각 다섯 파일(neutral_head·atlas·atlas_index·validation_report·quality_report)의 바이트 합, 영수증·natural-eu 부속 제외"
+}

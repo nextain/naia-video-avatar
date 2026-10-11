@@ -44,6 +44,21 @@ export function validateGenerationJob(job) {
   return { ok: errors.length === 0, errors };
 }
 
+// Speech asset total (alpha-adk D25 shared definition): the byte sum of the five speech fragment files
+// that manifest.speech_motion points to (neutral_head, atlas, atlas_index, validation_report, quality_report),
+// which is the set the receipt assets[] lists. The receipt itself and natural-eu side files are not counted.
+// The gateway (packaging, upload check, status check) and the studio web loader count the same set.
+export const SPEECH_ASSET_MAX_BYTES = 160 * 1024 * 1024;
+
+export function speechAssetTotalBytes(result) {
+  if (!result || !Array.isArray(result.assets)) return 0;
+  let total = 0;
+  for (const asset of result.assets) {
+    if (asset && typeof asset === "object" && Number.isSafeInteger(asset.bytes) && asset.bytes > 0) total += asset.bytes;
+  }
+  return total;
+}
+
 export function validateGenerationResult(result) {
   const errors = [];
   const fail = (message) => errors.push(message);
@@ -55,7 +70,6 @@ export function validateGenerationResult(result) {
     fail("job_id must be an opaque job_ identifier");
 
   const seenRoles = new Set();
-  let totalAssetBytes = 0;
   if (!Array.isArray(result.assets) || !result.assets.length) fail("assets must be non-empty");
   else for (const [index, asset] of result.assets.entries()) {
     if (!asset || typeof asset !== "object") {
@@ -69,10 +83,9 @@ export function validateGenerationResult(result) {
     if (!relativeBundlePath(asset.path)) fail(`assets[${index}].path must stay inside the bundle`);
     if (!SHA256.test(asset.sha256 || "")) fail(`assets[${index}].sha256 is invalid`);
     if (!Number.isSafeInteger(asset.bytes) || asset.bytes <= 0) fail(`assets[${index}].bytes must be positive`);
-    else totalAssetBytes += asset.bytes;
   }
   for (const role of REQUIRED_ROLES) if (!seenRoles.has(role)) fail(`asset role ${role} is required`);
-  if (totalAssetBytes > 160 * 1024 * 1024) fail("speech assets exceed the 160 MiB speech asset limit");
+  if (speechAssetTotalBytes(result) > SPEECH_ASSET_MAX_BYTES) fail("speech assets exceed the 160 MiB speech asset limit");
 
   const assetsByRole = new Map((result.assets || []).map((asset) => [asset?.role, asset]));
 
