@@ -158,3 +158,102 @@ test("whole-head-layer accepts screened and not_evaluated quality statuses with 
   otherRetention.source_retention = "cloud-storage";
   assert.equal(validateGenerationResult(otherRetention).ok, false);
 });
+
+test("whole-head-layer generation result passes with only the 8 contract provenance keys", () => {
+  const result = {
+    version: "1",
+    job_id: "job_01JINA2Y7Q0M8T6R4P2N",
+    assets: [
+      { role: "neutral_head", path: "speech/neutral-head.png", sha256: sha, bytes: 100 },
+      { role: "speech_atlas", path: "speech/atlas.bin", sha256: sha, bytes: 200 },
+      { role: "speech_atlas_index", path: "speech/atlas-index.json", sha256: sha, bytes: 300 },
+      { role: "validation_report", path: "speech/validation-report.json", sha256: sha, bytes: 400 },
+      { role: "quality_report", path: "speech/quality-report.json", sha256: sha, bytes: 500 },
+    ],
+    provenance: {
+      generator: { kind: "test-generator", version: "test" },
+      input_sha256: sha,
+      settings_sha256: sha,
+      inventory_version: "1.0.0",
+      inventory: ["sil", "closed", "labiodental", "dental", "alveolar", "postalveolar", "palatal", "velar", "glottal", "vowel-open", "vowel-mid", "vowel-spread", "vowel-round"],
+      validation: { status: "passed", report_sha256: sha },
+      representation: "whole-head-layer",
+      region: [280, 70, 158, 242],
+    },
+    quality: {
+      report_sha256: sha,
+      sync: { status: "screened" },
+      continuity: { status: "screened" },
+      naturalness: { status: "not_evaluated" },
+      performance: { status: "screened" },
+      bundle: { status: "not_evaluated" },
+    },
+    source_deleted_at: null,
+    source_retention: "local-operator-file",
+  };
+  const keys = Object.keys(result.provenance);
+  assert.equal(keys.length, 8);
+  assert.deepEqual(new Set(keys), new Set([
+    "generator", "input_sha256", "settings_sha256", "inventory_version",
+    "inventory", "validation", "representation", "region",
+  ]));
+  const validation = validateGenerationResult(result);
+  assert.equal(validation.ok, true);
+  assert.deepEqual(validation.errors, []);
+});
+
+test("whole-head-layer generation result rejects 10 extra studio generator keys with provenance.<key> is not allowed", () => {
+  const extraKeys = [
+    "generator_commit",
+    "anchor_frame_index",
+    "natural_eu_sha256",
+    "e_u_source",
+    "residual_source",
+    "anchor_background_rgb",
+    "face_guide",
+    "face_guide_policy",
+    "silhouette_leak",
+    "silhouette_leak_threshold",
+  ];
+  const result = {
+    version: "1",
+    job_id: "job_01JINA2Y7Q0M8T6R4P2N",
+    assets: [
+      { role: "neutral_head", path: "speech/neutral-head.png", sha256: sha, bytes: 100 },
+      { role: "speech_atlas", path: "speech/atlas.bin", sha256: sha, bytes: 200 },
+      { role: "speech_atlas_index", path: "speech/atlas-index.json", sha256: sha, bytes: 300 },
+      { role: "validation_report", path: "speech/validation-report.json", sha256: sha, bytes: 400 },
+      { role: "quality_report", path: "speech/quality-report.json", sha256: sha, bytes: 500 },
+    ],
+    provenance: {
+      generator: { kind: "test-generator", version: "test" },
+      input_sha256: sha,
+      settings_sha256: sha,
+      inventory_version: "1.0.0",
+      inventory: ["sil", "closed", "labiodental", "dental", "alveolar", "postalveolar", "palatal", "velar", "glottal", "vowel-open", "vowel-mid", "vowel-spread", "vowel-round"],
+      validation: { status: "passed", report_sha256: sha },
+      representation: "whole-head-layer",
+      region: [280, 70, 158, 242],
+    },
+    quality: {
+      report_sha256: sha,
+      sync: { status: "screened" },
+      continuity: { status: "screened" },
+      naturalness: { status: "not_evaluated" },
+      performance: { status: "screened" },
+      bundle: { status: "not_evaluated" },
+    },
+    source_deleted_at: null,
+    source_retention: "local-operator-file",
+  };
+
+  for (const key of extraKeys) {
+    result.provenance[key] = "test-placeholder";
+  }
+
+  const validation = validateGenerationResult(result);
+  assert.equal(validation.ok, false);
+  const expectedErrors = extraKeys.map((key) => `provenance.${key} is not allowed`);
+  assert.deepEqual(validation.errors, expectedErrors);
+});
+
