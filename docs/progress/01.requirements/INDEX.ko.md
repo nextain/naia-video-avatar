@@ -38,3 +38,5 @@ scripts/check-traceability.mjs 가 이 표를 파싱한다.
 | REQ-028 | compatibility | Player가 v0.2 번들의 말하기 루프(loop·can_talk)를 재생하고, 알 수 없는 확장 키를 무시하며, 데모 예제를 정상 로드하고, 차단 로드 시 컨트롤을 비활성화하며 밀려난 재생 요청을 무시한다 (read compatibility under NFR-011) | Approved (#22) | UC-020 | SPEC-024 | TEST-S-024 |
 | REQ-029 | compatibility | Player가 Studio v0.2 소품 동작 순서를 복합 액션(enter 1회 → 본 동작 2회 → exit 1회 → 대기 복귀)으로 재생하고, 액션 메뉴에서 보조 클립을 숨기며, 중복 라벨을 구분 표기한다 | Approved (#25) | UC-021 | SPEC-025 | TEST-S-025 |
 | NFR-015 | resource-limits | 로더와 패키징 도구는 Studio v0.2 번들 수용을 위해 아카이브 200 MiB, 해제 자산 400 MiB까지 지원한다 | Approved (#25) | — | SPEC-002, SPEC-025 | TEST-S-025 |
+| REQ-030 | player | [브라우저 음성으로 말하기] 누르면 브라우저 음성, 교대 근사 계획, 외부 시계로 립싱크 말하기를 재생한다 | Approved (#27) | UC-022 | SPEC-026 | TEST-S-026, TEST-F-027 |
+| REQ-031 | player | 묶음 형식 세 분기 재생 호환: (가) speech_motion은 립싱크 발화 재생, (나) speech_set은 talking 루프 재생, (다) 둘 다 없으면 말하기 버튼 비활성화 | Approved (#27) | UC-022 | SPEC-026 | TEST-S-026 |
