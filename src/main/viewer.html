@@ -20,7 +20,7 @@
   button{margin-top:10px;border:0;border-radius:9px;padding:10px 12px;background:#6d5ce7;color:#fff;font-weight:650;cursor:pointer}button.secondary{background:#f2f4f7;color:#344054}button:disabled{opacity:.45;cursor:default}
   .section{padding-top:12px;margin-top:16px;border-top:1px solid #eaecf0}.background-row{display:grid;grid-template-columns:52px 1fr;gap:8px}.background-row input{height:40px;border:1px solid #d0d5dd;border-radius:9px;padding:3px;background:#fff}
   .badge{display:inline-block;border-radius:999px;background:#26344b;color:#bcd0ee;padding:3px 9px;font-size:11px;margin-top:10px}.badge.aligned{background:#123d31;color:#72e5bd}.badge.approximate{background:#4a3414;color:#ffd384}
-  #status{font-size:12px;line-height:1.5;color:#475467;background:#f8f9fb;border-radius:99px;padding:10px;margin-top:16px;min-height:54px;border-radius:9px}
+  #status{font-size:12px;line-height:1.5;color:#475467;background:#f8f9fb;border-radius:9px;padding:10px;margin-top:16px;min-height:54px}
   @media(max-width:820px){header{padding:0 18px}.layout{grid-template-columns:1fr;padding:16px}.panel{grid-row:1}.stage{min-height:460px}.media{max-height:460px}}
 </style>
 </head>
@@ -156,7 +156,7 @@ function updateSpeakButtonState() {
     return;
   }
   if (bundle.manifest?.speech_motion) {
-    get("speak").disabled = !browserSpeechPrepared;
+    get("speak").disabled = false;
   } else if (currentLoadedTalking) {
     get("speak").disabled = false;
   } else {
@@ -408,23 +408,7 @@ async function openNva(loadSource, label) {
     if (!avatarLoads.isCurrent(generation)) return;
     await animationPlayer.playIdle().catch(() => {});
     currentLoadedTalking = loaded.talking;
-    get("stageCanvas").width = bundle.manifest.canvas.width;
-    get("stageCanvas").height = bundle.manifest.canvas.height;
-    get("stageCanvas").style.aspectRatio = `${bundle.manifest.canvas.width}/${bundle.manifest.canvas.height}`;
     get("animation").style.aspectRatio = `${bundle.manifest.canvas.width}/${bundle.manifest.canvas.height}`;
-
-    if (bundle.manifest?.background) {
-      const bg = bundle.manifest.background;
-      if (bg.type === "color" && bg.color) {
-        stageBackground.setColor(bg.color);
-        get("backgroundColor").value = bg.color;
-      } else if (bg.type === "image" && bg.src && bundle.assets.get(bg.src)) {
-        stageBackground.setImage(bundle.assets.get(bg.src));
-      } else if (bg.type === "transparent") {
-        get("stage").style.backgroundColor = "transparent";
-        get("stage").style.backgroundImage = "none";
-      }
-    }
 
     get("speechClip").replaceChildren(...selectOptions(loaded.speechClips, "No packaged speech videos"));
     get("speechClip").disabled = !loaded.speechClips.length;
@@ -442,15 +426,8 @@ async function openNva(loadSource, label) {
       get("playComposed").disabled = true;
       get("stopComposed").disabled = true;
       get("quality").style.display = "none";
-      try {
-        await prepareBrowserSpeech();
-      } catch (error) {
-        browserSpeechPrepared = false;
-        browserSpeechFailed = true;
-        get("speak").disabled = true;
-        setStatus(`Blocked: ${error.message}`, true);
-        return;
-      }
+      get("ttsQuality").className = "badge approximate";
+      get("ttsQuality").textContent = "browser TTS · approximate lip sync";
     } else if (loaded.talking) {
       get("ttsQuality").className = "badge approximate";
       get("ttsQuality").textContent = "browser TTS · talking loop (not lip-synced)";
@@ -664,7 +641,21 @@ get("speak").addEventListener("click", async () => {
   const textValue = (get("text") || get("speechText"))?.value;
   try {
     if (isSpeechMotion && !browserSpeechPrepared) {
-      await prepareBrowserSpeech();
+      get("speak").disabled = true;
+      setStatus("Preparing precomputed speech fragments…");
+      try {
+        await prepareBrowserSpeech();
+      } catch (error) {
+        // Same as ad48be3: a speech_motion bundle whose fragments cannot be prepared is Blocked for
+        // browser speech; it never falls back to the talking loop. Idle and actions keep playing.
+        if (run !== browserSpeechRun) return;
+        browserSpeechPrepared = false;
+        browserSpeechFailed = true;
+        updateSpeakButtonState();
+        setStatus(`Blocked: ${error.message}`, true);
+        return;
+      }
+      if (run !== browserSpeechRun) return;
     }
     get("speak").disabled = true;
     get("stop").disabled = false;
