@@ -318,7 +318,7 @@ def run_e2e() -> None:
 
             # Finish action and verify idle
             page.evaluate("() => { const v = document.querySelector('#animation'); v.currentTime = 4.95; }")
-            page.wait_for_function("() => window.__animationPlayer()?.state === 'idle'", timeout=5_000)
+            page.wait_for_function("() => { const v = document.querySelector('#animation'); return window.__animationPlayer()?.state === 'idle' && !v.paused && v.readyState >= 2; }", timeout=5_000)
 
             # --- Case 3: Invalid unit (Pre-playback rejection) ---
             print("Testing Case 3: Invalid unit (Pre-playback rejection)...")
