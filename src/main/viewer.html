@@ -6,7 +6,7 @@
 <title>NVA Avatar Player</title>
 <style>
   :root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#172033;background:#f5f6f8}
-  *{box-sizing:border-box}body{margin:0;min-height:100vh}button,input,select{font:inherit}
+  *{box-sizing:border-box}body{margin:0;min-height:100vh}button,input,select,textarea{font:inherit}
   header{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid #e4e7ec;background:#fff}
   .brand{font-weight:750;letter-spacing:-.02em}.version{font-size:12px;color:#667085;background:#f2f4f7;border-radius:99px;padding:5px 9px}
   .layout{max-width:1180px;margin:auto;padding:28px;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px}
@@ -14,12 +14,13 @@
   .stage-card{padding:18px}.stage{min-height:620px;display:grid;place-items:center;overflow:hidden;border-radius:12px;background:#e9edf3 center/cover no-repeat;transition:background-color .2s}
   .media{display:block;max-width:100%;max-height:620px;filter:drop-shadow(0 18px 24px #10182824)}
   .panel{padding:20px;align-self:start}.panel h1{font-size:20px;margin:0 0 6px}.sub{font-size:13px;color:#667085;margin:0 0 20px;line-height:1.5}
-  label{display:block;font-size:12px;font-weight:650;color:#475467;margin:14px 0 6px}input,select,button{width:100%}
-  input[type=file],select{border:1px solid #d0d5dd;background:#fff;border-radius:9px;padding:9px;color:#344054}
+  label{display:block;font-size:12px;font-weight:650;color:#475467;margin:14px 0 6px}input,select,button,textarea{width:100%}
+  input[type=file],select,textarea{border:1px solid #d0d5dd;background:#fff;border-radius:9px;padding:9px;color:#344054}
+  textarea{min-height:80px;resize:vertical}
   button{margin-top:10px;border:0;border-radius:9px;padding:10px 12px;background:#6d5ce7;color:#fff;font-weight:650;cursor:pointer}button.secondary{background:#f2f4f7;color:#344054}button:disabled{opacity:.45;cursor:default}
   .section{padding-top:12px;margin-top:16px;border-top:1px solid #eaecf0}.background-row{display:grid;grid-template-columns:52px 1fr;gap:8px}.background-row input{height:40px;border:1px solid #d0d5dd;border-radius:9px;padding:3px;background:#fff}
   .badge{display:inline-block;border-radius:999px;background:#26344b;color:#bcd0ee;padding:3px 9px;font-size:11px;margin-top:10px}.badge.aligned{background:#123d31;color:#72e5bd}.badge.approximate{background:#4a3414;color:#ffd384}
-  #status{font-size:12px;line-height:1.5;color:#475467;background:#f8f9fb;border-radius:9px;padding:10px;margin-top:16px;min-height:54px}
+  #status{font-size:12px;line-height:1.5;color:#475467;background:#f8f9fb;border-radius:99px;padding:10px;margin-top:16px;min-height:54px;border-radius:9px}
   @media(max-width:820px){header{padding:0 18px}.layout{grid-template-columns:1fr;padding:16px}.panel{grid-row:1}.stage{min-height:460px}.media{max-height:460px}}
 </style>
 </head>
@@ -34,6 +35,10 @@
     <video id="bodyVideo" muted playsinline style="display:none"></video>
     <video id="speechVideoA" muted playsinline style="display:none"></video>
     <video id="speechVideoB" muted playsinline style="display:none"></video>
+    <audio id="browserSpeechAudio" style="display:none"></audio>
+    <video id="browserBodyVideo" muted playsinline style="display:none"></video>
+    <video id="browserSpeechVideoA" muted playsinline style="display:none"></video>
+    <video id="browserSpeechVideoB" muted playsinline style="display:none"></video>
   </div>
 </section>
 <aside class="panel">
@@ -65,6 +70,14 @@
     <select id="action" disabled><option value="">No actions loaded</option></select>
     <button id="playAction" class="secondary" disabled>Play action</button>
   </div>
+  <div class="section">
+    <label for="text">Text</label>
+    <textarea id="text">Hello. This NVA avatar is speaking with the browser's built-in voice.</textarea>
+    <label for="voice">Browser voice</label>
+    <select id="voice"><option value="">Loading installed voices…</option></select>
+    <div id="ttsQuality" class="badge approximate">browser TTS · approximate lip sync</div>
+    <button id="speak" disabled>Speak with browser voice</button>
+  </div>
   <div id="speechMotionSection" class="section" style="display:none">
     <label for="audioFile">Audio</label>
     <input id="audioFile" type="file" accept="audio/*">
@@ -79,6 +92,7 @@
 </aside>
 </div>
 <script type="module">
+import { BrowserTts, buildBrowserTtsPreviewPlan } from "./browser-tts.js";
 import { LoadCoordinator } from "./load-coordinator.js";
 import { loadNvaBundle } from "./nva-bundle-loader.js";
 import { NvaAnimationPlayer } from "./nva-animation-player.js";
@@ -103,6 +117,80 @@ let composedSession = 0;
 let prepareToken = 0;
 const SESSION_ELEMENT_IDS = ["stageCanvas", "speechAudio", "bodyVideo", "speechVideoA", "speechVideoB"];
 window.__speechRebuildMs = [];
+
+let tts = null;
+let browserSpeechPlayer = null;
+let browserSpeechRun = 0;
+let browserSpeechPrepared = false;
+let browserSpeechFailed = false;
+let currentLoadedTalking = null;
+
+function makeBrowserSpeechPlayer() {
+  browserSpeechPlayer?.dispose();
+  browserSpeechPlayer = new SpeechPlayer({
+    audio: get("browserSpeechAudio"),
+    canvas: get("stageCanvas"),
+    bodyVideo: get("browserBodyVideo"),
+    speechVideos: [get("browserSpeechVideoA"), get("browserSpeechVideoB")],
+  });
+}
+
+async function prepareBrowserSpeech() {
+  if (!bundle?.manifest?.speech_motion) throw new Error("This NVA has no precomputed speech fragments");
+  makeBrowserSpeechPlayer();
+  const result = await browserSpeechPlayer.loadExternal({
+    manifest: bundle.manifest,
+    assets: bundle.assets,
+    plan: buildBrowserTtsPreviewPlan(),
+  });
+  browserSpeechPrepared = true;
+  browserSpeechFailed = false;
+  get("ttsQuality").className = "badge approximate";
+  get("ttsQuality").textContent = "browser TTS · approximate lip sync";
+  return result;
+}
+
+function updateSpeakButtonState() {
+  if (!tts || !bundle || browserSpeechFailed) {
+    get("speak").disabled = true;
+    return;
+  }
+  if (bundle.manifest?.speech_motion) {
+    get("speak").disabled = !browserSpeechPrepared;
+  } else if (currentLoadedTalking) {
+    get("speak").disabled = false;
+  } else {
+    get("speak").disabled = true;
+  }
+}
+
+function populateVoices() {
+  if (!tts) return;
+  const current = get("voice").value;
+  const voices = tts.voices();
+  get("voice").replaceChildren(...voices.map((voice) => {
+    const option = document.createElement("option");
+    option.value = voice.voiceURI;
+    option.textContent = `${voice.name} · ${voice.lang}${voice.localService ? " · local" : " · online"}`;
+    return option;
+  }));
+  if (!voices.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Browser default voice";
+    get("voice").append(option);
+  } else if (voices.some((voice) => voice.voiceURI === current)) {
+    get("voice").value = current;
+  }
+}
+
+try {
+  tts = new BrowserTts();
+  populateVoices();
+  globalThis.speechSynthesis?.addEventListener?.("voiceschanged", populateVoices);
+} catch (error) {
+  tts = null;
+}
 
 function freshSessionElements() {
   const elements = {};
@@ -283,6 +371,12 @@ async function openNva(loadSource, label) {
   const { generation, signal } = avatarLoads.begin();
   composedSession++;
   prepareToken++; // invalidate any in-flight SpeechPlan validation for the previous NVA
+  browserSpeechRun++;
+  tts?.cancel();
+  browserSpeechPlayer?.stop("cancel");
+  browserSpeechPrepared = false;
+  browserSpeechFailed = false;
+  currentLoadedTalking = null;
   clearSpeechMonitor();
   disposeSession(activeSession);
   disposeSession(readySession);
@@ -296,6 +390,7 @@ async function openNva(loadSource, label) {
   get("playSpeech").disabled = true;
   get("playAction").disabled = true;
   get("playTalking").disabled = true;
+  get("speak").disabled = true;
   get("speechClip").disabled = true;
   get("action").disabled = true;
   get("stop").disabled = true;
@@ -312,7 +407,24 @@ async function openNva(loadSource, label) {
     const loaded = await animationPlayer.load(loadedBundle);
     if (!avatarLoads.isCurrent(generation)) return;
     await animationPlayer.playIdle().catch(() => {});
+    currentLoadedTalking = loaded.talking;
+    get("stageCanvas").width = bundle.manifest.canvas.width;
+    get("stageCanvas").height = bundle.manifest.canvas.height;
+    get("stageCanvas").style.aspectRatio = `${bundle.manifest.canvas.width}/${bundle.manifest.canvas.height}`;
     get("animation").style.aspectRatio = `${bundle.manifest.canvas.width}/${bundle.manifest.canvas.height}`;
+
+    if (bundle.manifest?.background) {
+      const bg = bundle.manifest.background;
+      if (bg.type === "color" && bg.color) {
+        stageBackground.setColor(bg.color);
+        get("backgroundColor").value = bg.color;
+      } else if (bg.type === "image" && bg.src && bundle.assets.get(bg.src)) {
+        stageBackground.setImage(bundle.assets.get(bg.src));
+      } else if (bg.type === "transparent") {
+        get("stage").style.backgroundColor = "transparent";
+        get("stage").style.backgroundImage = "none";
+      }
+    }
 
     get("speechClip").replaceChildren(...selectOptions(loaded.speechClips, "No packaged speech videos"));
     get("speechClip").disabled = !loaded.speechClips.length;
@@ -330,7 +442,21 @@ async function openNva(loadSource, label) {
       get("playComposed").disabled = true;
       get("stopComposed").disabled = true;
       get("quality").style.display = "none";
+      try {
+        await prepareBrowserSpeech();
+      } catch (error) {
+        browserSpeechPrepared = false;
+        browserSpeechFailed = true;
+        get("speak").disabled = true;
+        setStatus(`Blocked: ${error.message}`, true);
+        return;
+      }
+    } else if (loaded.talking) {
+      get("ttsQuality").className = "badge approximate";
+      get("ttsQuality").textContent = "browser TTS · talking loop (not lip-synced)";
     }
+
+    updateSpeakButtonState();
 
     const avatarName = bundle.manifest.meta?.name || label;
     setStatus(`Ready · ${avatarName} · ${loaded.speechClips.length} packaged speech videos · ${loaded.actions.length} actions`);
@@ -339,6 +465,10 @@ async function openNva(loadSource, label) {
       animationPlayer?.dispose();
       animationPlayer = null;
       bundle = null;
+      browserSpeechPrepared = false;
+      browserSpeechFailed = false;
+      currentLoadedTalking = null;
+      updateSpeakButtonState();
       get("speechMotionSection").style.display = "none";
       get("speechClip").replaceChildren(...selectOptions([], "No speech videos loaded"));
       get("action").replaceChildren(...selectOptions([], "No actions loaded"));
@@ -394,6 +524,12 @@ get("planFile").addEventListener("change", prepareSpeechPlayer);
 
 get("playSpeech").addEventListener("click", async () => {
   cancelComposed();
+  browserSpeechRun++;
+  tts?.cancel();
+  browserSpeechPlayer?.stop("cancel");
+  get("stageCanvas").style.display = "none";
+  get("animation").style.display = "";
+  updateSpeakButtonState();
   disposeSession(readySession); // clip switch: drop the prepared session too; the next composed play rebuilds
   const request = ++playRequest;
   try {
@@ -407,6 +543,12 @@ get("playSpeech").addEventListener("click", async () => {
 });
 get("playTalking").addEventListener("click", async () => {
   cancelComposed();
+  browserSpeechRun++;
+  tts?.cancel();
+  browserSpeechPlayer?.stop("cancel");
+  get("stageCanvas").style.display = "none";
+  get("animation").style.display = "";
+  updateSpeakButtonState();
   disposeSession(readySession);
   const request = ++playRequest;
   try {
@@ -420,6 +562,12 @@ get("playTalking").addEventListener("click", async () => {
 });
 get("playAction").addEventListener("click", async () => {
   cancelComposed();
+  browserSpeechRun++;
+  tts?.cancel();
+  browserSpeechPlayer?.stop("cancel");
+  get("stageCanvas").style.display = "none";
+  get("animation").style.display = "";
+  updateSpeakButtonState();
   disposeSession(readySession);
   const request = ++playRequest;
   try {
@@ -460,6 +608,10 @@ get("playComposed").addEventListener("click", async () => {
     return;
   }
   if (!preparedSpeech) return;
+  browserSpeechRun++;
+  tts?.cancel();
+  browserSpeechPlayer?.stop("cancel");
+  updateSpeakButtonState();
   // Pause first so the recorded position is the settled paused position, but keep the pre-pause playing state.
   const wasPaused = get("animation").paused;
   get("animation").pause();
@@ -504,11 +656,79 @@ get("stopComposed").addEventListener("click", () => {
   setStatus("Stopped; original ready state restored.");
 });
 
+get("speak").addEventListener("click", async () => {
+  if (get("speak").disabled) return;
+  cancelComposed();
+  const run = ++browserSpeechRun;
+  const isSpeechMotion = Boolean(bundle?.manifest?.speech_motion);
+  const textValue = (get("text") || get("speechText"))?.value;
+  try {
+    if (isSpeechMotion && !browserSpeechPrepared) {
+      await prepareBrowserSpeech();
+    }
+    get("speak").disabled = true;
+    get("stop").disabled = false;
+    const done = tts.speak({
+      text: textValue,
+      voiceURI: get("voice").value,
+      onStart: () => {
+        if (run !== browserSpeechRun) return;
+        if (isSpeechMotion) {
+          animationPlayer?.stop();
+          get("animation").style.display = "none";
+          get("stageCanvas").style.display = "";
+          void browserSpeechPlayer.playExternal(() => tts.currentTimeSeconds()).catch(async (error) => {
+            tts.cancel();
+            await restoreIdle(`Playback failed: ${error.message}`, undefined, true);
+          });
+          setStatus("Speaking with browser TTS · approximate lip sync");
+        } else if (currentLoadedTalking) {
+          get("stageCanvas").style.display = "none";
+          get("animation").style.display = "";
+          void animationPlayer.playTalking().catch(async (error) => {
+            tts.cancel();
+            await restoreIdle(`Talking failed: ${error.message}`, undefined, true);
+          });
+          setStatus("Speaking with browser TTS · talking loop (not lip-synced)");
+        }
+      },
+    });
+    const { outcome } = await done;
+    if (run !== browserSpeechRun) return;
+    if (isSpeechMotion) {
+      browserSpeechPlayer?.stop(outcome === "complete" ? "complete" : "cancel");
+      get("stageCanvas").style.display = "none";
+      get("animation").style.display = "";
+    } else {
+      animationPlayer?.stop();
+    }
+    await restoreIdle(outcome === "complete" ? "Speech complete; idle restored." : "Speech cancelled; idle restored.");
+    updateSpeakButtonState();
+  } catch (error) {
+    if (run !== browserSpeechRun) return;
+    if (isSpeechMotion) {
+      browserSpeechPlayer?.stop("error");
+      get("stageCanvas").style.display = "none";
+      get("animation").style.display = "";
+    } else {
+      animationPlayer?.stop();
+    }
+    await restoreIdle(`Browser TTS failed: ${error.message}`, undefined, true);
+    updateSpeakButtonState();
+  }
+});
+
 get("stop").addEventListener("click", async () => {
+  browserSpeechRun++;
+  tts?.cancel();
+  browserSpeechPlayer?.stop("cancel");
+  get("stageCanvas").style.display = "none";
+  get("animation").style.display = "";
   cancelComposed();
   const request = ++playRequest;
   await animationPlayer?.playIdle();
   if (request === playRequest) setStatus("Stopped; idle restored.");
+  updateSpeakButtonState();
 });
 get("backgroundColor").addEventListener("input", () => { stageBackground.setColor(get("backgroundColor").value); });
 get("backgroundImage").addEventListener("change", () => {
@@ -545,6 +765,9 @@ async function prepareSampleCatalog() {
 
 void prepareSampleCatalog();
 window.addEventListener("beforeunload", () => {
+  browserSpeechRun++;
+  tts?.cancel();
+  browserSpeechPlayer?.dispose();
   clearSpeechMonitor();
   avatarLoads.cancel();
   animationPlayer?.dispose();
@@ -556,6 +779,8 @@ window.addEventListener("beforeunload", () => {
 // Test inspection hooks
 window.__animationPlayer = () => animationPlayer;
 window.__player = () => activeSession?.player ?? readySession?.player ?? null;
+window.__browserSpeechPlayer = () => browserSpeechPlayer;
+window.__tts = () => tts;
 window.__getSnapshot = () => preComposedSnapshot;
 window.__takeSnapshot = takeAnimationPlayerSnapshot;
 window.__restoreSnapshot = restoreFromSnapshot;
