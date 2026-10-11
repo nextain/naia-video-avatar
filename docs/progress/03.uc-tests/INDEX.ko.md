@@ -23,4 +23,4 @@
 | TEST-S-023 | NFR-013, NFR-014 | 공개 실행 코드·예제·UI에 create, 편집기, TTS, 실시간 생성, Cascade 진입점과 외부 런타임 의존성이 없다 | 정적 계약(node) | src/test/public-service-surface.test.mjs, src/test/security.test.mjs | Done (#16) |
 | TEST-S-024 | UC-020 | 브라우저에서 Studio 0.2 대기 영상, 액션, 말하기 루프 재생, 정지 시 대기 복귀, 차단 로드 후 컨트롤 비활성화 및 밀려난 재생 요청 무시 확인 | 브라우저(Playwright) | src/test/standalone-player.e2e.py | Approved (#22) |
 | TEST-S-025 | UC-021, REQ-029, NFR-015 | 브라우저에서 Studio v0.2 소품 동작 순서(enter → 본 동작 2회 → exit → 대기), 중간 완료 문구 부재, 액션 목록 내 보조 클립 제외, 중복 라벨 구분, 아카이브 200 MiB / 해제 400 MiB 상한 적합성을 확인한다 | 브라우저(Playwright) | src/test/standalone-player.e2e.py | Approved (#25) |
-| TEST-S-026 | UC-022, REQ-030, REQ-031 | Chromium 환경에서 브라우저 음성 발화 재생, 타임스탬프 간 입 움직임 스모크, 기준판(28913c2/ad48be3) 비교, 계약 거절 묶음 거부, 세 분기 호환, 빈 텍스트, 깨진 아틀라스, 중첩 취소 E2E 검증 | 브라우저(Playwright) | src/test/viewer-browser-speech.e2e.py | Approved (#27) |
+| TEST-S-026 | UC-022, REQ-030, REQ-031 | Chromium 환경에서 브라우저 음성 발화 재생, 타임스탬프 간 입 움직임 스모크, 기준판(28913c2/ad48be3) 비교, 계약 거절 묶음 거부, 세 분기 호환, 빈 텍스트, 깨진 아틀라스, 중첩 취소 E2E 검증 | 브라우저(Playwright) | src/test/viewer-browser-speech.e2e.py | Draft (#27) |
