@@ -12,8 +12,12 @@ test("public viewer takes an NVA, audio, and SpeechPlan without a generation end
   assert.doesNotMatch(html, /GenerationClient|genUrl|generation endpoint/i);
 });
 
-test("viewer exposes aligned versus approximate quality and cancellation", () => {
+test("viewer shows only the aligned quality path and keeps cancellation", () => {
   assert.match(html, /aligned quality path/);
-  assert.match(html, /approximate preview/);
+  assert.doesNotMatch(html, /approximate/i);
   assert.match(html, /player\?\.stop\("cancel"\)/);
+});
+
+test("viewer has no talking-loop control (SoT 4: no audio-independent repetition)", () => {
+  assert.doesNotMatch(html, /playTalking|talking loop/i);
 });

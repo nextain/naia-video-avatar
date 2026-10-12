@@ -5,6 +5,20 @@ import {
 
 const FRAME_OFFSETS_US = Object.freeze([-80_000, -40_000, 0, 40_000, 80_000]);
 const CROSSFADE_HALF_WIDTH_US = 40_000;
+const FRAME_INTERVAL_US = 40_000;
+const UNIT_SPAN_US = 80_000;
+const MAX_PLAYBACK_RATE = 2;
+
+// Protocol line 103: "할당 구간이 80ms보다 짧으면 playback rate를 최대 2배로
+// 올린다. 그래도 40ms 미만이면 ... 합친다." The allocated span is the current
+// event's duration after normalizeShortSpeechEvents, so every span is >= 40ms
+// and the rate 80ms/span never exceeds 2. Spans of 80ms or more keep rate 1
+// and the a0c9715 frame times unchanged.
+export function speechPlaybackRate(durationUs) {
+  if (!Number.isSafeInteger(durationUs) || durationUs <= 0) return 1;
+  if (durationUs >= UNIT_SPAN_US) return 1;
+  return Math.min(MAX_PLAYBACK_RATE, UNIT_SPAN_US / durationUs);
+}
 
 // Convert an audio-clock SpeechPlan to language-independent atlas operations.
 // Decoding/compositing is deliberately kept behind a browser adapter.
@@ -24,14 +38,16 @@ export function buildSpeechSchedule(plan, { availableKeys } = {}) {
     const key = contextKey && available?.has(contextKey) ? contextKey : pairKey;
     if (available && !available.has(key)) throw new Error(`missing atlas unit: ${key}`);
     const boundaryUs = current.start_us;
+    const playbackRate = speechPlaybackRate(current.end_us - current.start_us);
     transitions.push({
       key,
       previous_unit: previous.unit,
       current_unit: current.unit,
       boundary_us: boundaryUs,
-      frame_times_us: FRAME_OFFSETS_US.map((offset) => boundaryUs + offset),
+      frame_times_us: FRAME_OFFSETS_US.map((offset) => boundaryUs + Math.round(offset / playbackRate)),
       frames: 5,
       fps: 25,
+      playback_rate: playbackRate,
     });
   }
 
@@ -75,7 +91,8 @@ export function prefetchSpeechRanges(schedule, atlasIndex, limit = 2) {
 }
 
 function transitionFrame(transition, timeUs) {
-  const frame = Math.round((timeUs - transition.frame_times_us[0]) / 40_000);
+  const intervalUs = FRAME_INTERVAL_US / (transition.playback_rate ?? 1);
+  const frame = Math.round((timeUs - transition.frame_times_us[0]) / intervalUs);
   return Math.max(0, Math.min(4, frame));
 }
 

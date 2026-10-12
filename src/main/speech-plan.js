@@ -29,12 +29,14 @@ export function validateSpeechPlan(plan) {
   }
   if (plan.version !== "1") fail('version must be "1"');
   if (typeof plan.text !== "string") fail("text must be a string");
-  if (!plan.audio || !SHA256.test(plan.audio.sha256 || ""))
+  // aligned: aligner phone boundaries on an audio file (SoT 2).
+  // browser-timed: browser speech start/boundary/end events, no audio file (SoT 5).
+  if (!new Set(["aligned", "browser-timed"]).has(plan.quality_mode))
+    fail("quality_mode must be aligned or browser-timed");
+  if (plan.quality_mode === "aligned" && (!plan.audio || !SHA256.test(plan.audio.sha256 || "")))
     fail("audio.sha256 must identify the exact input audio");
   if (!Number.isSafeInteger(plan.audio?.duration_us) || plan.audio.duration_us <= 0)
     fail("audio.duration_us must be a positive integer");
-  if (!new Set(["aligned", "approximate"]).has(plan.quality_mode))
-    fail("quality_mode must be aligned or approximate");
 
   if (plan.quality_mode === "aligned") {
     if (!plan.aligner || typeof plan.aligner !== "object")

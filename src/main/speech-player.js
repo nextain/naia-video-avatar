@@ -68,9 +68,61 @@ export class SpeechPlayer {
     this.token = null;
     this.onEnded = () => this.stop("complete");
     this.onAudioError = () => this.stop("error");
+    this.mode = null;
+    this.externalClock = null;
   }
 
   async load({ manifest, assets, plan, audioBlob }) {
+    if (plan?.quality_mode !== "aligned")
+      throw new TypeError("audio playback requires an aligned SpeechPlan");
+    if (!(audioBlob instanceof Blob) || audioBlob.size === 0) throw new TypeError("non-empty audio Blob is required");
+    if (await sha256Hex(audioBlob) !== plan.audio?.sha256) throw new Error("SpeechPlan audio hash mismatch");
+    await this.#loadMotion({ manifest, assets, plan });
+
+    const audioUrl = this.#objectUrl(audioBlob);
+    this.audio.src = audioUrl;
+    this.audio.preload = "auto";
+    await waitForMedia(this.audio, "loadedmetadata");
+    const durationUs = Math.round(this.audio.duration * 1_000_000);
+    if (!Number.isFinite(durationUs) || Math.abs(durationUs - plan.audio.duration_us) > 20_000)
+      throw new Error("SpeechPlan audio duration mismatch");
+
+    this.mode = "audio";
+    this.audio.addEventListener("ended", this.onEnded);
+    this.audio.addEventListener("error", this.onAudioError);
+    this.state = "ready";
+    this.#draw();
+    return { quality_mode: plan.quality_mode, transitions: this.schedule.transitions.length };
+  }
+
+  async loadExternal({ manifest, assets, plan }) {
+    if (plan?.quality_mode !== "browser-timed")
+      throw new TypeError("external browser clock requires a browser-timed SpeechPlan");
+    await this.#loadMotion({ manifest, assets, plan });
+    this.mode = "external";
+    this.state = "ready";
+    this.#draw();
+    return { quality_mode: plan.quality_mode, transitions: this.schedule.transitions.length };
+  }
+
+  // Browser speech reports word boundaries while it is already speaking, so a
+  // browser-timed plan is revised during playback. The revision goes through
+  // the same plan validation and buildSpeechSchedule as load; decoded atlas
+  // slots, the body video, and the playback token are kept (SoT 5).
+  updateExternalPlan(plan) {
+    if (this.mode !== "external" || (this.state !== "ready" && this.state !== "speaking"))
+      throw new Error("SpeechPlayer is not loaded for browser TTS playback");
+    if (plan?.quality_mode !== "browser-timed")
+      throw new TypeError("external browser clock requires a browser-timed SpeechPlan");
+    const planValidation = validateSpeechPlan(plan);
+    if (!planValidation.ok) throw new TypeError(`invalid SpeechPlan: ${planValidation.errors.join("; ")}`);
+    const schedule = buildSpeechSchedule(plan, { availableKeys: Object.keys(this.atlasIndex.entries) });
+    this.plan = plan;
+    this.schedule = schedule;
+    return { quality_mode: plan.quality_mode, transitions: schedule.transitions.length };
+  }
+
+  async #loadMotion({ manifest, assets, plan }) {
     this.stop("cancel");
     this.audio.removeEventListener?.("ended", this.onEnded);
     this.audio.removeEventListener?.("error", this.onAudioError);
@@ -78,14 +130,13 @@ export class SpeechPlayer {
     this.decoder = new AlternatingSpeechDecoder(this.speechVideos, this.urlApi);
     this.neutralHead?.close?.();
     this.#releaseMedia();
+    this.mode = null;
     this.state = "loading";
     const clipFiles = [...assets.keys()];
     const manifestValidation = validateManifest(manifest, { clipFiles });
     if (!manifestValidation.ok) throw new TypeError(`invalid NVA: ${manifestValidation.errors.join("; ")}`);
     const planValidation = validateSpeechPlan(plan);
     if (!planValidation.ok) throw new TypeError(`invalid SpeechPlan: ${planValidation.errors.join("; ")}`);
-    if (!(audioBlob instanceof Blob) || audioBlob.size === 0) throw new TypeError("non-empty audio Blob is required");
-    if (await sha256Hex(audioBlob) !== plan.audio.sha256) throw new Error("SpeechPlan audio hash mismatch");
 
     const speech = manifest.speech_motion;
     if (!speech) throw new Error("NVA has no speech_motion extension");
@@ -127,33 +178,37 @@ export class SpeechPlayer {
     this.bodyVideo.src = bodyUrl;
     await waitForMedia(this.bodyVideo);
 
-    const audioUrl = this.#objectUrl(audioBlob);
-    this.audio.src = audioUrl;
-    this.audio.preload = "auto";
-    await waitForMedia(this.audio, "loadedmetadata");
-    const durationUs = Math.round(this.audio.duration * 1_000_000);
-    if (!Number.isFinite(durationUs) || Math.abs(durationUs - plan.audio.duration_us) > 20_000)
-      throw new Error("SpeechPlan audio duration mismatch");
-
     for (const range of prefetchSpeechRanges(this.schedule, atlasIndex)) {
       const index = this.schedule.transitions.findIndex((item) => item.key === range.key);
       if (index >= 0) await this.#ensureTransition(index);
     }
-    this.audio.addEventListener("ended", this.onEnded);
-    this.audio.addEventListener("error", this.onAudioError);
-    this.state = "ready";
-    this.#draw();
-    return { quality_mode: plan.quality_mode, transitions: this.schedule.transitions.length };
   }
 
   async play() {
     if (this.state !== "ready") throw new Error("SpeechPlayer is not ready");
+    if (this.mode === "external") throw new Error("SpeechPlayer is not loaded for audio playback");
     this.token = this.playbackState.begin("speaking");
     this.audio.currentTime = 0;
     this.bodyVideo.currentTime = 0;
     try {
       await this.bodyVideo.play();
       await this.audio.play();
+      this.#tick();
+    } catch (error) {
+      this.stop("error");
+      throw error;
+    }
+  }
+
+  async playExternal(clock) {
+    if (this.state !== "ready") throw new Error("SpeechPlayer is not ready");
+    if (this.mode !== "external") throw new Error("SpeechPlayer is not loaded for browser TTS playback");
+    if (typeof clock !== "function") throw new TypeError("external clock function is required");
+    this.externalClock = clock;
+    this.token = this.playbackState.begin("speaking");
+    this.bodyVideo.currentTime = 0;
+    try {
+      await this.bodyVideo.play();
       this.#tick();
     } catch (error) {
       this.stop("error");
@@ -168,6 +223,7 @@ export class SpeechPlayer {
     this.bodyVideo?.pause?.();
     if (this.token) this.playbackState.settle(this.token, outcome);
     this.token = null;
+    this.externalClock = null;
     if (this.state === "speaking") this.state = "ready";
   }
 
@@ -220,7 +276,8 @@ export class SpeechPlayer {
 
   #draw() {
     if (!this.manifest || this.bodyVideo.readyState < 2) return;
-    const timeUs = Math.max(0, Math.round((this.audio.currentTime || 0) * 1_000_000));
+    const seconds = this.mode === "external" ? (this.externalClock?.() || 0) : (this.audio.currentTime || 0);
+    const timeUs = Math.min(this.schedule.duration_us, Math.max(0, Math.round(seconds * 1_000_000)));
     const resolved = resolveSpeechLayers(this.schedule, timeUs);
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.context.drawImage(this.bodyVideo, 0, 0, this.canvas.width, this.canvas.height);

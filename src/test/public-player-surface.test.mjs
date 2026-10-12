@@ -33,8 +33,8 @@ test("README presents NVA Avatar Player as the current product", async () => {
   assert.doesNotMatch(readme, /src\/main\/editor\.html|src\/main\/demo\.html/);
 });
 
-test("viewer.html contains the playTalking button", async () => {
+test("viewer.html has no talking-loop button (SoT 4)", async () => {
   const viewerHtml = await readFile(new URL("../main/viewer.html", import.meta.url), "utf8");
-  assert.match(viewerHtml, /<button\s+[^>]*id="playTalking"[^>]*>/);
+  assert.doesNotMatch(viewerHtml, /id="playTalking"/);
 });
 

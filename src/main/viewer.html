@@ -18,7 +18,7 @@
   input[type=file],select{border:1px solid #d0d5dd;background:#fff;border-radius:9px;padding:9px;color:#344054}
   button{margin-top:10px;border:0;border-radius:9px;padding:10px 12px;background:#6d5ce7;color:#fff;font-weight:650;cursor:pointer}button.secondary{background:#f2f4f7;color:#344054}button:disabled{opacity:.45;cursor:default}
   .section{padding-top:12px;margin-top:16px;border-top:1px solid #eaecf0}.background-row{display:grid;grid-template-columns:52px 1fr;gap:8px}.background-row input{height:40px;border:1px solid #d0d5dd;border-radius:9px;padding:3px;background:#fff}
-  .badge{display:inline-block;border-radius:999px;background:#26344b;color:#bcd0ee;padding:3px 9px;font-size:11px;margin-top:10px}.badge.aligned{background:#123d31;color:#72e5bd}.badge.approximate{background:#4a3414;color:#ffd384}
+  .badge{display:inline-block;border-radius:999px;background:#26344b;color:#bcd0ee;padding:3px 9px;font-size:11px;margin-top:10px}.badge.aligned{background:#123d31;color:#72e5bd}
   #status{font-size:12px;line-height:1.5;color:#475467;background:#f8f9fb;border-radius:9px;padding:10px;margin-top:16px;min-height:54px}
   @media(max-width:820px){header{padding:0 18px}.layout{grid-template-columns:1fr;padding:16px}.panel{grid-row:1}.stage{min-height:460px}.media{max-height:460px}}
 </style>
@@ -58,7 +58,6 @@
     <label for="speechClip">Pre-rendered speech video</label>
     <select id="speechClip" disabled><option value="">No speech videos loaded</option></select>
     <button id="playSpeech" disabled>Play packaged speech</button>
-    <button id="playTalking" class="secondary" disabled>Play talking loop</button>
   </div>
   <div class="section">
     <label for="action">NVA action</label>
@@ -295,7 +294,6 @@ async function openNva(loadSource, label) {
 
   get("playSpeech").disabled = true;
   get("playAction").disabled = true;
-  get("playTalking").disabled = true;
   get("speechClip").disabled = true;
   get("action").disabled = true;
   get("stop").disabled = true;
@@ -320,7 +318,6 @@ async function openNva(loadSource, label) {
     get("action").replaceChildren(...selectOptions(loaded.actions, "No actions in this NVA"));
     get("action").disabled = !loaded.actions.length;
     get("playAction").disabled = !loaded.actions.length;
-    get("playTalking").disabled = !loaded.talking;
     get("stop").disabled = false;
 
     if (bundle.manifest?.speech_motion) {
@@ -368,7 +365,7 @@ async function prepareSpeechPlayer() {
     readySession = session;
     const result = session.result;
     get("quality").className = `badge ${result.quality_mode}`;
-    get("quality").textContent = result.quality_mode === "aligned" ? "aligned quality path" : "approximate preview";
+    get("quality").textContent = "aligned quality path";
     get("quality").style.display = "";
     get("playComposed").disabled = false;
     get("stopComposed").disabled = false;
@@ -403,19 +400,6 @@ get("playSpeech").addEventListener("click", async () => {
   } catch (error) {
     if (request !== playRequest) return;
     await restoreIdle(`Speech video failed: ${error.message}`, request, true);
-  }
-});
-get("playTalking").addEventListener("click", async () => {
-  cancelComposed();
-  disposeSession(readySession);
-  const request = ++playRequest;
-  try {
-    await animationPlayer.playTalking();
-    if (request !== playRequest) return;
-    setStatus("Playing talking loop.");
-  } catch (error) {
-    if (request !== playRequest) return;
-    await restoreIdle("Talking failed: " + error.message, request, true);
   }
 });
 get("playAction").addEventListener("click", async () => {
