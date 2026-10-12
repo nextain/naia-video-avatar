@@ -1,4 +1,6 @@
-const DEFAULT_MAX_BYTES = 100 * 1024 * 1024;
+// Whole-bundle expanded size budget (every file in the ZIP), not the speech-asset limit.
+// Speech assets alone are capped at 160 MiB by generation-contract.js; the bundle budget is 256 MiB (alpha-adk decision log D25).
+const DEFAULT_MAX_BYTES = 256 * 1024 * 1024;
 
 function safePath(path) {
   if (typeof path !== "string" || !path || path.includes("\\") || path.startsWith("/")
@@ -20,7 +22,7 @@ export function assertZipBudget(zip, { maxBytes = DEFAULT_MAX_BYTES, maxFiles = 
     if (!Number.isSafeInteger(size) || size < 0) throw new Error("NVA ZIP size metadata is unavailable");
     bytes += size;
     if (!Number.isSafeInteger(bytes) || bytes > maxBytes)
-      throw new Error("expanded NVA assets exceed the 100 MiB limit");
+      throw new Error("expanded NVA bundle exceeds the 256 MiB limit");
     if (path === "manifest.json" && size > 1024 * 1024)
       throw new Error("NVA manifest exceeds the 1 MiB limit");
   }
