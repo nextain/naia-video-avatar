@@ -78,7 +78,7 @@ test("default browser frame functions retain their global invocation context", (
   }
 });
 
-async function buildWholeHeadFixture() {
+async function buildWholeHeadFixture({ atlasKeys = ["sil>closed"], alignedEvents = null } = {}) {
   const manifest = {
     nva_version: "0.2",
     canvas: { width: 720, height: 1280, fps: 25 },
@@ -110,11 +110,12 @@ async function buildWholeHeadFixture() {
     aligner: { provider: "test", version: "1.0", model_sha256: "0".repeat(64) },
     audio: { sha256: audioSha, duration_us: 100_000 },
     text: "test",
-    events: [
+    events: alignedEvents ?? [
       { unit: "sil", start_us: 0, end_us: 50_000 },
       { unit: "closed", start_us: 50_000, end_us: 100_000 },
     ],
   };
+  if (alignedEvents) alignedPlan.audio.duration_us = alignedEvents.at(-1).end_us;
 
   const browserPlan = {
     version: "1",
@@ -154,17 +155,20 @@ async function buildWholeHeadFixture() {
     source_retention: "local-operator-file",
   };
 
-  const atlasBlob = new Blob([new Uint8Array([1, 2, 3, 4, 5])]);
+  // One distinct 5-byte slice per key, laid out back to back.
+  const atlasBytes = new Uint8Array(atlasKeys.length * 5).map((_, i) => i + 1);
+  const atlasBlob = new Blob([atlasBytes]);
   const atlasDigest = await crypto.subtle.digest("SHA-256", await atlasBlob.arrayBuffer());
   const atlasSha = Buffer.from(atlasDigest).toString("hex");
   receipt.assets.find((a) => a.role === "speech_atlas").sha256 = atlasSha;
+  receipt.assets.find((a) => a.role === "speech_atlas").bytes = atlasBlob.size;
 
-  const atlasIndexObj = {
-    version: "1",
-    entries: {
-      "sil>closed": { offset: 0, length: 5, sha256: atlasSha, frames: 5, fps: 25, codec: "vp09.00.10.08", lossless: true },
-    },
-  };
+  const atlasIndexObj = { version: "1", entries: {} };
+  for (const [i, key] of atlasKeys.entries()) {
+    const slice = atlasBytes.slice(i * 5, i * 5 + 5);
+    const sliceSha = Buffer.from(await crypto.subtle.digest("SHA-256", slice)).toString("hex");
+    atlasIndexObj.entries[key] = { offset: i * 5, length: 5, sha256: sliceSha, frames: 5, fps: 25, codec: "vp09.00.10.08", lossless: true };
+  }
   const atlasIndexBlob = new Blob([JSON.stringify(atlasIndexObj)]);
   const atlasIndexDigest = await crypto.subtle.digest("SHA-256", await atlasIndexBlob.arrayBuffer());
   receipt.assets.find((a) => a.role === "speech_atlas_index").sha256 = Buffer.from(atlasIndexDigest).toString("hex");
@@ -437,5 +441,75 @@ test("SpeechPlayer audio clock mode plays an aligned plan against the streamed s
   assert.equal(player.state, "ready");
   assert.equal(player.externalClock, null);
   await assert.rejects(() => player.playAudioClock(42), /external clock function is required/);
+  player.dispose();
+});
+
+// Luke 10/13 "요로 끝났는데 ... 합 하는 느낌": in the jina comparison the
+// head fell back to the neutral (closed) head for a frame inside "까" and "요"
+// (audio 5.98 s and 6.10 s, 4 of 5 runs). Cause: the next clip was loaded into
+// the alternating slot even when that slot held the clip on screen, so its src
+// was replaced while it was being drawn. Repeated keys (A, B, A, C) break the
+// alternation; the scheduled clip must stay on screen while C loads (SoT 2:
+// the schedule names one pre-rendered clip per instant).
+test("SpeechPlayer never reloads the slot that holds the clip on screen", async () => {
+  const srcLog = [];
+  const media = (name) => {
+    const element = {
+      name, pause() {}, removeEventListener() {}, removeAttribute() {}, load() {},
+      addEventListener(event, cb) {
+        if (event === "loadeddata" || event === "loadedmetadata") queueMicrotask(cb);
+      },
+      duration: 0.1, async play() {}, currentTime: 0, readyState: 4,
+    };
+    let src = "";
+    Object.defineProperty(element, "src", {
+      get: () => src,
+      set: (value) => { src = value; srcLog.push(name); },
+    });
+    return element;
+  };
+  const drawnImages = [];
+  let frameCallback = null;
+  let url = 0;
+  const player = new SpeechPlayer({
+    audio: media("audio"),
+    canvas: {
+      getContext: () => ({ clearRect() {}, drawImage(image) { drawnImages.push(image?.name); }, save() {}, restore() {} }),
+      width: 720, height: 1280,
+    },
+    bodyVideo: media("body"), speechVideos: [media("slot0"), media("slot1")],
+    urlApi: { createObjectURL: () => `blob:${++url}`, revokeObjectURL() {} },
+    imageLoader: async () => ({ close() {}, name: "neutral" }),
+    requestFrame: (cb) => { frameCallback = cb; return 1; },
+    cancelFrame: () => {},
+  });
+  // keys in schedule order: sil>closed (A), closed>sil (B), sil>closed (A), closed>vowel-open (C)
+  const { manifest, assets, alignedPlan } = await buildWholeHeadFixture({
+    atlasKeys: ["sil>closed", "closed>sil", "closed>vowel-open"],
+    alignedEvents: [
+      { unit: "sil", start_us: 0, end_us: 200_000 },
+      { unit: "closed", start_us: 200_000, end_us: 400_000 },
+      { unit: "sil", start_us: 400_000, end_us: 600_000 },
+      { unit: "closed", start_us: 600_000, end_us: 800_000 },
+      { unit: "vowel-open", start_us: 800_000, end_us: 1_000_000 },
+    ],
+  });
+  await player.loadAudioClock({ manifest, assets, plan: alignedPlan });
+  assert.deepEqual(player.slotToKey, ["sil>closed", "closed>sil"], "first two unique clips are primed");
+  srcLog.length = 0;
+
+  // 0.62 s: only the third transition (sil>closed, slot 0) is on screen; the
+  // player prefetches closed>vowel-open. Slot 0 must not be the one reloaded.
+  await player.playAudioClock(() => 0.62);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(srcLog.filter((name) => name.startsWith("slot")), ["slot1"]);
+  assert.equal(player.slotToKey[0], "sil>closed");
+  assert.equal(player.slotToKey[1], "closed>vowel-open");
+
+  drawnImages.length = 0;
+  frameCallback();
+  assert.ok(drawnImages.includes("slot0"), "the scheduled clip is still drawn after the prefetch");
+  player.stop("complete");
   player.dispose();
 });
