@@ -42,6 +42,32 @@
     "zip-budget.js": {
       "sha256": "7c4766741ef50e41f5ae6c1e1651c902ba0b85b9fe921c80b5f3199fba3b11d6",
       "size": 1558
+    },
+    "speech-units-espeak.js": {
+      "sha256": "1915595f72c09647369212d971a1cc399e9d457da4c4c2d73e9a1b0d8b079e47",
+      "size": 34772
+    }
+  },
+  "third_party": {
+    "note": "Unmodified eSpeak NG engine loaded on first use by speech-units-espeak.js (D44). GPL-3.0; source https://github.com/espeak-ng/espeak-ng. Copied byte for byte from the npm package; speech-units-espeak.js refuses other bytes.",
+    "package": "@echogarden/espeak-ng-emscripten",
+    "version": "0.3.5",
+    "npm_integrity": "sha512-Izbkm7NWccwb//RKgOp1/0k21StKN1DFIn+K7GU1XN7n6pmSi4bsk/0tYUsgQbysC4GVyrVompNmLInU/BFE+A==",
+    "license": "GPL-3.0",
+    "upstream": "https://github.com/espeak-ng/espeak-ng",
+    "files": {
+      "espeak-ng/espeak-ng.js": {
+        "sha256": "3502d997af2640e54518a06845776c8507bfeebd8ff75f80176370e35de9896b",
+        "size": 841996
+      },
+      "espeak-ng/espeak-ng.data": {
+        "sha256": "f7f8eff5685c709db9dae81e88a0e0556867d60514f7308ae99e0579369397b5",
+        "size": 24014553
+      },
+      "espeak-ng/COPYING": {
+        "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+        "size": 35147
+      }
     }
   }
 }

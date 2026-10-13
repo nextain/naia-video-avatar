@@ -116,6 +116,10 @@ This repository implements the document-first feature pipeline defined by naia-p
 The JavaScript loader keeps read compatibility with existing NVA v0.2 files.
 New distributable files should use the smaller v0.3 completed-media contract.
 
+## Third-party components
+
+- **eSpeak NG** — https://github.com/espeak-ng/espeak-ng (GPL-3.0). `src/main/speech-units-espeak.js` turns typed text into the 13 speech units in the browser with eSpeak NG, using the same rule as the gateway. The engine files in `src/main/espeak-ng/` are the unmodified npm package `@echogarden/espeak-ng-emscripten` 0.3.5 (its license text is `src/main/espeak-ng/COPYING`). They are loaded only on first use, and only when their sha256 matches `vendor-manifest.json` `third_party`.
+
 ## License
 
-Apache License 2.0. Media inside an NVA file keeps its own declared license.
+Apache License 2.0. Media inside an NVA file keeps its own declared license. Third-party components keep their own licenses (see above).

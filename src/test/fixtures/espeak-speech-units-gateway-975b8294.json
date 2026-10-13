@@ -1,0 +1,5432 @@
+{
+ "source": {
+  "gateway_repository": "nextain/any-llm (projects/project-any-llm-worktrees/studio-104-bvoice)",
+  "gateway_commit": "975b8294b5feb6225e109a3f985c47a24be79a1f",
+  "gateway_function": "src/any_llm/gateway/services/studio_speech_plan_units.py generate_speech_plan_units(text, language)",
+  "espeak_ng": "eSpeak NG text-to-speech: 1.52.0  Data at: /usr/share/espeak-ng-data",
+  "command": "<gateway>/.venv/bin/python -I gen_expected.py <gateway> sentences.json out.json",
+  "gateway_tables": "studio_speech_plan_mfa.py PHONE_MAP, REMOVE_TOKENS, REMOVE_MODIFIERS, SORTED_TOKEN_UNIT_PAIRS at the same commit",
+  "tables_command": "<gateway>/.venv/bin/python -I gen_tables.py <gateway>"
+ },
+ "cases": [
+  {
+   "id": "fixture-ko",
+   "language": "ko",
+   "text": "안녕하세요. 빠르게 변하는 바람과 밝은 표정을 자연스럽게 이어서 보여 드리겠습니다.",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 6,
+      "units": [
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "palatal",
+       "vowel-mid",
+       "velar",
+       "glottal",
+       "vowel-open",
+       "alveolar",
+       "vowel-spread",
+       "palatal",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 7,
+      "char_end": 10,
+      "units": [
+       "closed",
+       "vowel-open",
+       "alveolar",
+       "vowel-mid",
+       "velar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 11,
+      "char_end": 14,
+      "units": [
+       "closed",
+       "palatal",
+       "vowel-mid",
+       "alveolar",
+       "glottal",
+       "vowel-open",
+       "alveolar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 15,
+      "char_end": 18,
+      "units": [
+       "closed",
+       "vowel-open",
+       "alveolar",
+       "vowel-open",
+       "closed",
+       "velar",
+       "vowel-round",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 19,
+      "char_end": 21,
+      "units": [
+       "closed",
+       "vowel-open",
+       "alveolar",
+       "velar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 22,
+      "char_end": 25,
+      "units": [
+       "closed",
+       "glottal",
+       "palatal",
+       "vowel-round",
+       "postalveolar",
+       "vowel-mid",
+       "velar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 26,
+      "char_end": 31,
+      "units": [
+       "postalveolar",
+       "vowel-open",
+       "palatal",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-mid",
+       "closed",
+       "velar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 32,
+      "char_end": 35,
+      "units": [
+       "vowel-spread",
+       "vowel-mid",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 36,
+      "char_end": 38,
+      "units": [
+       "closed",
+       "vowel-round",
+       "palatal",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 39,
+      "char_end": 45,
+      "units": [
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "closed",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-open"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-en",
+   "language": "en",
+   "text": "Hello. Five brave travelers quickly viewed the bright world and spoke with warm voices.",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 6,
+      "units": [
+       "glottal",
+       "vowel-mid",
+       "alveolar",
+       "vowel-round",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 7,
+      "char_end": 11,
+      "units": [
+       "labiodental",
+       "vowel-open",
+       "vowel-spread",
+       "labiodental"
+      ]
+     },
+     {
+      "char_start": 12,
+      "char_end": 17,
+      "units": [
+       "closed",
+       "alveolar",
+       "vowel-spread",
+       "vowel-spread",
+       "labiodental"
+      ]
+     },
+     {
+      "char_start": 18,
+      "char_end": 27,
+      "units": [
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "labiodental",
+       "vowel-mid",
+       "alveolar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 28,
+      "char_end": 35,
+      "units": [
+       "velar",
+       "vowel-round",
+       "vowel-spread",
+       "velar",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 36,
+      "char_end": 42,
+      "units": [
+       "labiodental",
+       "palatal",
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 43,
+      "char_end": 46,
+      "units": [
+       "dental",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 47,
+      "char_end": 53,
+      "units": [
+       "closed",
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 54,
+      "char_end": 59,
+      "units": [
+       "vowel-round",
+       "vowel-mid",
+       "alveolar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 60,
+      "char_end": 63,
+      "units": [
+       "vowel-open",
+       "alveolar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 64,
+      "char_end": 69,
+      "units": [
+       "alveolar",
+       "closed",
+       "vowel-round",
+       "vowel-round",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 70,
+      "char_end": 74,
+      "units": [
+       "vowel-round",
+       "vowel-spread",
+       "dental"
+      ]
+     },
+     {
+      "char_start": 75,
+      "char_end": 79,
+      "units": [
+       "vowel-round",
+       "vowel-round",
+       "alveolar",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 80,
+      "char_end": 86,
+      "units": [
+       "labiodental",
+       "vowel-round",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-ja",
+   "language": "ja",
+   "text": "こんにちは。しずかなあさに、あかるいひょうじょうですばやくことばをつないではなします。",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 43,
+      "units": [
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "postalveolar",
+       "vowel-spread",
+       "glottal",
+       "vowel-open",
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid",
+       "velar",
+       "vowel-open",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-spread",
+       "vowel-open",
+       "velar",
+       "vowel-open",
+       "alveolar",
+       "vowel-mid",
+       "vowel-spread",
+       "palatal",
+       "vowel-round",
+       "vowel-mid",
+       "postalveolar",
+       "vowel-round",
+       "vowel-mid",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid",
+       "closed",
+       "vowel-open",
+       "palatal",
+       "vowel-open",
+       "velar",
+       "vowel-mid",
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "vowel-round",
+       "closed",
+       "vowel-open",
+       "vowel-round",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "glottal",
+       "vowel-open",
+       "alveolar",
+       "vowel-open",
+       "postalveolar",
+       "vowel-spread",
+       "closed",
+       "vowel-open",
+       "alveolar",
+       "vowel-mid"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-zh",
+   "language": "zh",
+   "text": "你好。清晨的微风轻轻吹过，我们用自然的表情快速说完这句话。",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 29,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "vowel-open",
+       "vowel-round",
+       "postalveolar",
+       "glottal",
+       "vowel-spread",
+       "velar",
+       "alveolar",
+       "glottal",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "vowel-round",
+       "vowel-spread",
+       "vowel-spread",
+       "labiodental",
+       "vowel-mid",
+       "velar",
+       "postalveolar",
+       "glottal",
+       "vowel-spread",
+       "velar",
+       "postalveolar",
+       "glottal",
+       "vowel-spread",
+       "velar",
+       "alveolar",
+       "glottal",
+       "vowel-round",
+       "vowel-spread",
+       "vowel-spread",
+       "velar",
+       "vowel-round",
+       "vowel-round",
+       "vowel-round",
+       "vowel-round",
+       "closed",
+       "vowel-mid",
+       "alveolar",
+       "palatal",
+       "vowel-round",
+       "alveolar",
+       "velar",
+       "alveolar",
+       "vowel-spread",
+       "postalveolar",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "closed",
+       "palatal",
+       "vowel-open",
+       "vowel-round",
+       "postalveolar",
+       "glottal",
+       "vowel-spread",
+       "velar",
+       "velar",
+       "glottal",
+       "vowel-round",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-round",
+       "vowel-round",
+       "vowel-round",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-round",
+       "postalveolar",
+       "vowel-round",
+       "velar",
+       "vowel-round",
+       "vowel-open"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-fr",
+   "language": "fr",
+   "text": "Bonjour. Cinq voyageurs parlent clairement avec des voix vives et des expressions naturelles.",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 8,
+      "units": [
+       "closed",
+       "vowel-round",
+       "postalveolar",
+       "vowel-round",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 9,
+      "char_end": 13,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 14,
+      "char_end": 23,
+      "units": [
+       "labiodental",
+       "vowel-round",
+       "vowel-open",
+       "palatal",
+       "vowel-open",
+       "postalveolar",
+       "vowel-round",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 24,
+      "char_end": 31,
+      "units": [
+       "closed",
+       "vowel-open",
+       "velar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 32,
+      "char_end": 42,
+      "units": [
+       "velar",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "closed",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 43,
+      "char_end": 47,
+      "units": [
+       "vowel-open",
+       "labiodental",
+       "vowel-spread",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 48,
+      "char_end": 51,
+      "units": [
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 52,
+      "char_end": 56,
+      "units": [
+       "labiodental",
+       "vowel-round",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 57,
+      "char_end": 62,
+      "units": [
+       "labiodental",
+       "vowel-spread",
+       "labiodental",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 63,
+      "char_end": 65,
+      "units": [
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 66,
+      "char_end": 69,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 70,
+      "char_end": 81,
+      "units": [
+       "vowel-spread",
+       "velar",
+       "alveolar",
+       "closed",
+       "velar",
+       "vowel-spread",
+       "alveolar",
+       "palatal",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 82,
+      "char_end": 92,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-round",
+       "velar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-de",
+   "language": "de",
+   "text": "Guten Tag. Fünf Reisende sprechen zügig mit klarer Stimme und natürlichem Ausdruck.",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 5,
+      "units": [
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 6,
+      "char_end": 10,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 11,
+      "char_end": 15,
+      "units": [
+       "labiodental",
+       "vowel-round",
+       "alveolar",
+       "labiodental"
+      ]
+     },
+     {
+      "char_start": 16,
+      "char_end": 24,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 25,
+      "char_end": 33,
+      "units": [
+       "postalveolar",
+       "closed",
+       "alveolar",
+       "vowel-spread",
+       "palatal",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 34,
+      "char_end": 39,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "velar",
+       "vowel-spread",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 40,
+      "char_end": 43,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 44,
+      "char_end": 50,
+      "units": [
+       "velar",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 51,
+      "char_end": 57,
+      "units": [
+       "postalveolar",
+       "alveolar",
+       "vowel-spread",
+       "closed",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 58,
+      "char_end": 61,
+      "units": [
+       "vowel-round",
+       "alveolar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 62,
+      "char_end": 73,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "palatal",
+       "vowel-mid",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 74,
+      "char_end": 82,
+      "units": [
+       "vowel-open",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "vowel-round",
+       "velar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-ru",
+   "language": "ru",
+   "text": "Здравствуйте. Пять путешественников говорят быстро, ясно и с естественным выражением.",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 13,
+      "units": [
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "labiodental",
+       "vowel-round",
+       "palatal",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 14,
+      "char_end": 18,
+      "units": [
+       "closed",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 19,
+      "char_end": 35,
+      "units": [
+       "closed",
+       "vowel-round",
+       "alveolar",
+       "vowel-spread",
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "labiodental",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "vowel-mid",
+       "labiodental"
+      ]
+     },
+     {
+      "char_start": 36,
+      "char_end": 43,
+      "units": [
+       "velar",
+       "vowel-mid",
+       "labiodental",
+       "vowel-mid",
+       "alveolar",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 44,
+      "char_end": 51,
+      "units": [
+       "closed",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 52,
+      "char_end": 56,
+      "units": [
+       "palatal",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 57,
+      "char_end": 58,
+      "units": [
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 59,
+      "char_end": 60,
+      "units": [
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 61,
+      "char_end": 73,
+      "units": [
+       "palatal",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "labiodental",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-round",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 74,
+      "char_end": 84,
+      "units": [
+       "labiodental",
+       "vowel-round",
+       "alveolar",
+       "vowel-open",
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "palatal",
+       "vowel-spread",
+       "closed"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-es",
+   "language": "es",
+   "text": "Hola. Cinco viajeros hablan rápido y con claridad, usando voces y gestos naturales.",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 5,
+      "units": [
+       "vowel-round",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 6,
+      "char_end": 11,
+      "units": [
+       "dental",
+       "vowel-spread",
+       "alveolar",
+       "velar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 12,
+      "char_end": 20,
+      "units": [
+       "labiodental",
+       "palatal",
+       "vowel-open",
+       "velar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 21,
+      "char_end": 27,
+      "units": [
+       "vowel-open",
+       "labiodental",
+       "alveolar",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 28,
+      "char_end": 34,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "closed",
+       "vowel-spread",
+       "dental",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 35,
+      "char_end": 36,
+      "units": [
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 37,
+      "char_end": 40,
+      "units": [
+       "velar",
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 41,
+      "char_end": 50,
+      "units": [
+       "velar",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-spread",
+       "dental",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 51,
+      "char_end": 57,
+      "units": [
+       "vowel-round",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 58,
+      "char_end": 63,
+      "units": [
+       "labiodental",
+       "vowel-round",
+       "dental",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 64,
+      "char_end": 65,
+      "units": [
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 66,
+      "char_end": 72,
+      "units": [
+       "velar",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 73,
+      "char_end": 82,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-ar",
+   "language": "ar",
+   "text": "مرحبًا. يتحدث خمسة مسافرين بسرعة ووضوح مع أصوات دافئة وتعابير طبيعية.",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 7,
+      "units": [
+       "closed",
+       "vowel-round",
+       "alveolar",
+       "vowel-open",
+       "glottal",
+       "glottal",
+       "vowel-spread",
+       "closed",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 8,
+      "char_end": 13,
+      "units": [
+       "palatal",
+       "alveolar",
+       "glottal",
+       "alveolar",
+       "dental"
+      ]
+     },
+     {
+      "char_start": 14,
+      "char_end": 18,
+      "units": [
+       "velar",
+       "closed",
+       "alveolar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 19,
+      "char_end": 26,
+      "units": [
+       "closed",
+       "vowel-round",
+       "alveolar",
+       "vowel-open",
+       "labiodental",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 27,
+      "char_end": 32,
+      "units": [
+       "closed",
+       "alveolar",
+       "alveolar",
+       "glottal",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 33,
+      "char_end": 38,
+      "units": [
+       "vowel-round",
+       "vowel-round",
+       "alveolar",
+       "vowel-round",
+       "glottal"
+      ]
+     },
+     {
+      "char_start": 39,
+      "char_end": 41,
+      "units": [
+       "closed",
+       "vowel-open",
+       "glottal"
+      ]
+     },
+     {
+      "char_start": 42,
+      "char_end": 47,
+      "units": [
+       "glottal",
+       "alveolar",
+       "vowel-round",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 48,
+      "char_end": 53,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "labiodental",
+       "glottal",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 54,
+      "char_end": 61,
+      "units": [
+       "vowel-round",
+       "alveolar",
+       "glottal",
+       "vowel-open",
+       "closed",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 62,
+      "char_end": 68,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "closed",
+       "vowel-spread",
+       "glottal",
+       "vowel-spread",
+       "palatal",
+       "vowel-open"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-hi",
+   "language": "hi",
+   "text": "नमस्ते। पाँच यात्री तेज़ और स्पष्ट आवाज़ में स्वाभाविक भाव के साथ बोलते हैं।",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 7,
+      "units": [
+       "alveolar",
+       "vowel-mid",
+       "closed",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 8,
+      "char_end": 12,
+      "units": [
+       "closed",
+       "vowel-open",
+       "alveolar",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 13,
+      "char_end": 19,
+      "units": [
+       "palatal",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 20,
+      "char_end": 24,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 25,
+      "char_end": 27,
+      "units": [
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 28,
+      "char_end": 34,
+      "units": [
+       "alveolar",
+       "closed",
+       "vowel-mid",
+       "postalveolar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 35,
+      "char_end": 40,
+      "units": [
+       "vowel-open",
+       "labiodental",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 41,
+      "char_end": 44,
+      "units": [
+       "closed",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 45,
+      "char_end": 54,
+      "units": [
+       "alveolar",
+       "labiodental",
+       "vowel-open",
+       "closed",
+       "vowel-open",
+       "labiodental",
+       "vowel-spread",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 55,
+      "char_end": 58,
+      "units": [
+       "closed",
+       "vowel-open",
+       "labiodental"
+      ]
+     },
+     {
+      "char_start": 59,
+      "char_end": 61,
+      "units": [
+       "velar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 62,
+      "char_end": 65,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 66,
+      "char_end": 71,
+      "units": [
+       "closed",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 72,
+      "char_end": 75,
+      "units": [
+       "glottal",
+       "vowel-spread"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-bn",
+   "language": "bn",
+   "text": "নমস্কার। পাঁচজন যাত্রী দ্রুত ও স্পষ্ট কণ্ঠে স্বাভাবিক অভিব্যক্তিতে কথা বলেন।",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 8,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "closed",
+       "vowel-round",
+       "postalveolar",
+       "velar",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 9,
+      "char_end": 15,
+      "units": [
+       "closed",
+       "vowel-open",
+       "postalveolar",
+       "vowel-round",
+       "palatal",
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 16,
+      "char_end": 22,
+      "units": [
+       "postalveolar",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 23,
+      "char_end": 28,
+      "units": [
+       "alveolar",
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 29,
+      "char_end": 30,
+      "units": [
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 31,
+      "char_end": 37,
+      "units": [
+       "postalveolar",
+       "closed",
+       "vowel-round",
+       "postalveolar",
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 38,
+      "char_end": 43,
+      "units": [
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 44,
+      "char_end": 53,
+      "units": [
+       "postalveolar",
+       "vowel-open",
+       "closed",
+       "vowel-open",
+       "closed",
+       "vowel-spread",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 54,
+      "char_end": 66,
+      "units": [
+       "vowel-round",
+       "closed",
+       "vowel-spread",
+       "closed",
+       "vowel-open",
+       "velar",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 67,
+      "char_end": 70,
+      "units": [
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 71,
+      "char_end": 75,
+      "units": [
+       "closed",
+       "vowel-round",
+       "alveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-pt",
+   "language": "pt",
+   "text": "Olá. Cinco viajantes falam depressa e com clareza, usando vozes e expressões naturais.",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 4,
+      "units": [
+       "vowel-round",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 5,
+      "char_end": 10,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "velar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 11,
+      "char_end": 20,
+      "units": [
+       "labiodental",
+       "vowel-spread",
+       "vowel-open",
+       "postalveolar",
+       "vowel-open",
+       "velar",
+       "alveolar",
+       "vowel-mid",
+       "postalveolar"
+      ]
+     },
+     {
+      "char_start": 21,
+      "char_end": 26,
+      "units": [
+       "labiodental",
+       "vowel-open",
+       "alveolar",
+       "vowel-open",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 27,
+      "char_end": 35,
+      "units": [
+       "alveolar",
+       "vowel-mid",
+       "closed",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 36,
+      "char_end": 37,
+      "units": [
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 38,
+      "char_end": 41,
+      "units": [
+       "velar",
+       "vowel-round",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 42,
+      "char_end": 50,
+      "units": [
+       "velar",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 51,
+      "char_end": 57,
+      "units": [
+       "vowel-round",
+       "alveolar",
+       "vowel-open",
+       "velar",
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 58,
+      "char_end": 63,
+      "units": [
+       "labiodental",
+       "vowel-round",
+       "alveolar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 64,
+      "char_end": 65,
+      "units": [
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 66,
+      "char_end": 76,
+      "units": [
+       "vowel-spread",
+       "alveolar",
+       "closed",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-round",
+       "palatal",
+       "postalveolar"
+      ]
+     },
+     {
+      "char_start": 77,
+      "char_end": 85,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "postalveolar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-id",
+   "language": "id",
+   "text": "Halo. Lima pelancong berbicara cepat dan jelas dengan suara serta ekspresi yang alami.",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 5,
+      "units": [
+       "glottal",
+       "vowel-open",
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 6,
+      "char_end": 10,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "closed",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 11,
+      "char_end": 20,
+      "units": [
+       "closed",
+       "vowel-mid",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "postalveolar",
+       "vowel-round",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 21,
+      "char_end": 30,
+      "units": [
+       "closed",
+       "vowel-mid",
+       "alveolar",
+       "closed",
+       "vowel-spread",
+       "postalveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 31,
+      "char_end": 36,
+      "units": [
+       "postalveolar",
+       "vowel-spread",
+       "closed",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 37,
+      "char_end": 40,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 41,
+      "char_end": 46,
+      "units": [
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 47,
+      "char_end": 53,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 54,
+      "char_end": 59,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "vowel-open",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 60,
+      "char_end": 65,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 66,
+      "char_end": 74,
+      "units": [
+       "vowel-mid",
+       "velar",
+       "alveolar",
+       "closed",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 75,
+      "char_end": 79,
+      "units": [
+       "palatal",
+       "vowel-open",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 80,
+      "char_end": 85,
+      "units": [
+       "vowel-open",
+       "alveolar",
+       "vowel-open",
+       "closed",
+       "vowel-spread"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "fixture-vi",
+   "language": "vi",
+   "text": "Xin chào. Năm du khách nói nhanh và rõ ràng với giọng ấm cùng biểu cảm tự nhiên.",
+   "group": "gateway-fixture-14",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 3,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 4,
+      "char_end": 9,
+      "units": [
+       "postalveolar",
+       "vowel-open",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 10,
+      "char_end": 13,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 14,
+      "char_end": 16,
+      "units": [
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 17,
+      "char_end": 22,
+      "units": [
+       "velar",
+       "vowel-spread",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 23,
+      "char_end": 26,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 27,
+      "char_end": 32,
+      "units": [
+       "palatal",
+       "vowel-spread",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 33,
+      "char_end": 35,
+      "units": [
+       "labiodental",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 36,
+      "char_end": 38,
+      "units": [
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 39,
+      "char_end": 43,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 44,
+      "char_end": 47,
+      "units": [
+       "labiodental",
+       "vowel-mid",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 48,
+      "char_end": 53,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 54,
+      "char_end": 56,
+      "units": [
+       "vowel-mid",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 57,
+      "char_end": 61,
+      "units": [
+       "velar",
+       "vowel-round",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 62,
+      "char_end": 66,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "vowel-spread",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 67,
+      "char_end": 70,
+      "units": [
+       "velar",
+       "vowel-open",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 71,
+      "char_end": 73,
+      "units": [
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 74,
+      "char_end": 79,
+      "units": [
+       "palatal",
+       "vowel-spread",
+       "vowel-spread",
+       "alveolar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "gateway-wo-a-1",
+   "language": "ko",
+   "text": "안녕하세요 저는 지나예요 만나서 반가워요",
+   "group": "gateway-wo-a",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 5,
+      "units": [
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "palatal",
+       "vowel-mid",
+       "velar",
+       "glottal",
+       "vowel-open",
+       "alveolar",
+       "vowel-spread",
+       "palatal",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 6,
+      "char_end": 8,
+      "units": [
+       "postalveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 9,
+      "char_end": 17,
+      "units": [
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-open",
+       "palatal",
+       "vowel-spread",
+       "palatal",
+       "vowel-round",
+       "closed",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 18,
+      "char_end": 22,
+      "units": [
+       "closed",
+       "vowel-open",
+       "alveolar",
+       "velar",
+       "vowel-open",
+       "vowel-round",
+       "vowel-mid",
+       "palatal",
+       "vowel-round"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "gateway-wo-a-2",
+   "language": "en",
+   "text": "Hello I am Jina nice to meet you",
+   "group": "gateway-wo-a",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 5,
+      "units": [
+       "glottal",
+       "vowel-mid",
+       "alveolar",
+       "vowel-round",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 6,
+      "char_end": 10,
+      "units": [
+       "vowel-open",
+       "vowel-spread",
+       "vowel-open",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 11,
+      "char_end": 15,
+      "units": [
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 16,
+      "char_end": 20,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 21,
+      "char_end": 23,
+      "units": [
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 24,
+      "char_end": 28,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 29,
+      "char_end": 32,
+      "units": [
+       "palatal",
+       "vowel-round"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "gateway-wo-a-3",
+   "language": "ko",
+   "text": "만나서 반가워요",
+   "group": "gateway-wo-a",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 3,
+      "units": [
+       "closed",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 4,
+      "char_end": 8,
+      "units": [
+       "closed",
+       "vowel-open",
+       "alveolar",
+       "velar",
+       "vowel-open",
+       "vowel-round",
+       "vowel-mid",
+       "palatal",
+       "vowel-round"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "gateway-wo-a-4",
+   "language": "ko",
+   "text": "안녕하세요, 저는 지나예요. 반가워요.",
+   "group": "gateway-wo-a",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 6,
+      "units": [
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "palatal",
+       "vowel-mid",
+       "velar",
+       "glottal",
+       "vowel-open",
+       "alveolar",
+       "vowel-spread",
+       "palatal",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 7,
+      "char_end": 9,
+      "units": [
+       "postalveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 10,
+      "char_end": 15,
+      "units": [
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-open",
+       "palatal",
+       "vowel-spread",
+       "palatal",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 16,
+      "char_end": 20,
+      "units": [
+       "closed",
+       "vowel-open",
+       "alveolar",
+       "velar",
+       "vowel-open",
+       "vowel-round",
+       "vowel-mid",
+       "palatal",
+       "vowel-round"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-en-1",
+   "language": "en",
+   "text": "On March 3rd, 2021, the company earned $4.5 million in revenue.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 2,
+      "units": [
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 3,
+      "char_end": 8,
+      "units": [
+       "closed",
+       "vowel-open",
+       "alveolar",
+       "postalveolar"
+      ]
+     },
+     {
+      "char_start": 9,
+      "char_end": 13,
+      "units": [
+       "dental",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 14,
+      "char_end": 19,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "dental",
+       "vowel-open",
+       "vowel-round",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "vowel-round",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "vowel-round",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 20,
+      "char_end": 23,
+      "units": [
+       "dental",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 24,
+      "char_end": 31,
+      "units": [
+       "velar",
+       "vowel-mid",
+       "closed",
+       "closed",
+       "vowel-mid",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 32,
+      "char_end": 38,
+      "units": [
+       "vowel-mid",
+       "alveolar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 39,
+      "char_end": 40,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 40,
+      "char_end": 43,
+      "units": [
+       "labiodental",
+       "vowel-round",
+       "alveolar",
+       "closed",
+       "vowel-round",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "labiodental",
+       "vowel-open",
+       "vowel-spread",
+       "labiodental"
+      ]
+     },
+     {
+      "char_start": 44,
+      "char_end": 51,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 52,
+      "char_end": 54,
+      "units": [
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 55,
+      "char_end": 62,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "labiodental",
+       "vowel-mid",
+       "alveolar",
+       "vowel-round"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-en-2",
+   "language": "en",
+   "text": "The retrofitted retrospective was read by Dr. Smith at 10:30 a.m.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "error_code": "alignment_failed",
+    "message": "[alignment_failed] eSpeak NG did not return a word event covering source character 63: 'm'"
+   }
+  },
+  {
+   "id": "dict-diff-en-3",
+   "language": "en",
+   "text": "I live on 221B Baker Street; call me at 555-0199.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 1,
+      "units": [
+       "vowel-open",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 2,
+      "char_end": 6,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "labiodental"
+      ]
+     },
+     {
+      "char_start": 7,
+      "char_end": 9,
+      "units": [
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 10,
+      "char_end": 14,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "glottal",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-round",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "vowel-round",
+       "vowel-mid",
+       "alveolar",
+       "closed",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 15,
+      "char_end": 20,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "vowel-spread",
+       "velar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 21,
+      "char_end": 28,
+      "units": [
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 29,
+      "char_end": 33,
+      "units": [
+       "velar",
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 34,
+      "char_end": 36,
+      "units": [
+       "closed",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 37,
+      "char_end": 39,
+      "units": [
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 40,
+      "char_end": 44,
+      "units": [
+       "labiodental",
+       "vowel-open",
+       "vowel-spread",
+       "labiodental",
+       "glottal",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "labiodental",
+       "vowel-spread",
+       "labiodental",
+       "alveolar",
+       "vowel-spread",
+       "labiodental",
+       "vowel-open",
+       "vowel-spread",
+       "labiodental",
+       "alveolar",
+       "vowel-open",
+       "postalveolar"
+      ]
+     },
+     {
+      "char_start": 44,
+      "char_end": 48,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "vowel-mid",
+       "alveolar",
+       "vowel-round",
+       "vowel-round",
+       "vowel-round",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-en-4",
+   "language": "en",
+   "text": "The U.S. team scored 3 goals in 90 min., e.g. at 7 p.m. on Jan. 5.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 3,
+      "units": [
+       "dental",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 4,
+      "char_end": 8,
+      "units": [
+       "palatal",
+       "vowel-round",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 9,
+      "char_end": 13,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 14,
+      "char_end": 20,
+      "units": [
+       "alveolar",
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 21,
+      "char_end": 22,
+      "units": [
+       "dental",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 23,
+      "char_end": 28,
+      "units": [
+       "velar",
+       "vowel-round",
+       "vowel-round",
+       "alveolar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 29,
+      "char_end": 31,
+      "units": [
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 32,
+      "char_end": 34,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 35,
+      "char_end": 40,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 40,
+      "char_end": 45,
+      "units": [
+       "labiodental",
+       "vowel-round",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "alveolar",
+       "vowel-open",
+       "closed",
+       "closed",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 46,
+      "char_end": 48,
+      "units": [
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 49,
+      "char_end": 50,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "labiodental",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 51,
+      "char_end": 55,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "vowel-spread",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 56,
+      "char_end": 58,
+      "units": [
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 59,
+      "char_end": 63,
+      "units": [
+       "postalveolar",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 64,
+      "char_end": 65,
+      "units": [
+       "labiodental",
+       "vowel-open",
+       "vowel-spread",
+       "labiodental"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-ja-1",
+   "language": "ja",
+   "text": "2024年10月13日に3人で東京へ行きました。",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "error_code": "alignment_failed",
+    "message": "[alignment_failed] eSpeak NG returned a language-switch marker '(en)'; speech plan rejected"
+   }
+  },
+  {
+   "id": "dict-diff-ja-2",
+   "language": "ja",
+   "text": "このりんごは1つ150円です。",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 15,
+      "units": [
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "velar",
+       "vowel-round",
+       "glottal",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "palatal",
+       "vowel-open",
+       "velar",
+       "vowel-mid",
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-ja-3",
+   "language": "ja",
+   "text": "午後3時30分に会議があります。",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "error_code": "alignment_failed",
+    "message": "[alignment_failed] eSpeak NG returned a language-switch marker '(en)'; speech plan rejected"
+   }
+  },
+  {
+   "id": "dict-diff-ja-4",
+   "language": "ja",
+   "text": "NHKのニュースを7時に見ます。",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "error_code": "alignment_failed",
+    "message": "[alignment_failed] eSpeak NG returned a language-switch marker '(en)'; speech plan rejected"
+   }
+  },
+  {
+   "id": "dict-diff-ja-5",
+   "language": "ja",
+   "text": "きょうは10がつ13にちです。",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 15,
+      "units": [
+       "velar",
+       "vowel-round",
+       "vowel-mid",
+       "glottal",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "velar",
+       "vowel-open",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-ja-6",
+   "language": "ja",
+   "text": "ごご3じ30ぷんにあいましょう。",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 16,
+      "units": [
+       "velar",
+       "vowel-round",
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "closed",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "vowel-open",
+       "vowel-spread",
+       "closed",
+       "vowel-open",
+       "postalveolar",
+       "vowel-round",
+       "vowel-mid"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-ja-7",
+   "language": "ja",
+   "text": "でんわばんごうは090の1234です。",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 19,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "vowel-round",
+       "vowel-round",
+       "vowel-open",
+       "closed",
+       "vowel-open",
+       "velar",
+       "velar",
+       "vowel-round",
+       "vowel-mid",
+       "glottal",
+       "vowel-open",
+       "alveolar",
+       "vowel-spread",
+       "vowel-spread",
+       "velar",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-round",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "palatal",
+       "vowel-open",
+       "velar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-de-1",
+   "language": "de",
+   "text": "Die Bundesregierung veröffentlichte gestern 2.345 Seiten über Energiepolitik.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 3,
+      "units": [
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 4,
+      "char_end": 19,
+      "units": [
+       "closed",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-round",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 20,
+      "char_end": 35,
+      "units": [
+       "labiodental",
+       "vowel-spread",
+       "alveolar",
+       "vowel-round",
+       "labiodental",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "palatal",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 36,
+      "char_end": 43,
+      "units": [
+       "velar",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 44,
+      "char_end": 49,
+      "units": [
+       "alveolar",
+       "labiodental",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "vowel-open",
+       "vowel-round",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "glottal",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "labiodental",
+       "vowel-round",
+       "alveolar",
+       "labiodental",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "labiodental",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 50,
+      "char_end": 56,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 57,
+      "char_end": 61,
+      "units": [
+       "vowel-round",
+       "closed",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 62,
+      "char_end": 76,
+      "units": [
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "velar",
+       "vowel-spread",
+       "closed",
+       "vowel-round",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "velar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-de-2",
+   "language": "de",
+   "text": "Am 3. Oktober 1990 wurde Deutschland wiedervereinigt.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 2,
+      "units": [
+       "vowel-open",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 3,
+      "char_end": 5,
+      "units": [
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 6,
+      "char_end": 13,
+      "units": [
+       "vowel-round",
+       "velar",
+       "alveolar",
+       "vowel-round",
+       "closed",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 14,
+      "char_end": 18,
+      "units": [
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "vowel-round",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "vowel-round",
+       "vowel-round",
+       "alveolar",
+       "glottal",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "vowel-round",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 19,
+      "char_end": 24,
+      "units": [
+       "labiodental",
+       "vowel-round",
+       "vowel-open",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 25,
+      "char_end": 36,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "vowel-round",
+       "alveolar",
+       "postalveolar",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 37,
+      "char_end": 52,
+      "units": [
+       "labiodental",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid",
+       "labiodental",
+       "vowel-spread",
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "alveolar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-de-3",
+   "language": "de",
+   "text": "Dr. Müller kommt um 14:30 Uhr mit 2 Kollegen, d.h. pünktlich.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 3,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 4,
+      "char_end": 10,
+      "units": [
+       "closed",
+       "vowel-round",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 11,
+      "char_end": 16,
+      "units": [
+       "velar",
+       "vowel-round",
+       "closed",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 17,
+      "char_end": 19,
+      "units": [
+       "vowel-round",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 20,
+      "char_end": 22,
+      "units": [
+       "labiodental",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 22,
+      "char_end": 23,
+      "units": [
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 23,
+      "char_end": 25,
+      "units": [
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 26,
+      "char_end": 29,
+      "units": [
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 30,
+      "char_end": 33,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 34,
+      "char_end": 35,
+      "units": [
+       "alveolar",
+       "labiodental",
+       "vowel-open",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 36,
+      "char_end": 45,
+      "units": [
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 46,
+      "char_end": 50,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "glottal",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 51,
+      "char_end": 60,
+      "units": [
+       "closed",
+       "vowel-round",
+       "velar",
+       "velar",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "palatal"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-de-4",
+   "language": "de",
+   "text": "Die GmbH zahlt z.B. 1.250 Euro pro Monat.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 3,
+      "units": [
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 4,
+      "char_end": 7,
+      "units": [
+       "velar",
+       "vowel-spread",
+       "vowel-spread",
+       "closed",
+       "closed",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 7,
+      "char_end": 8,
+      "units": [
+       "glottal",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 9,
+      "char_end": 14,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 15,
+      "char_end": 19,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "closed",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 20,
+      "char_end": 25,
+      "units": [
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "vowel-round",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "alveolar",
+       "labiodental",
+       "vowel-open",
+       "vowel-spread",
+       "glottal",
+       "vowel-round",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "labiodental",
+       "vowel-round",
+       "alveolar",
+       "labiodental",
+       "alveolar",
+       "vowel-spread",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 26,
+      "char_end": 30,
+      "units": [
+       "vowel-round",
+       "vowel-round",
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 31,
+      "char_end": 34,
+      "units": [
+       "closed",
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 35,
+      "char_end": 40,
+      "units": [
+       "closed",
+       "vowel-round",
+       "alveolar",
+       "vowel-open",
+       "alveolar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-ru-1",
+   "language": "ru",
+   "text": "В 2024 году было продано 15 300 автомобилей.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 1,
+      "units": [
+       "labiodental"
+      ]
+     },
+     {
+      "char_start": 2,
+      "char_end": 6,
+      "units": [
+       "alveolar",
+       "labiodental",
+       "vowel-spread",
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-spread",
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "labiodental",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 7,
+      "char_end": 11,
+      "units": [
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 12,
+      "char_end": 16,
+      "units": [
+       "closed",
+       "vowel-round",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 17,
+      "char_end": 24,
+      "units": [
+       "closed",
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 25,
+      "char_end": 27,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 28,
+      "char_end": 31,
+      "units": [
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 32,
+      "char_end": 43,
+      "units": [
+       "vowel-open",
+       "labiodental",
+       "alveolar",
+       "vowel-mid",
+       "closed",
+       "vowel-mid",
+       "closed",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "palatal"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-ru-2",
+   "language": "ru",
+   "text": "Он сказал, что придёт завтра в 7 часов вечера.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 2,
+      "units": [
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 3,
+      "char_end": 10,
+      "units": [
+       "alveolar",
+       "velar",
+       "vowel-open",
+       "alveolar",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 11,
+      "char_end": 14,
+      "units": [
+       "postalveolar",
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 15,
+      "char_end": 21,
+      "units": [
+       "closed",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 22,
+      "char_end": 28,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "labiodental",
+       "alveolar",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 29,
+      "char_end": 30,
+      "units": [
+       "labiodental"
+      ]
+     },
+     {
+      "char_start": 31,
+      "char_end": 32,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "palatal",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 33,
+      "char_end": 38,
+      "units": [
+       "postalveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-round",
+       "labiodental"
+      ]
+     },
+     {
+      "char_start": 39,
+      "char_end": 45,
+      "units": [
+       "labiodental",
+       "vowel-spread",
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-open"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-ru-3",
+   "language": "ru",
+   "text": "Т.е. в 10:45 приедут 3 человека из МГУ.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 6,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "palatal",
+       "vowel-spread",
+       "labiodental",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 7,
+      "char_end": 10,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 10,
+      "char_end": 12,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-round",
+       "velar",
+       "closed",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 13,
+      "char_end": 20,
+      "units": [
+       "closed",
+       "alveolar",
+       "vowel-spread",
+       "palatal",
+       "vowel-spread",
+       "alveolar",
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 21,
+      "char_end": 22,
+      "units": [
+       "alveolar",
+       "alveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 23,
+      "char_end": 31,
+      "units": [
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid",
+       "labiodental",
+       "vowel-spread",
+       "velar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 32,
+      "char_end": 34,
+      "units": [
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 35,
+      "char_end": 38,
+      "units": [
+       "vowel-spread",
+       "closed",
+       "velar",
+       "vowel-spread",
+       "vowel-round"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-ru-4",
+   "language": "ru",
+   "text": "Стоимость составила 2 500 руб. за 1 кг.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 9,
+      "units": [
+       "alveolar",
+       "alveolar",
+       "vowel-round",
+       "vowel-spread",
+       "closed",
+       "vowel-mid",
+       "alveolar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 10,
+      "char_end": 19,
+      "units": [
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "alveolar",
+       "vowel-open",
+       "labiodental",
+       "vowel-spread",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 20,
+      "char_end": 21,
+      "units": [
+       "alveolar",
+       "labiodental",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 22,
+      "char_end": 25,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "alveolar",
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 26,
+      "char_end": 30,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 30,
+      "char_end": 33,
+      "units": [
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 34,
+      "char_end": 35,
+      "units": [
+       "vowel-mid",
+       "alveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 36,
+      "char_end": 38,
+      "units": [
+       "velar",
+       "vowel-open",
+       "velar",
+       "vowel-spread"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-pt-1",
+   "language": "pt",
+   "text": "Em 2023, o Brasil exportou 45 milhões de toneladas de soja.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 2,
+      "units": [
+       "vowel-spread",
+       "vowel-spread",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 3,
+      "char_end": 8,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "vowel-spread",
+       "postalveolar",
+       "closed",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "labiodental",
+       "vowel-spread",
+       "velar",
+       "alveolar",
+       "vowel-mid",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "postalveolar"
+      ]
+     },
+     {
+      "char_start": 9,
+      "char_end": 10,
+      "units": [
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 11,
+      "char_end": 17,
+      "units": [
+       "closed",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 18,
+      "char_end": 26,
+      "units": [
+       "vowel-spread",
+       "postalveolar",
+       "closed",
+       "vowel-round",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-round",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 27,
+      "char_end": 29,
+      "units": [
+       "velar",
+       "vowel-round",
+       "vowel-open",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "velar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 30,
+      "char_end": 37,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "palatal",
+       "vowel-round",
+       "palatal",
+       "postalveolar"
+      ]
+     },
+     {
+      "char_start": 38,
+      "char_end": 40,
+      "units": [
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 41,
+      "char_end": 50,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-open",
+       "postalveolar"
+      ]
+     },
+     {
+      "char_start": 51,
+      "char_end": 53,
+      "units": [
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 54,
+      "char_end": 58,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "postalveolar",
+       "vowel-open"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-pt-2",
+   "language": "pt",
+   "text": "O Sr. Silva chegou às 9h30 com 2 colegas.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 1,
+      "units": [
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 2,
+      "char_end": 5,
+      "units": [
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 6,
+      "char_end": 11,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "labiodental",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 12,
+      "char_end": 18,
+      "units": [
+       "postalveolar",
+       "vowel-mid",
+       "velar",
+       "vowel-round",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 19,
+      "char_end": 21,
+      "units": [
+       "vowel-open",
+       "postalveolar"
+      ]
+     },
+     {
+      "char_start": 22,
+      "char_end": 23,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "labiodental",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 23,
+      "char_end": 24,
+      "units": [
+       "vowel-open",
+       "velar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 24,
+      "char_end": 26,
+      "units": [
+       "alveolar",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 27,
+      "char_end": 30,
+      "units": [
+       "velar",
+       "vowel-round",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 31,
+      "char_end": 32,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "vowel-spread",
+       "postalveolar"
+      ]
+     },
+     {
+      "char_start": 33,
+      "char_end": 40,
+      "units": [
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "vowel-open",
+       "postalveolar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-pt-3",
+   "language": "pt",
+   "text": "A reunião custa R$ 1.500,00 por pessoa, etc.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 1,
+      "units": [
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 2,
+      "char_end": 9,
+      "units": [
+       "velar",
+       "vowel-spread",
+       "vowel-round",
+       "alveolar",
+       "vowel-spread",
+       "vowel-open",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 10,
+      "char_end": 15,
+      "units": [
+       "velar",
+       "vowel-round",
+       "postalveolar",
+       "alveolar",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 16,
+      "char_end": 17,
+      "units": [
+       "velar",
+       "vowel-mid",
+       "vowel-open",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 17,
+      "char_end": 18,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-open",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 19,
+      "char_end": 21,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 21,
+      "char_end": 27,
+      "units": [
+       "velar",
+       "vowel-spread",
+       "palatal",
+       "vowel-spread",
+       "vowel-spread",
+       "velar",
+       "alveolar",
+       "vowel-round",
+       "postalveolar",
+       "labiodental",
+       "vowel-spread",
+       "alveolar",
+       "velar",
+       "vowel-round",
+       "alveolar",
+       "vowel-open",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 28,
+      "char_end": 31,
+      "units": [
+       "closed",
+       "vowel-round",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 32,
+      "char_end": 39,
+      "units": [
+       "closed",
+       "vowel-mid",
+       "alveolar",
+       "vowel-round",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 40,
+      "char_end": 43,
+      "units": [
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-open"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-pt-4",
+   "language": "pt",
+   "text": "No dia 25 de abril de 1974 houve 1 revolução.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 2,
+      "units": [
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 3,
+      "char_end": 6,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 7,
+      "char_end": 9,
+      "units": [
+       "labiodental",
+       "vowel-spread",
+       "velar",
+       "alveolar",
+       "vowel-mid",
+       "vowel-spread",
+       "alveolar",
+       "vowel-spread",
+       "velar",
+       "velar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 10,
+      "char_end": 12,
+      "units": [
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 13,
+      "char_end": 18,
+      "units": [
+       "vowel-open",
+       "closed",
+       "alveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 19,
+      "char_end": 21,
+      "units": [
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 22,
+      "char_end": 26,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "alveolar",
+       "alveolar",
+       "vowel-round",
+       "labiodental",
+       "vowel-mid",
+       "alveolar",
+       "vowel-spread",
+       "vowel-spread",
+       "velar",
+       "alveolar",
+       "vowel-round",
+       "postalveolar",
+       "vowel-spread",
+       "alveolar",
+       "vowel-mid",
+       "alveolar",
+       "vowel-spread",
+       "vowel-spread",
+       "velar",
+       "alveolar",
+       "vowel-open",
+       "vowel-spread",
+       "velar",
+       "vowel-round",
+       "vowel-open",
+       "alveolar",
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 27,
+      "char_end": 32,
+      "units": [
+       "vowel-round",
+       "vowel-round",
+       "labiodental",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 33,
+      "char_end": 34,
+      "units": [
+       "vowel-round",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 35,
+      "char_end": 44,
+      "units": [
+       "velar",
+       "vowel-spread",
+       "labiodental",
+       "vowel-round",
+       "alveolar",
+       "vowel-round",
+       "alveolar",
+       "vowel-open",
+       "vowel-round"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-vi-1",
+   "language": "vi",
+   "text": "Năm 2024 có 365 ngày và tôi đã học tiếng Việt.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "error_code": "alignment_failed",
+    "message": "[alignment_failed] Unknown eSpeak phone 'ɗ' for word 'đã'; cannot map to the frozen 13-unit inventory"
+   }
+  },
+  {
+   "id": "dict-diff-vi-2",
+   "language": "vi",
+   "text": "Lúc 7 giờ 30 sáng ngày 13/10, tôi gặp TS. Minh.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 3,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 4,
+      "char_end": 5,
+      "units": [
+       "closed",
+       "vowel-open",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 6,
+      "char_end": 9,
+      "units": [
+       "alveolar",
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 10,
+      "char_end": 12,
+      "units": [
+       "closed",
+       "vowel-open",
+       "closed",
+       "vowel-round",
+       "vowel-mid",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 13,
+      "char_end": 17,
+      "units": [
+       "alveolar",
+       "vowel-open",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 18,
+      "char_end": 22,
+      "units": [
+       "velar",
+       "vowel-open",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 23,
+      "char_end": 26,
+      "units": [
+       "closed",
+       "vowel-round",
+       "vowel-mid",
+       "palatal",
+       "closed",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 26,
+      "char_end": 29,
+      "units": [
+       "closed",
+       "vowel-round",
+       "vowel-mid",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 30,
+      "char_end": 33,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 34,
+      "char_end": 37,
+      "units": [
+       "velar",
+       "vowel-open",
+       "closed"
+      ]
+     },
+     {
+      "char_start": 38,
+      "char_end": 41,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 42,
+      "char_end": 46,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "palatal"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-vi-3",
+   "language": "vi",
+   "text": "Giá vé là 150.000 đồng cho 2 người.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "error_code": "alignment_failed",
+    "message": "[alignment_failed] Unknown eSpeak phone 'ɗ' for word 'đồng'; cannot map to the frozen 13-unit inventory"
+   }
+  },
+  {
+   "id": "dict-diff-vi-4",
+   "language": "vi",
+   "text": "Tp. Hồ Chí Minh có khoảng 9 triệu dân.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 3,
+      "units": [
+       "alveolar",
+       "vowel-spread",
+       "closed",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 4,
+      "char_end": 6,
+      "units": [
+       "glottal",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 7,
+      "char_end": 10,
+      "units": [
+       "postalveolar",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 11,
+      "char_end": 15,
+      "units": [
+       "closed",
+       "vowel-spread",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 16,
+      "char_end": 18,
+      "units": [
+       "velar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 19,
+      "char_end": 25,
+      "units": [
+       "velar",
+       "vowel-round",
+       "vowel-open",
+       "velar"
+      ]
+     },
+     {
+      "char_start": 26,
+      "char_end": 27,
+      "units": [
+       "postalveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 28,
+      "char_end": 33,
+      "units": [
+       "postalveolar",
+       "vowel-spread",
+       "vowel-spread",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 34,
+      "char_end": 37,
+      "units": [
+       "alveolar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "dict-diff-vi-5",
+   "language": "vi",
+   "text": "Ngày 2/9 có 3 sự kiện lớn ở Hà Nội.",
+   "group": "dictionary-differs-numbers-abbreviations",
+   "expected": {
+    "words": [
+     {
+      "char_start": 0,
+      "char_end": 4,
+      "units": [
+       "velar",
+       "vowel-open",
+       "palatal"
+      ]
+     },
+     {
+      "char_start": 5,
+      "char_end": 7,
+      "units": [
+       "glottal",
+       "vowel-open",
+       "vowel-spread"
+      ]
+     },
+     {
+      "char_start": 7,
+      "char_end": 8,
+      "units": [
+       "postalveolar",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 9,
+      "char_end": 11,
+      "units": [
+       "velar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 12,
+      "char_end": 13,
+      "units": [
+       "closed",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 14,
+      "char_end": 16,
+      "units": [
+       "alveolar",
+       "vowel-round"
+      ]
+     },
+     {
+      "char_start": 17,
+      "char_end": 21,
+      "units": [
+       "velar",
+       "vowel-spread",
+       "vowel-spread",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 22,
+      "char_end": 25,
+      "units": [
+       "alveolar",
+       "vowel-mid",
+       "alveolar"
+      ]
+     },
+     {
+      "char_start": 26,
+      "char_end": 27,
+      "units": [
+       "vowel-mid"
+      ]
+     },
+     {
+      "char_start": 28,
+      "char_end": 30,
+      "units": [
+       "glottal",
+       "vowel-open"
+      ]
+     },
+     {
+      "char_start": 31,
+      "char_end": 34,
+      "units": [
+       "alveolar",
+       "vowel-round",
+       "palatal"
+      ]
+     }
+    ]
+   }
+  }
+ ],
+ "gateway_tables": {
+  "PHONE_MAP": {
+   "sil": [
+    "sil",
+    "sp",
+    "<eps>",
+    "|"
+   ],
+   "closed": [
+    "p",
+    "b",
+    "m",
+    "kp",
+    "ɡb"
+   ],
+   "labiodental": [
+    "f",
+    "v",
+    "ɸ",
+    "β",
+    "ɱ",
+    "ʋ"
+   ],
+   "dental": [
+    "θ",
+    "ð"
+   ],
+   "alveolar": [
+    "t",
+    "d",
+    "n",
+    "s",
+    "z",
+    "l",
+    "r",
+    "ɾ",
+    "ɹ",
+    "ɭ",
+    "ɫ",
+    "ɽ",
+    "ʈ",
+    "ts",
+    "dz"
+   ],
+   "postalveolar": [
+    "tɕ",
+    "dʑ",
+    "tʃ",
+    "dʒ",
+    "ʈʂ",
+    "ʃ",
+    "ʒ",
+    "ɕ",
+    "ʑ",
+    "ʂ",
+    "ʐ",
+    "ɻ"
+   ],
+   "palatal": [
+    "j",
+    "ɲ",
+    "c",
+    "ɟ",
+    "ç",
+    "ʝ",
+    "ʎ"
+   ],
+   "velar": [
+    "k",
+    "g",
+    "ɡ",
+    "ŋ",
+    "ɴ",
+    "x",
+    "ɣ",
+    "q",
+    "ɢ",
+    "ʀ",
+    "ʁ",
+    "χ"
+   ],
+   "glottal": [
+    "h",
+    "ɦ",
+    "ʔ",
+    "ħ",
+    "ʕ"
+   ],
+   "vowel-open": [
+    "a",
+    "ä",
+    "ɐ",
+    "ɑ",
+    "ɒ",
+    "æ",
+    "ɶ"
+   ],
+   "vowel-mid": [
+    "ə",
+    "ɜ",
+    "ɞ",
+    "ʌ",
+    "ɤ",
+    "ɨ",
+    "ɯ",
+    "ᵻ",
+    "ɚ",
+    "ɝ",
+    "ɰ"
+   ],
+   "vowel-spread": [
+    "i",
+    "ɪ",
+    "e",
+    "ɛ",
+    "ɘ",
+    "aj",
+    "ej",
+    "ɔj"
+   ],
+   "vowel-round": [
+    "w",
+    "ɥ",
+    "u",
+    "ʊ",
+    "o",
+    "ɔ",
+    "y",
+    "ʏ",
+    "ø",
+    "œ",
+    "ɵ",
+    "ʉ",
+    "aw",
+    "ow",
+    "əw"
+   ]
+  },
+  "REMOVE_TOKENS": [
+   "-",
+   ".",
+   "1",
+   "2",
+   "3",
+   "4",
+   "5",
+   "6",
+   "7",
+   "ˈ",
+   "ˌ",
+   "ː",
+   "ˑ",
+   "˥",
+   "˦",
+   "˧",
+   "˨",
+   "˩",
+   "‿"
+  ],
+  "REMOVE_MODIFIERS": [
+   "ʰ",
+   "ʲ",
+   "ʷ",
+   "ˠ",
+   "ˤ",
+   "ᵝ"
+  ],
+  "SORTED_TOKEN_UNIT_PAIRS": [
+   [
+    "<eps>",
+    "sil"
+   ],
+   [
+    "sil",
+    "sil"
+   ],
+   [
+    "sp",
+    "sil"
+   ],
+   [
+    "kp",
+    "closed"
+   ],
+   [
+    "ɡb",
+    "closed"
+   ],
+   [
+    "ts",
+    "alveolar"
+   ],
+   [
+    "dz",
+    "alveolar"
+   ],
+   [
+    "tɕ",
+    "postalveolar"
+   ],
+   [
+    "dʑ",
+    "postalveolar"
+   ],
+   [
+    "tʃ",
+    "postalveolar"
+   ],
+   [
+    "dʒ",
+    "postalveolar"
+   ],
+   [
+    "ʈʂ",
+    "postalveolar"
+   ],
+   [
+    "aj",
+    "vowel-spread"
+   ],
+   [
+    "ej",
+    "vowel-spread"
+   ],
+   [
+    "ɔj",
+    "vowel-spread"
+   ],
+   [
+    "aw",
+    "vowel-round"
+   ],
+   [
+    "ow",
+    "vowel-round"
+   ],
+   [
+    "əw",
+    "vowel-round"
+   ],
+   [
+    "|",
+    "sil"
+   ],
+   [
+    "p",
+    "closed"
+   ],
+   [
+    "b",
+    "closed"
+   ],
+   [
+    "m",
+    "closed"
+   ],
+   [
+    "f",
+    "labiodental"
+   ],
+   [
+    "v",
+    "labiodental"
+   ],
+   [
+    "ɸ",
+    "labiodental"
+   ],
+   [
+    "β",
+    "labiodental"
+   ],
+   [
+    "ɱ",
+    "labiodental"
+   ],
+   [
+    "ʋ",
+    "labiodental"
+   ],
+   [
+    "θ",
+    "dental"
+   ],
+   [
+    "ð",
+    "dental"
+   ],
+   [
+    "t",
+    "alveolar"
+   ],
+   [
+    "d",
+    "alveolar"
+   ],
+   [
+    "n",
+    "alveolar"
+   ],
+   [
+    "s",
+    "alveolar"
+   ],
+   [
+    "z",
+    "alveolar"
+   ],
+   [
+    "l",
+    "alveolar"
+   ],
+   [
+    "r",
+    "alveolar"
+   ],
+   [
+    "ɾ",
+    "alveolar"
+   ],
+   [
+    "ɹ",
+    "alveolar"
+   ],
+   [
+    "ɭ",
+    "alveolar"
+   ],
+   [
+    "ɫ",
+    "alveolar"
+   ],
+   [
+    "ɽ",
+    "alveolar"
+   ],
+   [
+    "ʈ",
+    "alveolar"
+   ],
+   [
+    "ʃ",
+    "postalveolar"
+   ],
+   [
+    "ʒ",
+    "postalveolar"
+   ],
+   [
+    "ɕ",
+    "postalveolar"
+   ],
+   [
+    "ʑ",
+    "postalveolar"
+   ],
+   [
+    "ʂ",
+    "postalveolar"
+   ],
+   [
+    "ʐ",
+    "postalveolar"
+   ],
+   [
+    "ɻ",
+    "postalveolar"
+   ],
+   [
+    "j",
+    "palatal"
+   ],
+   [
+    "ɲ",
+    "palatal"
+   ],
+   [
+    "c",
+    "palatal"
+   ],
+   [
+    "ɟ",
+    "palatal"
+   ],
+   [
+    "c",
+    "palatal"
+   ],
+   [
+    "ʝ",
+    "palatal"
+   ],
+   [
+    "ʎ",
+    "palatal"
+   ],
+   [
+    "k",
+    "velar"
+   ],
+   [
+    "g",
+    "velar"
+   ],
+   [
+    "ɡ",
+    "velar"
+   ],
+   [
+    "ŋ",
+    "velar"
+   ],
+   [
+    "ɴ",
+    "velar"
+   ],
+   [
+    "x",
+    "velar"
+   ],
+   [
+    "ɣ",
+    "velar"
+   ],
+   [
+    "q",
+    "velar"
+   ],
+   [
+    "ɢ",
+    "velar"
+   ],
+   [
+    "ʀ",
+    "velar"
+   ],
+   [
+    "ʁ",
+    "velar"
+   ],
+   [
+    "χ",
+    "velar"
+   ],
+   [
+    "h",
+    "glottal"
+   ],
+   [
+    "ɦ",
+    "glottal"
+   ],
+   [
+    "ʔ",
+    "glottal"
+   ],
+   [
+    "ħ",
+    "glottal"
+   ],
+   [
+    "ʕ",
+    "glottal"
+   ],
+   [
+    "a",
+    "vowel-open"
+   ],
+   [
+    "a",
+    "vowel-open"
+   ],
+   [
+    "ɐ",
+    "vowel-open"
+   ],
+   [
+    "ɑ",
+    "vowel-open"
+   ],
+   [
+    "ɒ",
+    "vowel-open"
+   ],
+   [
+    "æ",
+    "vowel-open"
+   ],
+   [
+    "ɶ",
+    "vowel-open"
+   ],
+   [
+    "ə",
+    "vowel-mid"
+   ],
+   [
+    "ɜ",
+    "vowel-mid"
+   ],
+   [
+    "ɞ",
+    "vowel-mid"
+   ],
+   [
+    "ʌ",
+    "vowel-mid"
+   ],
+   [
+    "ɤ",
+    "vowel-mid"
+   ],
+   [
+    "ɨ",
+    "vowel-mid"
+   ],
+   [
+    "ɯ",
+    "vowel-mid"
+   ],
+   [
+    "ᵻ",
+    "vowel-mid"
+   ],
+   [
+    "ɚ",
+    "vowel-mid"
+   ],
+   [
+    "ɝ",
+    "vowel-mid"
+   ],
+   [
+    "ɰ",
+    "vowel-mid"
+   ],
+   [
+    "i",
+    "vowel-spread"
+   ],
+   [
+    "ɪ",
+    "vowel-spread"
+   ],
+   [
+    "e",
+    "vowel-spread"
+   ],
+   [
+    "ɛ",
+    "vowel-spread"
+   ],
+   [
+    "ɘ",
+    "vowel-spread"
+   ],
+   [
+    "w",
+    "vowel-round"
+   ],
+   [
+    "ɥ",
+    "vowel-round"
+   ],
+   [
+    "u",
+    "vowel-round"
+   ],
+   [
+    "ʊ",
+    "vowel-round"
+   ],
+   [
+    "o",
+    "vowel-round"
+   ],
+   [
+    "ɔ",
+    "vowel-round"
+   ],
+   [
+    "y",
+    "vowel-round"
+   ],
+   [
+    "ʏ",
+    "vowel-round"
+   ],
+   [
+    "ø",
+    "vowel-round"
+   ],
+   [
+    "œ",
+    "vowel-round"
+   ],
+   [
+    "ɵ",
+    "vowel-round"
+   ],
+   [
+    "ʉ",
+    "vowel-round"
+   ]
+  ]
+ }
+}
