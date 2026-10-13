@@ -40,7 +40,7 @@ export class NvaAnimationPlayer {
       }
       if (["action", "speech"].includes(this.state)) void this.playIdle();
     };
-    this.onError = () => { if (["action", "speech", "talking", "prop"].includes(this.state)) void this.playIdle(); };
+    this.onError = () => { if (["action", "speech", "prop"].includes(this.state)) void this.playIdle(); };
     video.addEventListener("ended", this.onEnded);
     video.addEventListener("error", this.onError);
   }
@@ -55,6 +55,10 @@ export class NvaAnimationPlayer {
     this.manifest = manifest;
     this.assets = assets;
     this.idleKey = derived.idleKey;
+    // SoT 3·4: the talking clip is only reported here (speech-player.js uses it
+    // as the body under the speech heads, driven by the plan clock). This
+    // player never loops it on its own; a sound-independent talking repetition is a
+    // drift trace and was removed (lipsync-drift-guard.test.mjs).
     this.talkKey = (manifest.nva_version === "0.2" && derived.talkKey) ? derived.talkKey : null;
 
     const regularActions = Object.entries(manifest.animations)
@@ -160,13 +164,6 @@ export class NvaAnimationPlayer {
 
     this.state = "action";
     await this.#show(key, false, true);
-  }
-
-  async playTalking() {
-    if (this.manifest?.nva_version !== "0.2" || !this.talkKey) throw new Error("NVA has no talking animation");
-    this.sequence += 1;
-    this.state = "talking";
-    await this.#show(this.talkKey, true, true);
   }
 
   async playSpeech(key) {

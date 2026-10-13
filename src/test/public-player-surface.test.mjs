@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 
+import { SOUNDLESS_REPEAT, scan } from "./drift-patterns.mjs";
+
 const main = new URL("../main/", import.meta.url);
 const removed = [
   "editor.html",
@@ -33,8 +35,8 @@ test("README presents NVA Avatar Player as the current product", async () => {
   assert.doesNotMatch(readme, /src\/main\/editor\.html|src\/main\/demo\.html/);
 });
 
-test("viewer.html has no talking-loop button (SoT 4)", async () => {
+test("viewer.html has no sound-independent talking repetition button (SoT 4)", async () => {
   const viewerHtml = await readFile(new URL("../main/viewer.html", import.meta.url), "utf8");
-  assert.doesNotMatch(viewerHtml, /id="playTalking"/);
+  assert.deepEqual(scan("viewer.html", viewerHtml, SOUNDLESS_REPEAT), []);
 });
 

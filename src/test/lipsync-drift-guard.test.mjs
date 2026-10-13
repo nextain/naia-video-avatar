@@ -1,37 +1,36 @@
-// SoT 3 / 6 recurrence guard: the canonical player and every file the web and
-// shell copy byte for byte (vendor-manifest.json) must never again carry the
-// drift traces Luke named — aiueo loops, volume-threshold mouths, drawn mouths,
-// or approximate plans. Any hit fails the suite.
+// SoT 3 / 4 / 6 recurrence guard: the canonical player, every file the web and
+// shell copy byte for byte (vendor-manifest.json), and the whole repository
+// src must never again carry the drift traces Luke named — aiueo loops,
+// volume-threshold mouths, drawn mouths, approximate plans, or a talking clip
+// repeated without the sound. Any hit fails the suite. Patterns live in
+// drift-patterns.mjs, the only file allowed to spell them out.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { FORBIDDEN, SAMPLES, SOUNDLESS_REPEAT, REPEAT_SAMPLES, scan } from "./drift-patterns.mjs";
+
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const mainDir = join(root, "src", "main");
+const srcDir = join(root, "src");
+const mainDir = join(srcDir, "main");
+const PATTERN_FILE = join(srcDir, "test", "drift-patterns.mjs");
+const TEXT = /\.(js|mjs|cjs|ts|tsx|html|py|json)$/;
 
-const FORBIDDEN = Object.freeze([
-  ["aiueo loop", /aiueo|a-i-u-e-o|아이우에오/i],
-  ["volume threshold mouth", /createAnalyser|AnalyserNode|get(Byte|Float)(Frequency|TimeDomain)Data|\brms\b|volume[_-]?threshold|amplitude|loudness/i],
-  ["drawn mouth", /draw[_-]?mouth|mouth[_-]?(open|shape|path|draw)|openness|\.ellipse\(|quadraticCurveTo|bezierCurveTo/i],
-  ["approximate plan", /approximate/i],
-]);
-
-function scan(name, source) {
-  const hits = [];
-  source.split("\n").forEach((line, index) => {
-    for (const [label, pattern] of FORBIDDEN) {
-      if (pattern.test(line)) hits.push(`${name}:${index + 1} ${label}: ${line.trim().slice(0, 120)}`);
-    }
+function walk(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return entry.name === "node_modules" ? [] : walk(path);
+    return TEXT.test(entry.name) ? [path] : [];
   });
-  return hits;
 }
 
-test("canonical player sources carry no aiueo, volume-threshold, drawn-mouth, or approximate traces", () => {
-  const files = readdirSync(mainDir).filter((name) => /\.(js|mjs|html)$/.test(name));
-  assert.ok(files.includes("speech-player.js") && files.includes("viewer.html"));
-  const hits = files.flatMap((name) => scan(name, readFileSync(join(mainDir, name), "utf8")));
+test("canonical player sources carry no aiueo, volume-threshold, drawn-mouth, approximate, or sound-independent repeat traces", () => {
+  const files = walk(mainDir);
+  assert.ok(files.some((f) => f.endsWith("speech-player.js")) && files.some((f) => f.endsWith("viewer.html")));
+  assert.ok(files.some((f) => f.endsWith("nva-animation-player.js")));
+  const hits = files.flatMap((file) => scan(relative(root, file), readFileSync(file, "utf8")));
   assert.deepEqual(hits, []);
 });
 
@@ -44,15 +43,16 @@ test("every vendored file in vendor-manifest.json is covered by the drift scan",
   }
 });
 
+test("no file anywhere in src (players, viewer, tests, e2e) brings back a sound-independent talking repeat", () => {
+  const files = walk(srcDir).filter((file) => file !== PATTERN_FILE);
+  assert.ok(files.length > 40, `scanned ${files.length}`);
+  const hits = files.flatMap((file) => scan(relative(root, file), readFileSync(file, "utf8"), SOUNDLESS_REPEAT));
+  assert.deepEqual(hits, []);
+});
+
 test("the drift scan itself catches each forbidden trace", () => {
-  for (const sample of [
-    "const AIUEO = ['a','i','u','e','o'];",
-    "const analyser = ctx.createAnalyser();",
-    "if (rms > volumeThreshold) open();",
-    "drawMouth(ctx, openness);",
-    "ctx.ellipse(x, y, w, h, 0, 0, 7);",
-    "quality_mode: 'approximate'",
-  ]) {
-    assert.ok(scan("sample", sample).length > 0, sample);
-  }
+  for (const sample of SAMPLES) assert.ok(scan("sample", sample).length > 0, sample);
+  for (const sample of REPEAT_SAMPLES) assert.ok(scan("sample", sample, SOUNDLESS_REPEAT).length > 0, sample);
+  // The speech player's body clip (derived.talking, driven by the plan clock) is not a loop trace.
+  assert.deepEqual(scan("ok", "const bodyUrl = this.#objectUrl(requiredAsset(assets, talking.clip));"), []);
 });

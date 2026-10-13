@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
+import { SOUNDLESS_REPEAT, scan } from "./drift-patterns.mjs";
+
 const html = await readFile(new URL("../main/viewer.html", import.meta.url), "utf8");
 
 test("public viewer takes an NVA, audio, and SpeechPlan without a generation endpoint", () => {
@@ -18,6 +20,6 @@ test("viewer shows only the aligned quality path and keeps cancellation", () => 
   assert.match(html, /player\?\.stop\("cancel"\)/);
 });
 
-test("viewer has no talking-loop control (SoT 4: no audio-independent repetition)", () => {
-  assert.doesNotMatch(html, /playTalking|talking loop/i);
+test("viewer has no sound-independent talking repetition control (SoT 4)", () => {
+  assert.deepEqual(scan("viewer.html", html, SOUNDLESS_REPEAT), []);
 });

@@ -175,7 +175,7 @@ with tempfile.TemporaryDirectory(prefix="nva-player-e2e-") as temporary_name:
         broken.write_text("not a zip", encoding="utf-8")
         page.locator("#nvaFile").set_input_files(str(broken))
         page.wait_for_function("() => (document.getElementById('status')?.textContent || '').startsWith('Blocked:')", timeout=5_000)
-        for selector in ["#speechClip", "#playSpeech", "#playTalking", "#action", "#playAction", "#stop"]:
+        for selector in ["#speechClip", "#playSpeech", "#action", "#playAction", "#stop"]:
             assert page.locator(selector).is_disabled(), f"{selector} should be disabled after blocked load"
         assert page.locator("#animation").evaluate("video => !video.hasAttribute('src') || video.getAttribute('src') === ''")
 

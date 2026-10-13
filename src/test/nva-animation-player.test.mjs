@@ -71,7 +71,6 @@ test("animation player lists actions and completed speech videos", async () => {
     speechClips: [{ key: "greeting", label: "인사" }],
     talking: null,
   });
-  await assert.rejects(() => player.playTalking(), /NVA has no talking animation/);
   assert.equal(element.src, "blob:1");
   assert.equal(element.loop, true);
   assert.equal(element.muted, true);
@@ -152,15 +151,11 @@ function legacyManifest() {
   };
 }
 
-test("animation player plays talking loop in v0.2, recovers from error, and respects stop generation", async () => {
+test("v0.2 talking clip is reported only; the animation player never repeats it on its own (SoT 3·4)", async () => {
   const element = video();
   let nextUrl = 0;
-  const revoked = [];
   const player = new NvaAnimationPlayer(element, {
-    urlApi: {
-      createObjectURL: () => `blob:${++nextUrl}`,
-      revokeObjectURL: (url) => revoked.push(url),
-    },
+    urlApi: { createObjectURL: () => `blob:${++nextUrl}`, revokeObjectURL() {} },
   });
   const paths = ["idle", "talk", "wave"].map((name) => `clips/${name}.webm`);
   const assets = new Map(paths.map((path) => [path, new Blob([path])]));
@@ -175,30 +170,11 @@ test("animation player plays talking loop in v0.2, recovers from error, and resp
   assert.equal(element.src, "blob:1");
   assert.equal(element.loop, true);
   assert.equal(element.muted, true);
-
-  await player.playTalking();
-  assert.equal(player.state, "talking");
-  assert.equal(element.src, "blob:2");
-  assert.equal(element.loop, true);
-  assert.equal(element.muted, true);
-
-  player.onError();
-  assert.equal(player.state, "idle");
-  await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(element.src, "blob:1");
-
-  const baseline = element.played;
-  let release;
-  element.load = () => { release = () => element.listeners.loadeddata?.(); };
-  const pending = player.playTalking();
-  player.stop();
-  release();
-  await pending;
-  assert.equal(element.played, baseline, "stale talking must not play after stop");
-  assert.equal(player.state, "ready");
+  const methods = Object.getOwnPropertyNames(NvaAnimationPlayer.prototype);
+  assert.ok(!methods.some((name) => /talk/i.test(name)), methods.join(","));
 });
 
-test("v0.2 manifest without talking animation rejects playTalking and returns talking as null", async () => {
+test("v0.2 manifest without talking animation returns talking as null", async () => {
   const element = video();
   const player = new NvaAnimationPlayer(element, {
     urlApi: { createObjectURL: () => "blob:x", revokeObjectURL() {} },
@@ -210,7 +186,6 @@ test("v0.2 manifest without talking animation rejects playTalking and returns ta
   const result = await player.load({ manifest, assets });
   assert.equal(result.talking, null);
   assert.deepEqual(result.idles, ["idle"]);
-  await assert.rejects(() => player.playTalking(), /NVA has no talking animation/);
 });
 
 test("superseded play request swallowing AbortError when generation changes via stop or new request", async () => {
@@ -485,7 +460,6 @@ test("invalid play request during prop sequence rejects without breaking sequenc
   assert.equal(player.state, "prop");
   assert.equal(element.src, player.urls.get("clips/strum_enter.webm"));
 
-  await assert.rejects(() => player.playTalking(), /NVA has no talking animation/);
   await assert.rejects(() => player.playSpeech("missing"), /unknown packaged speech video/);
 
   element.dispatchEvent("ended");
