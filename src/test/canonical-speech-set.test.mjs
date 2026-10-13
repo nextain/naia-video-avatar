@@ -19,7 +19,7 @@ const UNITS = [
   "vowel-open", "vowel-mid", "vowel-spread", "vowel-round",
 ];
 
-test("canonical speech-set folder is optional", { skip: files.length > 0 }, () => {});
+if (!files.length) test("canonical speech-set bundles", { skip: "set NVA_CANONICAL_DIR to a folder of canonical .nva bundles" }, () => {});
 
 for (const name of files) {
   test(`canonical speech set ${name}: contract, 233 clips, every pair key schedulable`, async () => {
