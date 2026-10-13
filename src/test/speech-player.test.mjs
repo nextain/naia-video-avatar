@@ -391,3 +391,51 @@ test("SpeechPlayer audio load accepts only aligned plans and updateExternalPlan 
   player.stop("complete");
   player.dispose();
 });
+
+test("SpeechPlayer audio clock mode plays an aligned plan against the streamed sound position (SoT 8)", async () => {
+  const media = () => ({
+    pause() {}, removeEventListener() {}, addEventListener(event, cb) {
+      if (event === "loadeddata" || event === "loadedmetadata") queueMicrotask(cb);
+    }, removeAttribute() {}, load() {}, duration: 0.1, async play() {},
+    currentTime: 0, readyState: 4,
+  });
+  let frameCallback = null;
+  const audio = media();
+  let audioPlayed = false;
+  audio.play = async () => { audioPlayed = true; };
+  const player = new SpeechPlayer({
+    audio,
+    canvas: { getContext: () => ({ clearRect() {}, drawImage() {}, save() {}, restore() {} }), width: 720, height: 1280 },
+    bodyVideo: media(), speechVideos: [media(), media()],
+    urlApi: { createObjectURL: () => "blob:test", revokeObjectURL() {} },
+    imageLoader: async () => ({ close() {} }),
+    requestFrame: (cb) => { frameCallback = cb; return 1; },
+    cancelFrame: () => {},
+  });
+  const { manifest, assets, alignedPlan, browserPlan } = await buildWholeHeadFixture();
+
+  await assert.rejects(
+    () => player.loadAudioClock({ manifest, assets, plan: browserPlan }),
+    /audio clock playback requires an aligned SpeechPlan/,
+  );
+  const result = await player.loadAudioClock({ manifest, assets, plan: alignedPlan });
+  assert.equal(result.quality_mode, "aligned");
+  assert.equal(player.mode, "audio-clock");
+  await assert.rejects(() => player.play(), /not loaded for audio playback/);
+  await assert.rejects(() => player.playExternal(() => 0), /not loaded for browser TTS playback/);
+  assert.throws(() => player.updateExternalPlan(browserPlan), /not loaded for browser TTS playback/);
+
+  let position = 0.01;
+  let reads = 0;
+  await player.playAudioClock(() => { reads++; return position; });
+  assert.equal(player.state, "speaking");
+  assert.equal(audioPlayed, false, "the player never plays the media element itself in audio clock mode");
+  position = 0.06;
+  frameCallback();
+  assert.ok(reads >= 1);
+  player.stop("complete");
+  assert.equal(player.state, "ready");
+  assert.equal(player.externalClock, null);
+  await assert.rejects(() => player.playAudioClock(42), /external clock function is required/);
+  player.dispose();
+});

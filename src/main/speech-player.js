@@ -105,6 +105,20 @@ export class SpeechPlayer {
     return { quality_mode: plan.quality_mode, transitions: this.schedule.transitions.length };
   }
 
+  // SoT 8: streamed speech (for example PCM chunks) has no audio Blob to hash,
+  // but its time base is still that sound. An aligned plan is played against
+  // the playback position of the sound that is actually playing. Timers and
+  // character-count clocks are not audio clocks and must not be passed here.
+  async loadAudioClock({ manifest, assets, plan }) {
+    if (plan?.quality_mode !== "aligned")
+      throw new TypeError("audio clock playback requires an aligned SpeechPlan");
+    await this.#loadMotion({ manifest, assets, plan });
+    this.mode = "audio-clock";
+    this.state = "ready";
+    this.#draw();
+    return { quality_mode: plan.quality_mode, transitions: this.schedule.transitions.length };
+  }
+
   // Browser speech reports word boundaries while it is already speaking, so a
   // browser-timed plan is revised during playback. The revision goes through
   // the same plan validation and buildSpeechSchedule as load; decoded atlas
@@ -186,7 +200,8 @@ export class SpeechPlayer {
 
   async play() {
     if (this.state !== "ready") throw new Error("SpeechPlayer is not ready");
-    if (this.mode === "external") throw new Error("SpeechPlayer is not loaded for audio playback");
+    if (this.mode === "external" || this.mode === "audio-clock")
+      throw new Error("SpeechPlayer is not loaded for audio playback");
     this.token = this.playbackState.begin("speaking");
     this.audio.currentTime = 0;
     this.bodyVideo.currentTime = 0;
@@ -201,8 +216,21 @@ export class SpeechPlayer {
   }
 
   async playExternal(clock) {
+    if (this.mode !== "external" && this.state === "ready")
+      throw new Error("SpeechPlayer is not loaded for browser TTS playback");
+    return this.#playWithClock(clock);
+  }
+
+  // clock() returns the playback position, in seconds, of the streamed sound
+  // the aligned plan was made for.
+  async playAudioClock(clock) {
+    if (this.mode !== "audio-clock" && this.state === "ready")
+      throw new Error("SpeechPlayer is not loaded for audio clock playback");
+    return this.#playWithClock(clock);
+  }
+
+  async #playWithClock(clock) {
     if (this.state !== "ready") throw new Error("SpeechPlayer is not ready");
-    if (this.mode !== "external") throw new Error("SpeechPlayer is not loaded for browser TTS playback");
     if (typeof clock !== "function") throw new TypeError("external clock function is required");
     this.externalClock = clock;
     this.token = this.playbackState.begin("speaking");
@@ -276,7 +304,9 @@ export class SpeechPlayer {
 
   #draw() {
     if (!this.manifest || this.bodyVideo.readyState < 2) return;
-    const seconds = this.mode === "external" ? (this.externalClock?.() || 0) : (this.audio.currentTime || 0);
+    const seconds = this.mode === "external" || this.mode === "audio-clock"
+      ? (this.externalClock?.() || 0)
+      : (this.audio.currentTime || 0);
     const timeUs = Math.min(this.schedule.duration_us, Math.max(0, Math.round(seconds * 1_000_000)));
     const resolved = resolveSpeechLayers(this.schedule, timeUs);
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
