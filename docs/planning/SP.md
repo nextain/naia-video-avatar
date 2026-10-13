@@ -11,7 +11,7 @@ English | [한국어](./SP.ko.md)
 
 ## 1. Screen Overview
 
-`SP-01 Player` is the standalone web interface that loads packaged NVA avatar files, displays transparent video on an interactive background stage, and triggers packaged speech videos, talking loops, and action clips.
+`SP-01 Player` is the standalone web interface that loads packaged NVA avatar files, displays transparent video on an interactive background stage, and triggers packaged speech videos and action clips; speech plays Ditto speech segments on the speech plan with the talking clip as body video.
 
 ---
 
@@ -43,7 +43,6 @@ Two-column grid layout (`minmax(0, 1fr) 320px` with 24px gap).
 |   |                                                       |   | --- Pre-rendered speech ------|
 |   |                                                       |   | [ Select speech clip...     v]|
 |   |                                                       |   | [ Play packaged speech        ] |
-|   |                                                       |   | [ Play talking loop           ] |
 |   |                                                       |   |                               |
 |   |                                                       |   | --- NVA action ---------------|
 |   |                                                       |   | [ Select action...          v]|
@@ -68,7 +67,7 @@ Single-column stacked layout where the control panel moves above the stage card 
 |   [ Choose File ]                                             |
 |   [ Select sample... v ] [ Open selected sample ]             |
 |   [Color] [ Image ] [ Clear ]                                 |
-|   [ Speech clip v ] [ Play speech ] [ Play talking loop ]     |
+|   [ Speech clip v ] [ Play speech ]                           |
 |   [ Action v ] [ Play action ]                                |
 |   [ Stop and return to idle ]                                 |
 |   #status: Ready · ...                                        |
@@ -93,10 +92,10 @@ Single-column stacked layout where the control panel moves above the stage card 
 | **Background Image** | `input#backgroundImage[type=file]` | User selects image file | Creates a local Blob URL, revokes previous URL, and sets `#stage` background image (`cover no-repeat center`). |
 | **Clear Background** | `button#clearBackground` | Click button | Removes background image, resets input, and restores the active solid background color. |
 | **Speech Playback** | `select#speechClip`<br>`button#playSpeech` | Select clip and click "Play packaged speech" | Sets `video.muted=false`, `video.loop=false`, and `state="speech"`. Updates `#status` to `"Playing packaged speech: <label>"`. When playback ends (`ended` event), returns to idle automatically with `"Playback complete; idle restored."`. |
-| **Talking Loop** | `button#playTalking` | Click "Play talking loop" | Enabled when a v0.2 bundle has a talking loop: a looping, non-transition animation with `can_talk` (the scenario start animation first, otherwise the first in manifest order). Sets `video.muted=true`, `video.loop=true`, and `state="talking"`. `#status` shows `"Playing talking loop."`. |
+| **Talking Clip (body video)** | none (`button#playTalking` isolated (57a7614, SoT 3·4)) | Speech only | A v0.2 bundle's looping, non-transition `can_talk` animation (the scenario start animation first, otherwise the first in manifest order) is the talking clip. It is only the body video under the speaking head and moves only on the speech plan clock while Ditto speech segments play on the speech plan (aligned or browser-timed). Sound-independent talking loop playback is isolated (57a7614, SoT 3·4). |
 | **Action Playback** | `select#action`<br>`button#playAction` | Select action and click "Play action" | Sets `video.muted=true`, `video.loop=false`, and `state="action"`. When the clip ends, restores idle automatically. |
 | **Prop Action Playback** | `select#action`<br>`button#playAction` | Select prop action and click "Play action" | Presented as a single item in the action dropdown. Executes composite sequence: enter (1x, if present) → main loop (2x) → exit (1x, if present). Intermediate steps suppress completion status messages; final step restores idle automatically. |
-| **Stop** | `button#stop` | Click "Stop and return to idle" | Stops current action, talking loop, or speech video. Immediately resumes muted idle loop (`state="idle"`). Sets `#status` to `"Stopped; idle restored."`. |
+| **Stop** | `button#stop` | Click "Stop and return to idle" | Stops current action or speech. Immediately resumes muted idle loop (`state="idle"`). Sets `#status` to `"Stopped; idle restored."`. |
 
 ---
 
@@ -105,7 +104,6 @@ Single-column stacked layout where the control panel moves above the stage card 
 Errors are displayed directly in the `#status` box with alert styling (text color `#ff8d8d`):
 - **Invalid bundle or manifest error**: Shows `"Blocked: <reason>"`. All playback controls (speech and action selectors, the three play buttons, and Stop) are disabled, and the previously loaded avatar is cleared from the stage.
 - **Speech video decode/playback failure**: Automatically invokes `restoreIdle()` and sets `#status` to `"Speech video failed: <reason>"`.
-- **Talking loop failure**: Restores idle and sets `#status` to `"Talking failed: <reason>"`.
 - **Action failure**: Restores idle and sets `#status` to `"Action failed: <reason>"`.
 - **Sample catalog failure**: Shows `"Sample catalog blocked: <reason>. You can still open a local file."`. The file picker remains fully functional.
 
@@ -121,7 +119,7 @@ This screen plan realizes the following user scenarios:
 - `UC-015`: Load samples from catalog without absolute paths.
 - `UC-017`: Standalone browser preview without GPU or external APIs.
 - `UC-019`: Interactive background color and image composition.
-- `UC-020`: Studio 0.2 backward compatibility (talking loop and actions).
+- `UC-020`: Studio 0.2 backward compatibility (actions; talking clip as body video under speech, talking loop isolated (57a7614, SoT 3·4)).
 - `UC-021`: Play Studio v0.2 prop sequences as a composite action.
 
 ---

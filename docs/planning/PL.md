@@ -58,7 +58,7 @@ The runtime architecture consists of seven modular components under `src/main/`:
 ### 3.2 NVA Version 0.2 (Studio Distribution Support — REQ-029, NFR-011)
 - **Studio Distribution Support**: Officially supports reading and playback of Studio v0.2 distribution packages.
 - **Prop Sequence Playback**: Detects animations with `prop_sequence` metadata and plays composite sequences (`enter` → main loop 2x → `exit` → restore idle), hiding auxiliary clips from action selectors and disambiguating duplicate labels.
-- **Talking Loop**: Identifies animations with `loop: true` and `can_talk: true` to support the `#playTalking` loop when speech clips are absent.
+- **Talking Clip (body video)**: Identifies animations with `loop: true` and `can_talk: true` as the talking clip, used only as the body video under the speaking head and moved only by the speech plan clock. Speech is Ditto speech segments played on the speech plan (aligned or browser-timed). The `#playTalking` loop without sound is isolated (57a7614, SoT 3·4).
 - **Tolerant Parsing**: Authoring extension keys (such as `meta`, `expressions`, `thumbnail`, `speech_set`, `loop_crossfade_frames`) are safely read or ignored without breaking playback.
 - **Locale Mapping**: Legacy `locale` field is accepted as an alias for `language`.
 
@@ -81,7 +81,7 @@ Verification spans three independent testing tiers:
 │ 3. Playwright Browser E2E Tests (src/test/*.e2e.py)         │
 │    - Real Chromium headless browser against localhost       │
 │    - Multi-viewport layout (Phone 390px, Desktop 1440px)    │
-│    - Idle loop, speech playback, talking loop, and stop     │
+│    - Idle loop, speech playback, and stop                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 

@@ -53,7 +53,7 @@ Clear separation between the authoring tier (Studio) and consumption tier (Playe
 - **In-Scope (This Repository)**:
   - Validating manifest schema, ZIP bundle paths, and media safety.
   - Safe, client-side ZIP parsing and Blob URL lifecycle management.
-  - Browser playback coordination: idle, actions, talking loops, speech clips, and stop handling.
+  - Browser playback coordination: idle, actions, speech (Ditto speech segments on the speech plan, talking clip as body video), and stop handling.
   - Static responsive UI for avatar preview and background composition.
 - **Out-of-Scope (External Systems)**:
   - Avatar image generation, face reenactment, or video rendering.

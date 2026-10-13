@@ -89,12 +89,12 @@ Newly authored public packages should use v0.3 completed-media.
 - **Common animation fields**:
   - `clip`: relative path to WebM/MP4 clip (Used for playback).
   - `loop`: boolean loop flag (Used for playback).
-  - `can_talk`: indicates talking capability (Used for playback: distinguishes idle from talking loop).
+  - `can_talk`: indicates talking capability (Used for playback: distinguishes idle from the talking clip, which is only the body video under the speaking head on the speech plan clock).
   - `label`: UI action label (Display only: duplicate labels in v0.2 produce warnings and display as `label (key)`).
   - `loop_crossfade_frames`: crossfade frame count already blended into the clip (Informational: frames are already baked into the clip; the Player does not perform additional crossfading).
   - `sha256`, `frames`, `duration_s`: media metrics (Producer data: not read by Player / ignored).
   - `face_bbox`: `[x, y, w, h]` normalized face bounding box on talking clip (Producer data: not read by Player / ignored).
-  - `idle`, `talking`: base looping animations (`idle` is always first; `talking` is played via `playTalking`).
+  - `idle`, `talking`: base looping animations (`idle` is always first; `talking` is the body video under speech on the speech plan clock; `playTalking` isolated (57a7614, SoT 3·4)).
 
 - **Prop action sequence rules**:
   - Main action `X`: `loop: true`, `can_talk: false`, `prop_sequence: { enter: "X__enter", exit: "X__exit" }`.

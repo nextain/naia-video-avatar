@@ -58,7 +58,7 @@
 ### 3.2 NVA Version 0.2 (Studio 배포 지원 — REQ-029, NFR-011)
 - **Studio 배포 지원**: Studio v0.2 배포 패키지의 읽기 및 재생을 공식 지원한다.
 - **소품 동작 순서 재생**: `prop_sequence` 메타데이터를 가진 애니메이션을 인식하여 복합 순서(enter 1회 → 본 동작 2회 → exit 1회 → 대기 복귀)로 재생하며, 액션 선택기에서 보조 클립을 숨기고 중복 라벨을 구분 표기한다.
-- **말하기 루프**: `loop: true`, `can_talk: true` 애니메이션을 인식하여 speech_clips가 없어도 `#playTalking` 버튼을 통해 말하기 모션을 재생한다.
+- **talking 클립(몸 영상)**: `loop: true`, `can_talk: true` 애니메이션을 talking 클립으로 인식하되, 말하는 머리 아래 몸 영상으로만 쓰고 발화 계획 시계로만 움직인다. 말하기는 발화 계획(aligned·browser-timed)에 따른 Ditto 발화 조각 재생이다. 소리 없이 `#playTalking` 버튼으로 반복 재생하던 요구는 격리됨(57a7614, SoT 3·4절).
 - **관용적 파싱**: 매니페스트 내 미등록 Studio 확장 필드(`meta`, `expressions`, `thumbnail`, `speech_set`, `loop_crossfade_frames` 등)는 오류 없이 안전하게 읽거나 무시한다.
 - **언어 필드 호환**: 구버전 `locale` 필드를 `language`의 읽기 전용 별칭으로 수용한다.
 
@@ -81,7 +81,7 @@
 │ 3. Playwright 브라우저 E2E 시험 (src/test/*.e2e.py)         │
 │    - 로컬 정적 서버 기반 실제 Chromium 헤드리스 브라우저    │
 │    - 다중 뷰포트 반응형 (폰 390px, 데스크톱 1440px)        │
-│    - 대기 루프, 발화 영상, 말하기 루프, 정지 안정성 검증     │
+│    - 대기 루프, 발화 영상, 정지 안정성 검증                  │
 └─────────────────────────────────────────────────────────────┘
 ```
 

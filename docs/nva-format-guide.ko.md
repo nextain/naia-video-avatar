@@ -87,12 +87,12 @@ Player는 Studio v0.2 배포 파일의 읽기 및 재생을 지원합니다. 새
 - **애니메이션 공통 필드**:
   - `clip`: ZIP 내부 WebM/MP4 클립 상대 경로 (재생에 사용).
   - `loop`: 반복 재생 플래그 (재생에 사용).
-  - `can_talk`: 말하기 가능 여부 (재생에 사용: base idle 루프와 talking 루프 구분).
+  - `can_talk`: 말하기 가능 여부 (재생에 사용: base idle 루프와 talking 클립 구분, talking 클립은 발화 계획 시계로 움직이는 몸 영상).
   - `label`: 동작 선택 UI 표시 라벨 (표시에만 사용: v0.2에서 중복 라벨은 경고로 처리되며 UI에 `label (key)` 형태로 구분 표시).
   - `loop_crossfade_frames`: 클립 생성 시 기혼합된 크로스페이드 프레임 수 (정보용: 클립에 이미 섞여 들어가 있으므로 Player가 추가 크로스페이드를 수행하지 않음).
   - `sha256`, `frames`, `duration_s`: 미디어 정보 (생산자 데이터: Player는 읽지 않고 무시).
   - `face_bbox`: talking 클립의 정규화 얼굴 영역 `[x, y, w, h]` (생산자 데이터: Player는 읽지 않고 무시).
-  - `idle`, `talking`: 기본 반복 애니메이션 (`idle`이 맨 앞이며 기본 대기, `talking`은 `playTalking`으로 재생).
+  - `idle`, `talking`: 기본 반복 애니메이션 (`idle`이 맨 앞이며 기본 대기, `talking`은 발화 중 발화 계획 시계로 움직이는 몸 영상, `playTalking`은 격리됨(57a7614, SoT 3·4절)).
 
 - **소품 동작 순서 규칙**:
   - 본 동작 `X`: `loop: true`, `can_talk: false`, `prop_sequence: { enter: "X__enter", exit: "X__exit" }`.
