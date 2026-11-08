@@ -12,6 +12,8 @@
 - [위협 모델](./threat-model.ko.md) — 보안 경계, 시크릿 격리(T3), 추적 금지 경로
 - [LLM 역할 분담](./llm-roles.ko.md) — 작은(라이트) 모델 ↔ 큰 모델 분담, 단일 CLI 어댑터, 검출 계층
 - [합격 기준](./acceptance-criteria.ko.md) — 계약 구체화 + 검증이 게이트를 대체(게이트키퍼 제거). 완료증거 등급(강/약/없음)
+- [NVA 포맷 가이드](./nva-format-guide.ko.md) — NVA v0.3 completed-media 규격 및 Studio v0.2 호환 프로필
+- [NVA 발화 조각 묶음 포맷](./nva-speech-atlas-format.ko.md) — `speech_motion` 발화 조각 묶음의 읽기 측 형식, 바이트 배치, 색인 필드, 한도 및 재생 규칙
 
 ## 기획·아키텍처 (planning/)
 

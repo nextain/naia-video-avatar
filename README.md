@@ -47,7 +47,7 @@ avatar.nva
 The `.nva` extension is a regular ZIP archive. `manifest.json` uses
 `nva_version: "0.3"` and `profile: "completed-media"`. Every `speech_clips`
 entry references a finished MP4 or WebM with embedded audio and a BCP 47
-language tag. See [the format guide](docs/nva-format-guide.md).
+language tag. See [the format guide](docs/nva-format-guide.md) and [the speech atlas format](docs/nva-speech-atlas-format.md).
 
 ## Build a final NVA
 

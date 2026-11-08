@@ -70,6 +70,7 @@ extending this public Player contract.
 
 The Player supports reading and playback of Studio v0.2 distribution files.
 Newly authored public packages should use v0.3 completed-media.
+For the Studio v0.2 speech fragment bundle (`speech_motion`, `speech/atlas.bin`, and `speech/atlas-index.json`), see the [NVA speech atlas format](./nva-speech-atlas-format.md).
 
 ### Manifest fields and Player behavior
 
