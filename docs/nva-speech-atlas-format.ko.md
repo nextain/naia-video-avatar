@@ -14,7 +14,7 @@
 
 | 대상 | 필드 / 위치 | 값 | 비고 |
 |---|---|---|---|
-| NVA 아카이브 매니페스트 | `manifest.nva_version` | `"0.2"` 또는 `"0.3"` | `READABLE_NVA_VERSIONS = ["0.2", "0.3"]` (`vendor/nva-core.js`). Studio v0.2 번들은 `"0.2"`를 사용합니다. |
+| NVA 아카이브 매니페스트 | `manifest.nva_version` | `"0.2"` 또는 `"0.3"` | `READABLE_NVA_VERSIONS = ["0.2", "0.3"]` (`src/main/nva-core.js`). Studio v0.2 번들은 `"0.2"`를 사용합니다. |
 | 발화 모션 확장 | `manifest.speech_motion.version` | `"1"` | 필수 문자열 리터럴입니다. |
 | 발화 단위 목록 버전 | `manifest.speech_motion.inventory_version` | `"1.0.0"` | 고정 13개 발화 단위 체계를 나타냅니다. |
 | 합성 표현 방식 | `manifest.speech_motion.representation` | `"whole-head-layer"` 또는 `"factorized-difference-layer"` | 현재 Studio 배포 번들은 `"whole-head-layer"`를 사용합니다. |
@@ -194,7 +194,7 @@ speech/atlas.bin
 
 ---
 
-## 7. 키 233개의 구성(전이 169 + 3단위 맥락/기준 64)과 키 이름 규칙
+## 7. 키 233개의 구성(전이 169 + 3단위 맥락 키 64)과 키 이름 규칙
 
 ### 고정 13개 발화 단위(`inventory_version: "1.0.0"`)
 
@@ -229,7 +229,7 @@ speech/atlas.bin
 1. **방향성 2단위 전이 키 169개 (`previous>current`)**:
    - 13개 발화 단위의 순서쌍 전체($13 \times 13 = 169$개: 동일 단위 유지 `u>u` 13개 + 서로 다른 단위 간 전이 `u>v` 156개).
 2. **3단위 맥락(기준) 키 64개 (`previous>current>next`)**:
-   - 요약 문서에서 '기준 64'로도 부르며, 실제 코드(`speech-atlas-index.js`, `speech-runtime.js`)와 번들 색인에서는 `previous>current` 전이 뒤에 `next` 단위가 이어질 때 선택되는 3단위 맥락 키(`three-unit contexts`, `contextKeys`) 64개입니다.
+   - 실제 코드(`speech-atlas-index.js`, `speech-runtime.js`)와 번들 색인에서는 `previous>current` 전이 뒤에 `next` 단위가 이어질 때 선택되는 3단위 맥락 키(`three-unit contexts`, `contextKeys`) 64개입니다.
    - 64개 전체 목록:
      `alveolar>alveolar>alveolar`, `alveolar>alveolar>vowel-mid`, `alveolar>alveolar>vowel-open`, `alveolar>alveolar>vowel-round`, `alveolar>alveolar>vowel-spread`, `alveolar>glottal>vowel-open`, `alveolar>glottal>vowel-round`, `alveolar>vowel-mid>alveolar`, `alveolar>vowel-mid>closed`, `alveolar>vowel-mid>postalveolar`, `alveolar>vowel-mid>velar`, `alveolar>vowel-open>alveolar`, `alveolar>vowel-open>velar`, `alveolar>vowel-open>vowel-spread`, `alveolar>vowel-round>alveolar`, `alveolar>vowel-round>postalveolar`, `alveolar>vowel-round>vowel-round`, `alveolar>vowel-round>vowel-spread`, `alveolar>vowel-spread>alveolar`, `alveolar>vowel-spread>closed`, `alveolar>vowel-spread>postalveolar`, `alveolar>vowel-spread>velar`, `alveolar>vowel-spread>vowel-mid`, `alveolar>vowel-spread>vowel-spread`, `closed>vowel-mid>alveolar`, `closed>vowel-open>alveolar`, `glottal>vowel-open>alveolar`, `postalveolar>glottal>vowel-spread`, `postalveolar>vowel-open>closed`, `postalveolar>vowel-open>vowel-spread`, `postalveolar>vowel-spread>alveolar`, `velar>alveolar>vowel-spread`, `velar>vowel-mid>alveolar`, `vowel-mid>alveolar>alveolar`, `vowel-mid>alveolar>vowel-mid`, `vowel-mid>alveolar>vowel-open`, `vowel-mid>alveolar>vowel-round`, `vowel-mid>alveolar>vowel-spread`, `vowel-mid>postalveolar>vowel-open`, `vowel-mid>postalveolar>vowel-spread`, `vowel-mid>velar>alveolar`, `vowel-open>alveolar>alveolar`, `vowel-open>alveolar>vowel-mid`, `vowel-open>alveolar>vowel-spread`, `vowel-open>closed>vowel-mid`, `vowel-open>postalveolar>vowel-open`, `vowel-open>vowel-spread>alveolar`, `vowel-round>alveolar>alveolar`, `vowel-round>alveolar>velar`, `vowel-round>alveolar>vowel-mid`, `vowel-round>alveolar>vowel-round`, `vowel-round>alveolar>vowel-spread`, `vowel-round>postalveolar>vowel-open`, `vowel-round>vowel-mid>alveolar`, `vowel-round>vowel-round>alveolar`, `vowel-round>vowel-spread>vowel-spread`, `vowel-spread>alveolar>alveolar`, `vowel-spread>alveolar>vowel-mid`, `vowel-spread>alveolar>vowel-open`, `vowel-spread>alveolar>vowel-round`, `vowel-spread>alveolar>vowel-spread`, `vowel-spread>postalveolar>vowel-open`, `vowel-spread>vowel-mid>alveolar`, `vowel-spread>vowel-spread>alveolar`.
 
@@ -239,8 +239,8 @@ speech/atlas.bin
 
 | 항목 | 상한 | 검사 위치 및 설명 |
 |---|---|---|
-| **발화 조각 5개 파일 바이트 합** (`neutral_head` + `atlas` + `atlas_index` + `validation_report` + `quality_report`) | **160 MiB** (`167,772,160` 바이트) | `MAX_SPEECH_ASSETS_BYTES` (`studio_nva_bundle_limits.py`), `SPEECH_ASSET_MAX_BYTES` (`generation-contract.js`). 영수증(`provenance`, `speech/generation-result.json`)과 부속 파일은 합산에서 제외합니다. |
-| **압축된 `.nva` 아카이브 크기** | **200 MiB** (`209,715,200` 바이트) | `MAX_ARCHIVE_BYTES` (`nva-bundle-loader.js`), 게이트웨이 `MAX_NVA_BYTES`. |
+| **발화 조각 5개 파일 바이트 합** (`neutral_head` + `atlas` + `atlas_index` + `validation_report` + `quality_report`) | **160 MiB** (`167,772,160` 바이트) | 만드는 쪽 한도입니다. 영수증(`provenance`, `speech/generation-result.json`)과 부속 파일은 합산에서 제외합니다. |
+| **압축된 `.nva` 아카이브 크기** | **200 MiB** (`209,715,200` 바이트) | `MAX_ARCHIVE_BYTES` (`src/main/nva-bundle-loader.js`). |
 | **압축 해제 후 전체 크기** | **400 MiB** (`419,430,400` 바이트) / **256 MiB** (`268,435,456` 바이트, `zip-budget.js`) | `MAX_EXPANDED_BYTES` (`nva-bundle-loader.js`) / `DEFAULT_MAX_BYTES` (`zip-budget.js`). |
 | **아카이브 최대 파일 수** | **512개** | `MAX_FILES` (`nva-bundle-loader.js`, `zip-budget.js`). |
 | **`manifest.json` 최대 크기** | **1 MiB** (`1,048,576` 바이트) | `MAX_MANIFEST_BYTES` (`nva-bundle-loader.js`, `zip-budget.js`). |
@@ -253,6 +253,8 @@ speech/atlas.bin
 ---
 
 ## 9. 재생 규칙
+
+이 절은 `naia-shell` 의 호스트 렌더러(`PrebakedAvatarRenderer`) 기준입니다. 이 저장소의 단독 플레이어 `NvaAnimationPlayer`(`src/main/nva-animation-player.js`)는 클립만 재생하고 발화 조각은 얹지 않습니다.
 
 ### 9.1 말하지 않을 때 (Idle 대기 상태)
 

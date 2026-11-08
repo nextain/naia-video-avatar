@@ -14,7 +14,7 @@ This specification defines only the read-side container layout, manifest and ind
 
 | Scope | Field / Location | Value | Notes |
 |---|---|---|---|
-| NVA archive manifest | `manifest.nva_version` | `"0.2"` or `"0.3"` | `READABLE_NVA_VERSIONS = ["0.2", "0.3"]` (`vendor/nva-core.js`). Studio v0.2 bundles use `"0.2"`. |
+| NVA archive manifest | `manifest.nva_version` | `"0.2"` or `"0.3"` | `READABLE_NVA_VERSIONS = ["0.2", "0.3"]` (`src/main/nva-core.js`). Studio v0.2 bundles use `"0.2"`. |
 | Speech motion extension | `manifest.speech_motion.version` | `"1"` | Required string literal. |
 | Speech unit inventory | `manifest.speech_motion.inventory_version` | `"1.0.0"` | Identifies the frozen 13-unit inventory. |
 | Compositing mode | `manifest.speech_motion.representation` | `"whole-head-layer"` or `"factorized-difference-layer"` | Current Studio bundles use `"whole-head-layer"`. |
@@ -229,7 +229,7 @@ A full canonical bundle (`jina`, `jina-anime`, `naia`) contains **233** entries 
 1. **169 directional pair keys (`previous>current`)**:
    - All $13 \times 13 = 169$ ordered pairs of the 13 speech units (including the 13 self-transitions `u>u` and 156 cross-unit transitions `u>v`).
 2. **64 three-unit context keys (`previous>current>next`)**:
-   - In `speech-atlas-index.js` and `speech-runtime.js`, the additional 64 entries are 3-unit context transitions (`contextKeys`, sometimes summarized as the 64 reference context entries) that specialize `previous>current` when immediately followed by `next`:
+   - In `speech-atlas-index.js` and `speech-runtime.js`, the additional 64 entries are 3-unit context transitions (64 three-unit context keys, `contextKeys`) that specialize `previous>current` when immediately followed by `next`:
    - `alveolar>alveolar>alveolar`, `alveolar>alveolar>vowel-mid`, `alveolar>alveolar>vowel-open`, `alveolar>alveolar>vowel-round`, `alveolar>alveolar>vowel-spread`, `alveolar>glottal>vowel-open`, `alveolar>glottal>vowel-round`, `alveolar>vowel-mid>alveolar`, `alveolar>vowel-mid>closed`, `alveolar>vowel-mid>postalveolar`, `alveolar>vowel-mid>velar`, `alveolar>vowel-open>alveolar`, `alveolar>vowel-open>velar`, `alveolar>vowel-open>vowel-spread`, `alveolar>vowel-round>alveolar`, `alveolar>vowel-round>postalveolar`, `alveolar>vowel-round>vowel-round`, `alveolar>vowel-round>vowel-spread`, `alveolar>vowel-spread>alveolar`, `alveolar>vowel-spread>closed`, `alveolar>vowel-spread>postalveolar`, `alveolar>vowel-spread>velar`, `alveolar>vowel-spread>vowel-mid`, `alveolar>vowel-spread>vowel-spread`, `closed>vowel-mid>alveolar`, `closed>vowel-open>alveolar`, `glottal>vowel-open>alveolar`, `postalveolar>glottal>vowel-spread`, `postalveolar>vowel-open>closed`, `postalveolar>vowel-open>vowel-spread`, `postalveolar>vowel-spread>alveolar`, `velar>alveolar>vowel-spread`, `velar>vowel-mid>alveolar`, `vowel-mid>alveolar>alveolar`, `vowel-mid>alveolar>vowel-mid`, `vowel-mid>alveolar>vowel-open`, `vowel-mid>alveolar>vowel-round`, `vowel-mid>alveolar>vowel-spread`, `vowel-mid>postalveolar>vowel-open`, `vowel-mid>postalveolar>vowel-spread`, `vowel-mid>velar>alveolar`, `vowel-open>alveolar>alveolar`, `vowel-open>alveolar>vowel-mid`, `vowel-open>alveolar>vowel-spread`, `vowel-open>closed>vowel-mid`, `vowel-open>postalveolar>vowel-open`, `vowel-open>vowel-spread>alveolar`, `vowel-round>alveolar>alveolar`, `vowel-round>alveolar>velar`, `vowel-round>alveolar>vowel-mid`, `vowel-round>alveolar>vowel-round`, `vowel-round>alveolar>vowel-spread`, `vowel-round>postalveolar>vowel-open`, `vowel-round>vowel-mid>alveolar`, `vowel-round>vowel-round>alveolar`, `vowel-round>vowel-spread>vowel-spread`, `vowel-spread>alveolar>alveolar`, `vowel-spread>alveolar>vowel-mid`, `vowel-spread>alveolar>vowel-open`, `vowel-spread>alveolar>vowel-round`, `vowel-spread>alveolar>vowel-spread`, `vowel-spread>postalveolar>vowel-open`, `vowel-spread>vowel-mid>alveolar`, `vowel-spread>vowel-spread>alveolar`.
 
 ---
@@ -238,8 +238,8 @@ A full canonical bundle (`jina`, `jina-anime`, `naia`) contains **233** entries 
 
 | Resource / Parameter | Limit | Enforcement location |
 |---|---|---|
-| **Speech assets total size** (`neutral_head` + `atlas` + `atlas_index` + `validation_report` + `quality_report`) | **160 MiB** (`167,772,160` bytes) | `MAX_SPEECH_ASSETS_BYTES` (`studio_nva_bundle_limits.py`), `SPEECH_ASSET_MAX_BYTES` (`generation-contract.js`). Excludes `provenance` (`speech/generation-result.json`) and auxiliary files. |
-| **Compressed `.nva` archive size** | **200 MiB** (`209,715,200` bytes) | `MAX_ARCHIVE_BYTES` (`nva-bundle-loader.js`), gateway `MAX_NVA_BYTES`. |
+| **Speech assets total size** (`neutral_head` + `atlas` + `atlas_index` + `validation_report` + `quality_report`) | **160 MiB** (`167,772,160` bytes) | Producer-side limit. Excludes `provenance` (`speech/generation-result.json`) and auxiliary files. |
+| **Compressed `.nva` archive size** | **200 MiB** (`209,715,200` bytes) | `MAX_ARCHIVE_BYTES` (`src/main/nva-bundle-loader.js`). |
 | **Expanded bundle size** | **400 MiB** (`419,430,400` bytes) / **256 MiB** (`268,435,456` bytes in JSZip budget) | `MAX_EXPANDED_BYTES` (`nva-bundle-loader.js`) / `DEFAULT_MAX_BYTES` (`zip-budget.js`). |
 | **Maximum file count in archive** | **512** files | `MAX_FILES` (`nva-bundle-loader.js`, `zip-budget.js`). |
 | **Maximum `manifest.json` size** | **1 MiB** (`1,048,576` bytes) | `MAX_MANIFEST_BYTES` (`nva-bundle-loader.js`, `zip-budget.js`). |
@@ -252,6 +252,8 @@ A full canonical bundle (`jina`, `jina-anime`, `naia`) contains **233** entries 
 ---
 
 ## 9. Playback rules
+
+This section follows the host renderer in `naia-shell` (`PrebakedAvatarRenderer`). The standalone player in this repository, `NvaAnimationPlayer` (`src/main/nva-animation-player.js`), plays clips only and does not composite speech atlases.
 
 ### 9.1 Idle playback (when not speaking)
 
