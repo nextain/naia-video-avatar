@@ -114,6 +114,6 @@ naia-adk (개인 ADK 바탕 · 도구 중립 계약)
 JavaScript 로더는 기존 NVA v0.2 파일의 읽기 호환을 유지합니다. 새로 배포하는 파일은
 더 작은 v0.3 completed-media 계약을 사용해야 합니다.
 
-## 라이선스
+## 라이선스 및 특허 고지 (License & Patent Notice)
 
-Apache License 2.0. NVA 파일 안의 미디어는 각자 명시한 라이선스를 따릅니다.
+코드는 [Apache License 2.0 (`Apache-2.0`)](../LICENSE)으로 배포되며(NVA 파일 안의 미디어는 각자 명시한 라이선스를 따름), 특허 경계 및 조건부 특허 서약([`PATENTS.md`](../PATENTS.md)), 상용·엔터프라이즈 라이선스([`LICENSE-COMMERCIAL.md`](../LICENSE-COMMERCIAL.md)), 기여자 약정([`CONTRIBUTING.md`](../CONTRIBUTING.md), [`CLA.md`](../CLA.md), [`CLA-CORPORATE.md`](../CLA-CORPORATE.md)) 전문은 영문 [`README.md`의 License & Patent Notice](../README.md#license--patent-notice) 절을 참고하세요.
