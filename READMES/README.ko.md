@@ -46,7 +46,7 @@ avatar.nva
 `.nva` 확장자는 일반 ZIP 아카이브입니다. `manifest.json`은 `nva_version: "0.3"`과
 `profile: "completed-media"`를 사용합니다. 모든 `speech_clips` 항목은 음성이 내장된
 완성 MP4 또는 WebM과 BCP 47 언어 태그를 가리킵니다. 자세한 내용은
-[포맷 가이드](../docs/nva-format-guide.ko.md)를 참고하세요.
+[포맷 가이드](../docs/nva-format-guide.ko.md)와 [발화 조각 묶음 포맷](../docs/nva-speech-atlas-format.ko.md)을 참고하세요.
 
 ## 최종 NVA 만들기
 

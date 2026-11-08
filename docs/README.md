@@ -12,6 +12,8 @@ This file serves as the entry point (hub) for this directory. All curated docume
 - [Threat Model](./threat-model.md) — Security boundaries, secret isolation (T3), and untracked paths
 - [LLM Role Division](./llm-roles.md) — Division of responsibilities between small (light) models and large models, single CLI adapter patterns, and detection tiers
 - [Acceptance Criteria](./acceptance-criteria.md) — How contract specifications and verification replace traditional gates (eliminating gatekeepers), with completion evidence grades (strong/weak/none)
+- [NVA Format Guide](./nva-format-guide.md) — NVA v0.3 completed-media specification and Studio v0.2 compatibility profile
+- [NVA Speech Atlas Format](./nva-speech-atlas-format.md) — Read-side format, byte layout, index fields, limits, and playback rules for `speech_motion` bundles
 
 ## Planning & Architecture (planning/)
 

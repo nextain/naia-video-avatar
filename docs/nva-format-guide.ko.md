@@ -68,6 +68,7 @@ NVA 파일은 브라우저가 GPU 추론 없이 재생할 수 있는 ZIP 아카�
 
 Player는 Studio v0.2 배포 파일의 읽기 및 재생을 지원합니다. 새로 배포하는 NVA
 파일은 생성 관련·실시간 필드를 제외한 v0.3 completed-media를 사용해야 합니다.
+Studio v0.2 발화 조각 묶음(`speech_motion`, `speech/atlas.bin`, `speech/atlas-index.json`)의 상세 규격과 재생 규칙은 [NVA 발화 조각 묶음 포맷](./nva-speech-atlas-format.ko.md)을 참고하세요.
 
 ### 매니페스트 필드 및 Player 동작
 
